@@ -1,0 +1,115 @@
+{
+  "timestamp": "2025-09-30T13:09:57.848Z",
+  "project": "intelligent-cloud-guardian",
+  "security": {
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "warnings": 3,
+    "issues": [
+      {
+        "id": "gitignore-missing",
+        "severity": "HIGH",
+        "category": "Security",
+        "message": ".gitignore missing critical patterns",
+        "details": [
+          ".env.*",
+          "*.env",
+          "dist/",
+          "build/",
+          "logs/",
+          "serviceAccountKey.json",
+          "*credentials*.json",
+          "*.pem",
+          "*.key"
+        ],
+        "autoFixable": true,
+        "needsExplanation": false
+      },
+      {
+        "id": "no-env-example",
+        "severity": "MEDIUM",
+        "category": "Documentation",
+        "message": "Missing .env.example for team reference",
+        "autoFixable": true,
+        "needsExplanation": false
+      }
+    ]
+  },
+  "tools": {
+    "detected": [
+      {
+        "category": "vcs",
+        "name": "git",
+        "installed": true
+      },
+      {
+        "category": "runtime",
+        "name": "node",
+        "installed": true
+      },
+      {
+        "category": "package-manager",
+        "name": "npm",
+        "installed": true
+      },
+      {
+        "category": "containerization",
+        "name": "docker",
+        "installed": true
+      },
+      {
+        "category": "github-cli",
+        "name": "gh",
+        "installed": true
+      }
+    ],
+    "missing": [],
+    "recommendations": [
+      {
+        "category": "testing",
+        "type": "setup",
+        "priority": "high",
+        "reason": "No testing setup detected",
+        "suggestion": "Add testing to ensure code quality",
+        "autoSetup": true
+      },
+      {
+        "category": "cicd",
+        "type": "setup",
+        "priority": "medium",
+        "reason": "No CI/CD configuration detected",
+        "suggestion": "Automate testing and deployment",
+        "options": [
+          {
+            "name": "GitHub Actions",
+            "file": ".github/workflows/main.yml"
+          },
+          {
+            "name": "GitLab CI",
+            "file": ".gitlab-ci.yml"
+          }
+        ]
+      },
+      {
+        "category": "monitoring",
+        "type": "error-tracking",
+        "priority": "high",
+        "reason": "No error monitoring or logging detected",
+        "suggestion": "Add monitoring to catch production issues",
+        "options": [
+          {
+            "name": "Sentry",
+            "install": "npm install @sentry/node",
+            "free": true
+          },
+          {
+            "name": "Winston",
+            "install": "npm install winston",
+            "free": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Guardian Dashboard - Holographic Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --holo-cyan: #00ffff;
+            --holo-magenta: #ff00ff;
+            --holo-yellow: #ffff00;
+            --depth-back: translateZ(-100px);
+            --depth-mid: translateZ(0px);
+            --depth-front: translateZ(50px);
+            --depth-accent: translateZ(100px);
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #0a0015 0%, #000000 70%);
+            color: white;
+            font-family: 'Orbitron', 'Courier New', monospace;
+            overflow-x: hidden;
+            min-height: 100vh;
+            cursor: crosshair;
+            perspective: 1200px;
+        }
+
+        /* HOLOGRAPHIC DEPTH CONTAINER */
+        .holographic-scene {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease-out;
+        }
+
+        /* DEPTH LAYERS */
+        .depth-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            min-height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .depth-layer.background {
+            z-index: 1;
+            transform: var(--depth-back);
+            opacity: 0.4;
+            filter: blur(2px);
+        }
+
+        .depth-layer.midground {
+            z-index: 5;
+            transform: var(--depth-mid);
+        }
+
+        .depth-layer.foreground {
+            z-index: 10;
+            transform: var(--depth-front);
+        }
+
+        .depth-layer.accent {
+            z-index: 15;
+            transform: var(--depth-accent);
+        }
+
+        /* HEADER - ACCENT LAYER */
+        .guardian-header {
+            padding: 30px 40px;
+            text-align: center;
+            background: linear-gradient(135deg,
+                rgba(0, 255, 255, 0.05) 0%,
+                rgba(255, 0, 255, 0.03) 50%,
+                rgba(255, 255, 0, 0.05) 100%
+            );
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 2px rgba(255, 255, 255, 0.1),
+                0 0 60px rgba(0, 255, 255, 0.1);
+        }
+
+        .guardian-logo {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--holo-cyan), var(--holo-magenta), var(--holo-yellow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .project-name {
+            font-size: 1.2rem;
+            color: var(--holo-cyan);
+            text-shadow: 0 0 15px var(--holo-cyan);
+            letter-spacing: 2px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        /* MAIN GRID - MIDGROUND LAYER */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            padding: 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* NEOSKEUOMORPHIC CARDS */
+        .neo-card {
+            position: relative;
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+            transform-style: preserve-3d;
+            min-height: 280px;
+            cursor: pointer;
+
+            /* Neoskeuomorphic shadow system */
+            box-shadow:
+                /* Outer depth */
+                0 20px 40px rgba(0, 0, 0, 0.6),
+                0 8px 16px rgba(0, 0, 0, 0.4),
+                /* Inner highlights */
+                inset 0 1px 2px rgba(255, 255, 255, 0.15),
+                inset 0 -1px 1px rgba(0, 0, 0, 0.2),
+                /* Holographic rim */
+                0 0 0 1px rgba(0, 255, 255, 0.3),
+                0 0 30px rgba(0, 255, 255, 0.15);
+
+            background: linear-gradient(135deg,
+                rgba(0, 255, 255, 0.05) 0%,
+                rgba(255, 0, 255, 0.03) 50%,
+                rgba(0, 255, 255, 0.05) 100%
+            );
+        }
+
+        .neo-card:hover {
+            transform: translateY(-10px) rotateX(3deg) rotateY(2deg);
+            box-shadow:
+                0 30px 60px rgba(0, 0, 0, 0.7),
+                0 12px 24px rgba(0, 0, 0, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.2),
+                inset 0 -2px 2px rgba(0, 0, 0, 0.25),
+                0 0 0 2px rgba(0, 255, 255, 0.5),
+                0 0 50px rgba(0, 255, 255, 0.3),
+                0 0 100px rgba(255, 0, 255, 0.2);
+        }
+
+        .neo-card.active {
+            background: linear-gradient(135deg,
+                rgba(255, 255, 0, 0.08) 0%,
+                rgba(255, 0, 255, 0.06) 50%,
+                rgba(255, 255, 0, 0.08) 100%
+            );
+            box-shadow:
+                0 25px 50px rgba(0, 0, 0, 0.7),
+                0 10px 20px rgba(0, 0, 0, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.2),
+                inset 0 -2px 2px rgba(0, 0, 0, 0.2),
+                0 0 0 3px rgba(255, 255, 0, 0.7),
+                0 0 60px rgba(255, 255, 0, 0.5);
+        }
+
+        .card-header {
+            padding: 25px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow:
+                0 0 15px var(--holo-cyan),
+                0 0 30px rgba(0, 255, 255, 0.4);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            backdrop-filter: blur(10px);
+            border: 1px solid;
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .status-good {
+            background: rgba(0, 255, 0, 0.15);
+            border-color: #00ff00;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .status-warning {
+            background: rgba(255, 255, 0, 0.15);
+            border-color: var(--holo-yellow);
+            color: var(--holo-yellow);
+            text-shadow: 0 0 10px var(--holo-yellow);
+        }
+
+        .status-error {
+            background: rgba(255, 0, 0, 0.15);
+            border-color: #ff0000;
+            color: #ff0000;
+            text-shadow: 0 0 10px #ff0000;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        /* METRIC DISPLAYS */
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .metric:hover {
+            background: rgba(0, 255, 255, 0.05);
+            padding-left: 10px;
+            border-left: 3px solid var(--holo-cyan);
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--holo-cyan);
+            text-shadow: 0 0 10px var(--holo-cyan);
+        }
+
+        /* HOLOGRAPHIC PROGRESS BAR */
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow:
+                inset 0 2px 5px rgba(0, 0, 0, 0.5),
+                0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg,
+                var(--holo-cyan) 0%,
+                var(--holo-magenta) 50%,
+                var(--holo-yellow) 100%
+            );
+            border-radius: 15px;
+            box-shadow:
+                0 0 20px var(--holo-cyan),
+                inset 0 1px 2px rgba(255, 255, 255, 0.3);
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                transparent 100%
+            );
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+            z-index: 10;
+            letter-spacing: 1px;
+        }
+
+        /* ISSUE LIST */
+        .issue-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .issue-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .issue-item:hover {
+            background: rgba(0, 255, 255, 0.1);
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .issue-item.critical {
+            border-color: #ff0000;
+            background: rgba(255, 0, 0, 0.05);
+        }
+
+        .issue-item.high {
+            border-color: #ff9900;
+            background: rgba(255, 153, 0, 0.05);
+        }
+
+        .issue-item.medium {
+            border-color: var(--holo-yellow);
+            background: rgba(255, 255, 0, 0.05);
+        }
+
+        .issue-icon {
+            font-size: 1.5rem;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .issue-text {
+            flex: 1;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        /* HOLOGRAPHIC BUTTONS */
+        .holo-button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg,
+                rgba(0, 255, 255, 0.2) 0%,
+                rgba(255, 0, 255, 0.15) 50%,
+                rgba(0, 255, 255, 0.2) 100%
+            );
+            border: 2px solid var(--holo-cyan);
+            border-radius: 15px;
+            color: var(--holo-cyan);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--holo-cyan);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow:
+                0 5px 15px rgba(0, 0, 0, 0.3),
+                inset 0 1px 2px rgba(255, 255, 255, 0.2),
+                0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .holo-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            background: linear-gradient(135deg,
+                rgba(0, 255, 255, 0.3) 0%,
+                rgba(255, 0, 255, 0.25) 50%,
+                rgba(0, 255, 255, 0.3) 100%
+            );
+            box-shadow:
+                0 10px 25px rgba(0, 255, 255, 0.3),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3),
+                0 0 40px rgba(0, 255, 255, 0.5);
+            border-color: rgba(0, 255, 255, 0.8);
+        }
+
+        .holo-button:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow:
+                0 3px 8px rgba(0, 0, 0, 0.4),
+                inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                0 0 30px rgba(255, 255, 0, 0.5);
+            border-color: var(--holo-yellow);
+        }
+
+        /* LOADING SPINNER */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            border: 4px solid rgba(0, 255, 255, 0.2);
+            border-top: 4px solid var(--holo-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 30px var(--holo-cyan);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* BACKGROUND AMBIENT PARTICLES */
+        .ambient-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--holo-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--holo-cyan);
+            animation: float 10s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); }
+            25% { transform: translateY(-20px) translateX(10px); }
+            50% { transform: translateY(-40px) translateX(-10px); }
+            75% { transform: translateY(-20px) translateX(10px); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .guardian-logo {
+                font-size: 2rem;
+            }
+
+            .neo-card {
+                min-height: 250px;
+            }
+        }
+
+        /* DEPTH INDICATOR */
+        .depth-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 0.7rem;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--holo-cyan);
+            color: var(--holo-cyan);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Ambient Particles Background -->
+    <div class="ambient-particles" id="particles"></div>
+
+    <!-- Depth Indicator -->
+    <div class="depth-indicator">
+        3D Depth: Active | Mouse: (<span id="mouseX">0</span>, <span id="mouseY">0</span>)
+    </div>
+
+    <!-- Main Holographic Scene -->
+    <div class="holographic-scene" id="scene">
+
+        <!-- ACCENT LAYER - Header -->
+        <div class="depth-layer accent">
+            <div class="guardian-header">
+                <div class="guardian-logo">🛡️ GUARDIAN</div>
+                <div class="project-name" id="project-name">Loading...</div>
+            </div>
+        </div>
+
+        <!-- FOREGROUND LAYER - Primary Cards -->
+        <div class="depth-layer foreground">
+            <div class="dashboard-grid">
+
+                <!-- Status Card -->
+                <div class="neo-card" id="status-card">
+                    <div class="card-header">
+                        <div class="card-title">📊 Status</div>
+                        <div class="status-badge status-good" id="status-badge">Loading...</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="status-content" class="loading">
+                            <div class="spinner"></div>
+                            <p>Analyzing project...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Scan Card -->
+                <div class="neo-card" id="security-card">
+                    <div class="card-header">
+                        <div class="card-title">🛡️ Security</div>
+                        <div class="status-badge status-good" id="security-badge">Scanning...</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="security-content" class="loading">
+                            <div class="spinner"></div>
+                            <p>Scanning for threats...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tools Card -->
+                <div class="neo-card" id="tools-card">
+                    <div class="card-header">
+                        <div class="card-title">🔧 Tools</div>
+                        <div class="status-badge status-good" id="tools-badge">Detecting...</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="tools-content" class="loading">
+                            <div class="spinner"></div>
+                            <p>Detecting tools...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- MIDGROUND LAYER - Secondary Info -->
+        <div class="depth-layer midground">
+            <div class="dashboard-grid" style="margin-top: 500px;">
+
+                <!-- Issues Card -->
+                <div class="neo-card" style="grid-column: 1 / -1;" id="issues-card">
+                    <div class="card-header">
+                        <div class="card-title">⚠️ Issues</div>
+                        <button class="holo-button" onclick="refreshScan()">Rescan</button>
+                    </div>
+                    <div class="card-body">
+                        <ul id="issues-list" class="issue-list loading">
+                            <div class="spinner"></div>
+                            <p>Loading issues...</p>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Parallax effect on mouse move (reduced intensity)
+        const scene = document.getElementById('scene');
+        const mouseXDisplay = document.getElementById('mouseX');
+        const mouseYDisplay = document.getElementById('mouseY');
+        let isCardHovered = false;
+
+        // Track card hover state
+        document.querySelectorAll('.neo-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                isCardHovered = true;
+            });
+            card.addEventListener('mouseleave', () => {
+                isCardHovered = false;
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            // Reduce parallax intensity from ±20 to ±8 degrees
+            const x = (e.clientX / window.innerWidth - 0.5) * 8;
+            const y = (e.clientY / window.innerHeight - 0.5) * 8;
+
+            // Only apply parallax when NOT hovering over a card
+            if (!isCardHovered) {
+                scene.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
+            }
+
+            mouseXDisplay.textContent = Math.round(x);
+            mouseYDisplay.textContent = Math.round(y);
+        });
+
+        // Generate ambient particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 10 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Mock data loading (replace with real API calls)
+        setTimeout(() => {
+            loadStatus();
+            loadSecurity();
+            loadTools();
+            loadIssues();
+        }, 1000);
+
+        function loadStatus() {
+            document.getElementById('project-name').textContent = 'intelligent-cloud-guardian';
+            document.getElementById('status-badge').textContent = 'Healthy';
+            document.getElementById('status-badge').className = 'status-badge status-good';
+
+            document.getElementById('status-content').innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Experience Level</span>
+                    <span class="metric-value">Advanced</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Dependencies</span>
+                    <span class="metric-value">12</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Branch</span>
+                    <span class="metric-value">main</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Uncommitted</span>
+                    <span class="metric-value">4,510</span>
+                </div>
+            `;
+        }
+
+        function loadSecurity() {
+            document.getElementById('security-badge').textContent = 'Issues Found';
+            document.getElementById('security-badge').className = 'status-badge status-warning';
+
+            document.getElementById('security-content').innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">🔴 Critical</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">🟠 High</span>
+                    <span class="metric-value">1</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">🟡 Medium</span>
+                    <span class="metric-value">1</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">⚪ Warnings</span>
+                    <span class="metric-value">3</span>
+                </div>
+                <div style="margin-top: 20px;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 85%"></div>
+                        <div class="progress-text">85% Secure</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadTools() {
+            document.getElementById('tools-badge').textContent = '5/5 Found';
+            document.getElementById('tools-badge').className = 'status-badge status-good';
+
+            document.getElementById('tools-content').innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">✓ Git</span>
+                    <span class="metric-value">Installed</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">✓ Node.js</span>
+                    <span class="metric-value">v18.0.0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">✓ npm</span>
+                    <span class="metric-value">v9.0.0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">✓ Docker</span>
+                    <span class="metric-value">Installed</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">✓ GitHub CLI</span>
+                    <span class="metric-value">Installed</span>
+                </div>
+            `;
+        }
+
+        function loadIssues() {
+            document.getElementById('issues-list').innerHTML = `
+                <li class="issue-item high">
+                    <span class="issue-icon">🟠</span>
+                    <span class="issue-text">.gitignore missing critical patterns</span>
+                    <button class="holo-button" onclick="fixIssue('gitignore')">Fix</button>
+                </li>
+                <li class="issue-item medium">
+                    <span class="issue-icon">🟡</span>
+                    <span class="issue-text">Missing .env.example for team reference</span>
+                    <button class="holo-button" onclick="fixIssue('env-example')">Fix</button>
+                </li>
+            `;
+        }
+
+        function fixIssue(issueId) {
+            alert(`Fixing issue: ${issueId}\n\nIn production, this would call the Guardian API to auto-fix the issue.`);
+        }
+
+        function refreshScan() {
+            document.getElementById('issues-card').classList.add('active');
+            setTimeout(() => {
+                document.getElementById('issues-card').classList.remove('active');
+                alert('Scan complete! No new issues found.');
+            }, 1000);
+        }
+
+        // Card click effects
+        document.querySelectorAll('.neo-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'BUTTON') {
+                    this.classList.toggle('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

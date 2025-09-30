@@ -1,0 +1,50 @@
+{
+  "name": "nimbus-guardian",
+  "version": "1.0.0",
+  "description": "Stop shipping broken code. AI-powered deployment safety net that catches secrets, missing tools, and rookie mistakes before they hit production.",
+  "main": "cli.js",
+  "bin": {
+    "nimbus": "./cli.js"
+  },
+  "scripts": {
+    "start": "node cli.js",
+    "setup": "node setup.js",
+    "chat": "node chat-assistant.js"
+  },
+  "keywords": [
+    "deployment",
+    "cloud",
+    "security",
+    "devops",
+    "ai-assistant",
+    "claude",
+    "gemini",
+    "pre-deploy",
+    "secret-scanner",
+    "tool-detection"
+  ],
+  "author": "Paul Phillips <Paul@clearseassolutions.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Domusgpt/nimbus-guardian"
+  },
+  "homepage": "https://nimbus-guardian.web.app",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@google/generative-ai": "^0.21.0",
+    "chalk": "^4.1.2",
+    "commander": "^12.0.0",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1",
+    "boxen": "^5.1.2",
+    "prompts": "^2.4.2",
+    "conf": "^10.2.0",
+    "dotenv": "^16.4.7",
+    "node-fetch": "^2.7.0",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0"
+  }
+}

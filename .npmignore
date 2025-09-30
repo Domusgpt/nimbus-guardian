@@ -1,0 +1,47 @@
+# Development files
+node_modules/
+.guardian/
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Documentation (except main README)
+docs/
+*.md
+!README.md
+
+# Build artifacts
+dist/
+build/
+*.log
+
+# Firebase
+.firebaserc
+firebase.json
+public/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test files
+test-run.js
+simple-dashboard.html
+holographic-dashboard.html
+dashboard-server.js
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Misc
+Desktop/
+!!prime!!VIB34D-STYLE/

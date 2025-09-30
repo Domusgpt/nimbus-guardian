@@ -1,0 +1,1044 @@
+#!/usr/bin/env node
+
+/**
+ * Interactive Dashboard Server - Project Management Hub
+ * A Paul Phillips Manifestation - Paul@clearseassolutions.com
+ * "The Revolution Will Not be in a Structured Format" © 2025
+ *
+ * Web-based dashboard for managing projects, deployments, and cloud infrastructure
+ */
+
+const http = require('http');
+const fs = require('fs-extra');
+const path = require('path');
+const { execSync } = require('child_process');
+const GuardianEngine = require('./guardian-engine');
+const ToolDetector = require('./tool-detector');
+const AIAssistant = require('./ai-assistant');
+
+class DashboardServer {
+    constructor(port = 3333) {
+        this.port = port;
+        this.projectPath = process.cwd();
+        this.config = null;
+        this.cache = {};
+    }
+
+    async start() {
+        await this.loadConfig();
+
+        const server = http.createServer(async (req, res) => {
+            await this.handleRequest(req, res);
+        });
+
+        server.listen(this.port, () => {
+            console.log(`\n🛡️  Guardian Dashboard running at http://localhost:${this.port}\n`);
+
+            // Auto-open browser
+            try {
+                const command = process.platform === 'darwin' ? 'open' :
+                               process.platform === 'win32' ? 'start' : 'xdg-open';
+                execSync(`${command} http://localhost:${this.port}`, { stdio: 'ignore' });
+            } catch {
+                // Couldn't auto-open
+            }
+        });
+    }
+
+    async loadConfig() {
+        const configPath = path.join(this.projectPath, '.guardian', 'config.json');
+        try {
+            this.config = await fs.readJson(configPath);
+            require('dotenv').config({ path: path.join(this.projectPath, '.guardian', '.env') });
+        } catch {
+            this.config = {
+                projectName: path.basename(this.projectPath),
+                experienceLevel: 'intermediate'
+            };
+        }
+    }
+
+    async handleRequest(req, res) {
+        const url = new URL(req.url, `http://localhost:${this.port}`);
+
+        // API routes
+        if (url.pathname.startsWith('/api/')) {
+            return await this.handleAPI(url, req, res);
+        }
+
+        // Serve dashboard HTML
+        if (url.pathname === '/' || url.pathname === '/index.html') {
+            return this.serveDashboard(res);
+        }
+
+        // 404
+        res.writeHead(404);
+        res.end('Not found');
+    }
+
+    async handleAPI(url, req, res) {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        // Handle OPTIONS preflight
+        if (req.method === 'OPTIONS') {
+            res.writeHead(200);
+            res.end();
+            return;
+        }
+
+        try {
+            // GET /api/status - Overall project status
+            if (url.pathname === '/api/status' && req.method === 'GET') {
+                const status = await this.getProjectStatus();
+                res.writeHead(200);
+                res.end(JSON.stringify(status));
+                return;
+            }
+
+            // POST /api/scan - Run security scan
+            if (url.pathname === '/api/scan' && req.method === 'POST') {
+                const engine = new GuardianEngine(this.projectPath, this.config);
+                const results = await engine.analyze({ aiExplanations: false });
+                res.writeHead(200);
+                res.end(JSON.stringify(results));
+                return;
+            }
+
+            // GET /api/tools - Detect tools and missing dependencies
+            if (url.pathname === '/api/tools' && req.method === 'GET') {
+                const detector = new ToolDetector(this.projectPath);
+                const tools = await detector.analyze();
+                res.writeHead(200);
+                res.end(JSON.stringify(tools));
+                return;
+            }
+
+            // POST /api/fix - Auto-fix an issue
+            if (url.pathname === '/api/fix' && req.method === 'POST') {
+                const body = await this.readRequestBody(req);
+                const { issueId } = JSON.parse(body);
+                const engine = new GuardianEngine(this.projectPath, this.config);
+                const result = await engine.autoFix(issueId);
+                res.writeHead(200);
+                res.end(JSON.stringify(result));
+                return;
+            }
+
+            // POST /api/chat - Chat with AI
+            if (url.pathname === '/api/chat' && req.method === 'POST') {
+                const body = await this.readRequestBody(req);
+                const { message } = JSON.parse(body);
+                const ai = new AIAssistant({
+                    claudeApiKey: process.env.CLAUDE_API_KEY,
+                    geminiApiKey: process.env.GEMINI_API_KEY,
+                    experienceLevel: this.config.experienceLevel
+                });
+                const response = await ai.ask(message);
+                res.writeHead(200);
+                res.end(JSON.stringify(response));
+                return;
+            }
+
+            // GET /api/git-status - Git repository status
+            if (url.pathname === '/api/git-status' && req.method === 'GET') {
+                const gitStatus = await this.getGitStatus();
+                res.writeHead(200);
+                res.end(JSON.stringify(gitStatus));
+                return;
+            }
+
+            // GET /api/deployments - Deployment history
+            if (url.pathname === '/api/deployments' && req.method === 'GET') {
+                const deployments = await this.getDeploymentHistory();
+                res.writeHead(200);
+                res.end(JSON.stringify(deployments));
+                return;
+            }
+
+            // GET /api/github - GitHub repository info
+            if (url.pathname === '/api/github' && req.method === 'GET') {
+                const github = await this.getGitHubInfo();
+                res.writeHead(200);
+                res.end(JSON.stringify(github));
+                return;
+            }
+
+            // POST /api/install-tool - Install missing tool
+            if (url.pathname === '/api/install-tool' && req.method === 'POST') {
+                const body = await this.readRequestBody(req);
+                const { tool, command } = JSON.parse(body);
+                const result = await this.installTool(command);
+                res.writeHead(200);
+                res.end(JSON.stringify(result));
+                return;
+            }
+
+            res.writeHead(404);
+            res.end(JSON.stringify({ error: 'API endpoint not found' }));
+
+        } catch (error) {
+            console.error('API Error:', error);
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: error.message }));
+        }
+    }
+
+    // Helper to read request body
+    readRequestBody(req) {
+        return new Promise((resolve, reject) => {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => resolve(body));
+            req.on('error', reject);
+        });
+    }
+
+    async getProjectStatus() {
+        const status = {
+            projectName: this.config.projectName,
+            path: this.projectPath,
+            experienceLevel: this.config.experienceLevel,
+            timestamp: new Date().toISOString()
+        };
+
+        // Package.json info
+        try {
+            const pkg = await fs.readJson(path.join(this.projectPath, 'package.json'));
+            status.package = {
+                name: pkg.name,
+                version: pkg.version,
+                dependencies: Object.keys(pkg.dependencies || {}).length,
+                devDependencies: Object.keys(pkg.devDependencies || {}).length
+            };
+        } catch {
+            status.package = null;
+        }
+
+        // Git info
+        try {
+            const branch = execSync('git branch --show-current', {
+                cwd: this.projectPath,
+                encoding: 'utf-8'
+            }).trim();
+
+            const uncommitted = execSync('git status --porcelain', {
+                cwd: this.projectPath,
+                encoding: 'utf-8'
+            }).split('\n').filter(Boolean).length;
+
+            status.git = { branch, uncommitted };
+        } catch {
+            status.git = null;
+        }
+
+        return status;
+    }
+
+    async getGitStatus() {
+        try {
+            const branch = execSync('git branch --show-current', {
+                cwd: this.projectPath,
+                encoding: 'utf-8'
+            }).trim();
+
+            const status = execSync('git status --porcelain', {
+                cwd: this.projectPath,
+                encoding: 'utf-8'
+            }).split('\n').filter(Boolean).map(line => ({
+                status: line.substring(0, 2),
+                file: line.substring(3)
+            }));
+
+            const commits = execSync('git log --oneline -10', {
+                cwd: this.projectPath,
+                encoding: 'utf-8'
+            }).split('\n').filter(Boolean).map(line => {
+                const [hash, ...message] = line.split(' ');
+                return { hash, message: message.join(' ') };
+            });
+
+            return { branch, status, commits };
+        } catch (error) {
+            return { error: 'Not a git repository' };
+        }
+    }
+
+    async getDeploymentHistory() {
+        // Check for Firebase deployments
+        const deployments = [];
+
+        try {
+            const firebase = execSync('firebase projects:list --json', {
+                cwd: this.projectPath,
+                encoding: 'utf-8',
+                stdio: 'pipe'
+            });
+            const projects = JSON.parse(firebase);
+            deployments.push({
+                platform: 'firebase',
+                projects: projects.results || []
+            });
+        } catch {
+            // Firebase not configured or not installed
+        }
+
+        // Check for Vercel deployments
+        try {
+            const vercel = execSync('vercel list --json', {
+                cwd: this.projectPath,
+                encoding: 'utf-8',
+                stdio: 'pipe'
+            });
+            deployments.push({
+                platform: 'vercel',
+                deployments: JSON.parse(vercel)
+            });
+        } catch {
+            // Vercel not configured
+        }
+
+        return deployments;
+    }
+
+    async getGitHubInfo() {
+        try {
+            const remote = execSync('git remote get-url origin', {
+                cwd: this.projectPath,
+                encoding: 'utf-8'
+            }).trim();
+
+            // Parse GitHub URL
+            const match = remote.match(/github\.com[:/](.+?)\/(.+?)(\.git)?$/);
+            if (match) {
+                const [, owner, repo] = match;
+
+                // Try to get GitHub info via gh CLI
+                try {
+                    const info = execSync(`gh repo view ${owner}/${repo} --json name,description,url,isPrivate,stargazerCount`, {
+                        encoding: 'utf-8'
+                    });
+                    return JSON.parse(info);
+                } catch {
+                    return {
+                        owner,
+                        repo: repo.replace('.git', ''),
+                        url: `https://github.com/${owner}/${repo}`
+                    };
+                }
+            }
+
+            return { error: 'Not a GitHub repository' };
+        } catch {
+            return { error: 'No git remote configured' };
+        }
+    }
+
+    async installTool(command) {
+        try {
+            execSync(command, {
+                cwd: this.projectPath,
+                stdio: 'inherit'
+            });
+            return { success: true, message: 'Tool installed successfully' };
+        } catch (error) {
+            return { success: false, message: error.message };
+        }
+    }
+
+    async serveDashboard(res) {
+        res.setHeader('Content-Type', 'text/html');
+        res.writeHead(200);
+
+        // Check if holographic dashboard exists
+        const holographicPath = path.join(__dirname, 'dashboard-holographic.html');
+        try {
+            const holographicHTML = await fs.readFile(holographicPath, 'utf-8');
+            res.end(holographicHTML);
+        } catch {
+            // Fallback to built-in dashboard
+            res.end(this.getDashboardHTML());
+        }
+    }
+
+    getDashboardHTML() {
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Guardian Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .status-good {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .issue-list {
+            list-style: none;
+        }
+
+        .issue-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .issue-icon {
+            font-size: 20px;
+        }
+
+        .issue-text {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-small {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        .tool-list {
+            list-style: none;
+        }
+
+        .tool-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tool-installed {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .tool-missing {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .chat-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 400px;
+            max-height: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+        }
+
+        .chat-container.open {
+            display: flex;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .chat-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .chat-fab:hover {
+            transform: scale(1.1);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .message-user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message-ai {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .full-width-card {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Cloud Guardian Dashboard</h1>
+            <p id="project-name">Loading project information...</p>
+        </div>
+
+        <div class="grid">
+            <!-- Project Status -->
+            <div class="card">
+                <h2>
+                    📊 Project Status
+                    <span id="status-badge" class="status-badge status-good">Loading...</span>
+                </h2>
+                <div id="project-metrics" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+
+            <!-- Security Scan -->
+            <div class="card">
+                <h2>🛡️ Security Scan</h2>
+                <div id="security-scan" class="loading">
+                    <div class="spinner"></div>
+                    <p>Scanning...</p>
+                </div>
+            </div>
+
+            <!-- Git Status -->
+            <div class="card">
+                <h2>📁 Git Status</h2>
+                <div id="git-status" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            </div>
+
+            <!-- Tools & Dependencies -->
+            <div class="card full-width-card">
+                <h2>🔧 Tools & Dependencies</h2>
+                <div id="tools-list" class="loading">
+                    <div class="spinner"></div>
+                    <p>Detecting tools...</p>
+                </div>
+            </div>
+
+            <!-- Issues & Recommendations -->
+            <div class="card full-width-card">
+                <h2>⚠️ Issues & Recommendations</h2>
+                <ul id="issues-list" class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing...</p>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat FAB -->
+    <button class="chat-fab" onclick="toggleChat()">💬</button>
+
+    <!-- AI Chat Container -->
+    <div class="chat-container" id="chat-container">
+        <div class="chat-header">
+            <h3>🤖 AI Assistant</h3>
+            <button onclick="toggleChat()" style="background: none; border: none; cursor: pointer; font-size: 20px;">✕</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-container">
+            <input
+                type="text"
+                class="chat-input"
+                id="chat-input"
+                placeholder="Ask me anything..."
+                onkeypress="handleChatKeypress(event)"
+            />
+        </div>
+    </div>
+
+    <script>
+        let chatHistory = [];
+
+        async function loadDashboard() {
+            await Promise.all([
+                loadProjectStatus(),
+                loadSecurityScan(),
+                loadGitStatus(),
+                loadTools()
+            ]);
+        }
+
+        async function loadProjectStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+
+                document.getElementById('project-name').textContent =
+                    data.projectName + ' • ' + data.path;
+
+                const metrics = document.getElementById('project-metrics');
+                metrics.className = '';
+                metrics.innerHTML = \`
+                    <div class="metric">
+                        <span class="metric-label">Experience Level</span>
+                        <span class="metric-value">\${data.experienceLevel}</span>
+                    </div>
+                    \${data.package ? \`
+                        <div class="metric">
+                            <span class="metric-label">Dependencies</span>
+                            <span class="metric-value">\${data.package.dependencies}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Dev Dependencies</span>
+                            <span class="metric-value">\${data.package.devDependencies}</span>
+                        </div>
+                    \` : ''}
+                    \${data.git ? \`
+                        <div class="metric">
+                            <span class="metric-label">Branch</span>
+                            <span class="metric-value">\${data.git.branch}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Uncommitted Changes</span>
+                            <span class="metric-value">\${data.git.uncommitted}</span>
+                        </div>
+                    \` : ''}
+                \`;
+            } catch (error) {
+                console.error('Failed to load status:', error);
+            }
+        }
+
+        async function loadSecurityScan() {
+            try {
+                const res = await fetch('/api/scan');
+                const data = await res.json();
+
+                const critical = data.issues.filter(i => i.severity === 'CRITICAL').length;
+                const high = data.issues.filter(i => i.severity === 'HIGH').length;
+                const medium = data.issues.filter(i => i.severity === 'MEDIUM').length;
+
+                const badge = document.getElementById('status-badge');
+                if (critical > 0) {
+                    badge.className = 'status-badge status-error';
+                    badge.textContent = 'Critical Issues';
+                } else if (high > 0) {
+                    badge.className = 'status-badge status-warning';
+                    badge.textContent = 'Issues Found';
+                } else {
+                    badge.className = 'status-badge status-good';
+                    badge.textContent = 'Healthy';
+                }
+
+                const scan = document.getElementById('security-scan');
+                scan.className = '';
+                scan.innerHTML = \`
+                    <div class="metric">
+                        <span class="metric-label">🔴 Critical</span>
+                        <span class="metric-value">\${critical}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">🟠 High</span>
+                        <span class="metric-value">\${high}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">🟡 Medium</span>
+                        <span class="metric-value">\${medium}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">⚪ Warnings</span>
+                        <span class="metric-value">\${data.warnings.length}</span>
+                    </div>
+                \`;
+
+                // Show issues
+                const issuesList = document.getElementById('issues-list');
+                issuesList.className = 'issue-list';
+
+                if (data.issues.length === 0) {
+                    issuesList.innerHTML = '<div class="metric-label" style="text-align: center; padding: 20px;">✅ No issues found!</div>';
+                } else {
+                    issuesList.innerHTML = data.issues.slice(0, 10).map(issue => \`
+                        <li class="issue-item">
+                            <span class="issue-icon">\${getSeverityIcon(issue.severity)}</span>
+                            <span class="issue-text">\${issue.message}</span>
+                            \${issue.autoFixable ? '<button class="btn btn-small" onclick="fixIssue(\'' + issue.id + '\')">Fix</button>' : ''}
+                        </li>
+                    \`).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load scan:', error);
+            }
+        }
+
+        async function loadGitStatus() {
+            try {
+                const res = await fetch('/api/git-status');
+                const data = await res.json();
+
+                const gitStatus = document.getElementById('git-status');
+                gitStatus.className = '';
+
+                if (data.error) {
+                    gitStatus.innerHTML = '<p class="metric-label">' + data.error + '</p>';
+                    return;
+                }
+
+                gitStatus.innerHTML = \`
+                    <div class="metric">
+                        <span class="metric-label">Current Branch</span>
+                        <span class="metric-value">\${data.branch}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Uncommitted Files</span>
+                        <span class="metric-value">\${data.status.length}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Recent Commits</span>
+                        <span class="metric-value">\${data.commits.length}</span>
+                    </div>
+                \`;
+            } catch (error) {
+                console.error('Failed to load git status:', error);
+            }
+        }
+
+        async function loadTools() {
+            try {
+                const res = await fetch('/api/tools');
+                const data = await res.json();
+
+                const toolsList = document.getElementById('tools-list');
+                toolsList.className = '';
+
+                const cloud = data.detected.filter(t => t.category === 'cloud');
+                const missing = data.missing;
+
+                toolsList.innerHTML = \`
+                    <h3 style="margin-bottom: 15px;">Detected Cloud Providers</h3>
+                    <ul class="tool-list">
+                        \${cloud.length > 0 ? cloud.map(t => \`
+                            <li class="tool-item">
+                                <span>\${t.provider}</span>
+                                <span class="tool-installed">✓ Detected</span>
+                            </li>
+                        \`).join('') : '<li class="tool-item"><span>No cloud providers detected</span></li>'}
+                    </ul>
+
+                    \${missing.length > 0 ? \`
+                        <h3 style="margin: 20px 0 15px;">Missing Tools</h3>
+                        <ul class="tool-list">
+                            \${missing.map(t => \`
+                                <li class="tool-item">
+                                    <div>
+                                        <div>\${t.name}</div>
+                                        <div style="font-size: 12px; color: #666;">\${t.reason}</div>
+                                    </div>
+                                    <button class="btn btn-small" onclick="installTool('\${t.name}', '\${t.install}')">Install</button>
+                                </li>
+                            \`).join('')}
+                        </ul>
+                    \` : ''}
+
+                    \${data.recommendations.length > 0 ? \`
+                        <h3 style="margin: 20px 0 15px;">Recommendations</h3>
+                        <ul class="tool-list">
+                            \${data.recommendations.map(r => \`
+                                <li class="tool-item">
+                                    <div>
+                                        <div>\${r.category}: \${r.type}</div>
+                                        <div style="font-size: 12px; color: #666;">\${r.reason}</div>
+                                    </div>
+                                </li>
+                            \`).join('')}
+                        </ul>
+                    \` : ''}
+                \`;
+            } catch (error) {
+                console.error('Failed to load tools:', error);
+            }
+        }
+
+        function getSeverityIcon(severity) {
+            const icons = {
+                'CRITICAL': '🔴',
+                'HIGH': '🟠',
+                'MEDIUM': '🟡',
+                'LOW': '⚪'
+            };
+            return icons[severity] || '⚪';
+        }
+
+        async function fixIssue(issueId) {
+            try {
+                const res = await fetch('/api/fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ issueId })
+                });
+                const result = await res.json();
+                alert(result.message);
+                loadSecurityScan(); // Refresh
+            } catch (error) {
+                alert('Failed to fix issue: ' + error.message);
+            }
+        }
+
+        async function installTool(name, command) {
+            if (confirm(\`Install \${name}?\\n\\nCommand: \${command}\`)) {
+                try {
+                    const res = await fetch('/api/install-tool', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tool: name, command })
+                    });
+                    const result = await res.json();
+                    alert(result.message);
+                    loadTools(); // Refresh
+                } catch (error) {
+                    alert('Failed to install: ' + error.message);
+                }
+            }
+        }
+
+        function toggleChat() {
+            const chat = document.getElementById('chat-container');
+            const fab = document.querySelector('.chat-fab');
+            chat.classList.toggle('open');
+            fab.style.display = chat.classList.contains('open') ? 'none' : 'block';
+        }
+
+        function handleChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const messagesDiv = document.getElementById('chat-messages');
+
+            // Add user message
+            messagesDiv.innerHTML += \`<div class="message message-user">\${message}</div>\`;
+            input.value = '';
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                const data = await res.json();
+
+                // Add AI response
+                messagesDiv.innerHTML += \`<div class="message message-ai">\${data.response}</div>\`;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } catch (error) {
+                messagesDiv.innerHTML += \`<div class="message message-ai">Sorry, I encountered an error: \${error.message}</div>\`;
+            }
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>`;
+    }
+}
+
+// CLI execution
+if (require.main === module) {
+    const port = process.argv[2] || 3333;
+    const server = new DashboardServer(port);
+    server.start().catch(console.error);
+}
+
+module.exports = DashboardServer;

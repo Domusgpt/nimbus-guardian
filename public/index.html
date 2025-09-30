@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered deployment safety for everyone. Nimbus catches security issues, detects required tools, and teaches best practices - all before you deploy.">
+    <meta name="keywords" content="deployment, security, devops, cloud, firebase, aws, ai assistant, developer tools, nimbus">
+    <meta property="og:title" content="Nimbus - AI-Powered Cloud Guardian">
+    <meta property="og:description" content="Never deploy broken code again. Your personal AI mentor for cloud deployment and security.">
+    <meta property="og:type" content="website">
+    <title>Nimbus - AI-Powered Cloud Guardian</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Floating particles -->
+    <div id="particles-container"></div>
+
+    <!-- Scan line -->
+    <div class="scan-line"></div>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-logo">
+                    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#a78bfa;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M 40 100 Q 40 80 60 80 Q 60 60 80 60 Q 100 40 120 60 Q 140 60 140 80 Q 160 80 160 100 Q 160 120 140 120 L 60 120 Q 40 120 40 100 Z"
+                              fill="url(#cloudGrad)" opacity="0.8"/>
+                        <circle cx="100" cy="110" r="12" fill="#22d3ee" opacity="0.6"/>
+                        <circle cx="80" cy="105" r="8" fill="#a78bfa" opacity="0.6"/>
+                        <circle cx="120" cy="105" r="8" fill="#8b5cf6" opacity="0.6"/>
+                    </svg>
+                </div>
+                <h1 class="hero-title">NIMBUS</h1>
+                <p class="hero-subtitle">Your Deployment Safety Net</p>
+                <p class="hero-description">
+                    Stop shipping broken shit. Catch security holes, missing dependencies,
+                    and rookie mistakes before they hit production. Real talk from Claude & Gemini.
+                </p>
+                <div class="cta-buttons">
+                    <a href="#install" class="btn btn-primary">Get Started Free</a>
+                    <a href="dashboard.html" class="btn btn-secondary">View Dashboard Demo</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-number">15s</div>
+                        <div class="stat-label">Scan Speed</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number">10+</div>
+                        <div class="stat-label">Cloud Providers</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Why Nimbus?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="35" fill="none" stroke="url(#grad1)" stroke-width="3"/>
+                        <circle cx="50" cy="50" r="8" fill="#22d3ee"/>
+                        <line x1="50" y1="50" x2="75" y2="35" stroke="#a78bfa" stroke-width="2"/>
+                        <circle cx="75" cy="35" r="5" fill="#a78bfa"/>
+                    </svg>
+                    <h3>Secret Scanner</h3>
+                    <p>Finds exposed API keys, hardcoded passwords, and .env files before they leak. No bullshit pattern matching.</p>
+                </div>
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="20" y="30" width="60" height="50" rx="5" fill="none" stroke="#8b5cf6" stroke-width="3"/>
+                        <circle cx="35" cy="50" r="8" fill="#22d3ee"/>
+                        <rect x="50" y="42" width="20" height="16" fill="#a78bfa"/>
+                    </svg>
+                    <h3>Tool Detective</h3>
+                    <p>Auto-detects missing CLIs. No more "firebase command not found" moments at 2am.</p>
+                </div>
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 30 70 Q 30 40 50 40 Q 70 40 70 70" fill="none" stroke="#a78bfa" stroke-width="3"/>
+                        <circle cx="30" cy="70" r="6" fill="#22d3ee"/>
+                        <circle cx="70" cy="70" r="6" fill="#8b5cf6"/>
+                        <circle cx="50" cy="30" r="8" fill="#22d3ee"/>
+                    </svg>
+                    <h3>Dual AI Brain</h3>
+                    <p>Claude explains what's wrong. Gemini shows you how to fix it. In actual human language.</p>
+                </div>
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="25" y="25" width="50" height="50" rx="8" fill="none" stroke="#22d3ee" stroke-width="2" opacity="0.5"/>
+                        <rect x="30" y="30" width="40" height="40" rx="6" fill="none" stroke="#a78bfa" stroke-width="2" opacity="0.7"/>
+                        <rect x="35" y="35" width="30" height="30" rx="4" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+                    </svg>
+                    <h3>Live Dashboard</h3>
+                    <p>See your project health without opening 47 tabs. Actually looks good too.</p>
+                </div>
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <polygon points="50,20 80,50 50,50 70,80 40,50 50,50 30,20" fill="url(#grad2)"/>
+                    </svg>
+                    <h3>15-Second Scans</h3>
+                    <p>Fast enough to run on every commit. Won't slow down your flow.</p>
+                </div>
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 30 60 Q 50 30 70 60" fill="none" stroke="#22d3ee" stroke-width="3"/>
+                        <circle cx="30" cy="60" r="5" fill="#a78bfa"/>
+                        <circle cx="50" cy="40" r="5" fill="#8b5cf6"/>
+                        <circle cx="70" cy="60" r="5" fill="#22d3ee"/>
+                    </svg>
+                    <h3>Learns Your Level</h3>
+                    <p>Talks to beginners like humans, experts like experts. No condescending "helpful tips".</p>
+                </div>
+            </div>
+            <svg style="position:absolute;width:0;height:0">
+                <defs>
+                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#22d3ee"/>
+                        <stop offset="100%" style="stop-color:#a78bfa"/>
+                    </linearGradient>
+                    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#a78bfa"/>
+                        <stop offset="100%" style="stop-color:#8b5cf6"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Install</h3>
+                    <p>One command to install Nimbus globally</p>
+                    <code>npm install -g nimbus-guardian</code>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Setup</h3>
+                    <p>Quick 2-minute interactive setup</p>
+                    <code>nimbus setup</code>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Scan</h3>
+                    <p>Scan your project for issues</p>
+                    <code>nimbus scan --ai</code>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>Deploy</h3>
+                    <p>Deploy with confidence!</p>
+                    <code>nimbus pre-deploy</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- What Guardian Catches -->
+    <section class="catches">
+        <div class="container">
+            <h2 class="section-title">What Nimbus Catches</h2>
+            <div class="catches-grid">
+                <div class="catch-card critical">
+                    <h4><span class="severity-badge critical-badge"></span> Oh Shit Level</h4>
+                    <ul>
+                        <li>Exposed API keys & secrets</li>
+                        <li>.env files in git</li>
+                        <li>Hardcoded passwords</li>
+                        <li>AWS/Stripe live keys</li>
+                    </ul>
+                </div>
+                <div class="catch-card high">
+                    <h4><span class="severity-badge high-badge"></span> Bad Idea Tier</h4>
+                    <ul>
+                        <li>Missing security headers</li>
+                        <li>Vulnerable dependencies</li>
+                        <li>Docker root user</li>
+                        <li>Missing .gitignore patterns</li>
+                    </ul>
+                </div>
+                <div class="catch-card medium">
+                    <h4><span class="severity-badge medium-badge"></span> You Should Probably...</h4>
+                    <ul>
+                        <li>No .env.example</li>
+                        <li>Missing compression</li>
+                        <li>Outdated dependencies</li>
+                        <li>No caching strategy</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Supported Platforms -->
+    <section class="platforms">
+        <div class="container">
+            <h2 class="section-title">Supports All Major Platforms</h2>
+            <div class="platform-logos">
+                <div class="platform">Firebase</div>
+                <div class="platform">AWS</div>
+                <div class="platform">Google Cloud</div>
+                <div class="platform">Azure</div>
+                <div class="platform">Vercel</div>
+                <div class="platform">Netlify</div>
+                <div class="platform">Heroku</div>
+                <div class="platform">Docker</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing">
+        <div class="container">
+            <h2 class="section-title">Pick Your Plan</h2>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3>Free Tier</h3>
+                    <div class="price">$0<span>/mo</span></div>
+                    <ul>
+                        <li>Basic security scanning</li>
+                        <li>Tool detection</li>
+                        <li>10 AI questions/month</li>
+                        <li>Public repos only</li>
+                    </ul>
+                    <a href="#install" class="btn btn-outline">Start Free</a>
+                </div>
+                <div class="pricing-card featured">
+                    <div class="badge">Most Popular</div>
+                    <h3>Pro</h3>
+                    <div class="price">$20<span>/mo</span></div>
+                    <ul>
+                        <li>Everything in Free, plus:</li>
+                        <li>Unlimited AI assistance</li>
+                        <li>Private repositories</li>
+                        <li>Pre-deploy validation</li>
+                        <li>Actually useful support</li>
+                    </ul>
+                    <a href="#install" class="btn btn-primary">Try 14 Days Free</a>
+                </div>
+                <div class="pricing-card">
+                    <h3>Team</h3>
+                    <div class="price">$50<span>/seat/mo</span></div>
+                    <ul>
+                        <li>Everything in Pro, plus:</li>
+                        <li>Shared team dashboard</li>
+                        <li>Config templates</li>
+                        <li>CI/CD hooks</li>
+                        <li>Usage analytics</li>
+                    </ul>
+                    <a href="#install" class="btn btn-outline">Let's Talk</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section id="install" class="install">
+        <div class="container">
+            <h2 class="section-title">Get Started</h2>
+            <div class="install-steps">
+                <div class="install-code">
+                    <h3>Clone & Install</h3>
+                    <pre><code>git clone https://github.com/yourusername/nimbus-guardian
+cd nimbus-guardian
+npm install
+npm link</code></pre>
+                </div>
+                <div class="install-code">
+                    <h3>Use It</h3>
+                    <pre><code>cd your-project
+nimbus setup
+nimbus scan
+nimbus dashboard</code></pre>
+                    <p style="margin-top:15px;font-size:14px;color:rgba(255,255,255,0.6);">
+                        <em>Coming soon to npm</em>
+                    </p>
+                </div>
+            </div>
+            <div class="install-links">
+                <a href="https://github.com/yourusername/nimbus-guardian" class="link">Documentation</a>
+                <a href="https://github.com/yourusername/nimbus-guardian" class="link">Star on GitHub</a>
+                <a href="dashboard.html" class="link">Try Dashboard Demo</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Nimbus</h4>
+                    <p>Stop deploying broken code</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="#pricing">Pricing</a>
+                    <a href="dashboard.html">Dashboard Demo</a>
+                    <a href="#install">Get Started</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <a href="https://github.com/yourusername/nimbus-guardian">Documentation</a>
+                    <a href="https://github.com/yourusername/nimbus-guardian">GitHub</a>
+                    <a href="#">API Reference</a>
+                    <a href="#">Community</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Company</h4>
+                    <a href="#">About</a>
+                    <a href="#">Blog</a>
+                    <a href="mailto:paul@clearseassolutions.com">Contact</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 Paul Phillips - Clear Seas Solutions LLC. All Rights Reserved.</p>
+                <p class="manifesto">"The Revolution Will Not be in a Structured Format"</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

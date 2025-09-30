@@ -23,8 +23,8 @@
     "secret-scanner",
     "tool-detection"
   ],
-  "author": "Paul Phillips <Paul@clearseassolutions.com>",
-  "license": "MIT",
+  "author": "Paul Phillips <chairman@parserator.com>",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "https://github.com/Domusgpt/nimbus-guardian"

@@ -50,16 +50,16 @@
                 </div>
                 <div class="hero-stats">
                     <div class="stat">
-                        <div class="stat-number">15s</div>
+                        <div class="stat-number">&lt;5s</div>
                         <div class="stat-label">Scan Speed</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-number">100%</div>
-                        <div class="stat-label">Accuracy</div>
+                        <div class="stat-number">v1.0</div>
+                        <div class="stat-label">Now Live</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-number">10+</div>
-                        <div class="stat-label">Cloud Providers</div>
+                        <div class="stat-number">2</div>
+                        <div class="stat-label">Platforms Validated</div>
                     </div>
                 </div>
             </div>
@@ -106,8 +106,8 @@
                         <rect x="30" y="30" width="40" height="40" rx="6" fill="none" stroke="#a78bfa" stroke-width="2" opacity="0.7"/>
                         <rect x="35" y="35" width="30" height="30" rx="4" fill="none" stroke="#8b5cf6" stroke-width="2"/>
                     </svg>
-                    <h3>Live Dashboard</h3>
-                    <p>See your project health without opening 47 tabs. Actually looks good too.</p>
+                    <h3>Live Dashboard (Coming Soon)</h3>
+                    <p>Backend ready. Frontend integration in progress.</p>
                 </div>
                 <div class="feature-card">
                     <svg class="feature-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -214,16 +214,20 @@
     <!-- Supported Platforms -->
     <section class="platforms">
         <div class="container">
-            <h2 class="section-title">Supports All Major Platforms</h2>
+            <h2 class="section-title">Platform Support</h2>
+            <h3 style="text-align:center; margin-bottom:30px; color:#22d3ee;">v1.0: Deep Validation</h3>
             <div class="platform-logos">
+                <div class="platform">Docker</div>
                 <div class="platform">Firebase</div>
+            </div>
+            <h3 style="text-align:center; margin-top:40px; margin-bottom:30px; color:#a78bfa;">Upcoming: Detection + Validation</h3>
+            <div class="platform-logos">
                 <div class="platform">AWS</div>
                 <div class="platform">Google Cloud</div>
                 <div class="platform">Azure</div>
                 <div class="platform">Vercel</div>
                 <div class="platform">Netlify</div>
                 <div class="platform">Heroku</div>
-                <div class="platform">Docker</div>
             </div>
         </div>
     </section>
@@ -231,45 +235,46 @@
     <!-- Pricing -->
     <section class="pricing">
         <div class="container">
-            <h2 class="section-title">Pick Your Plan</h2>
+            <h2 class="section-title">Licensing</h2>
             <div class="pricing-grid">
                 <div class="pricing-card">
-                    <h3>Free Tier</h3>
-                    <div class="price">$0<span>/mo</span></div>
+                    <h3>Personal Use</h3>
+                    <div class="price">Free<span></span></div>
                     <ul>
-                        <li>Basic security scanning</li>
-                        <li>Tool detection</li>
-                        <li>10 AI questions/month</li>
-                        <li>Public repos only</li>
+                        <li>Evaluation purposes only</li>
+                        <li>Non-commercial use</li>
+                        <li>All features available</li>
+                        <li>No support included</li>
                     </ul>
-                    <a href="#install" class="btn btn-outline">Start Free</a>
+                    <a href="#install" class="btn btn-outline">Get Started</a>
                 </div>
                 <div class="pricing-card featured">
-                    <div class="badge">Most Popular</div>
-                    <h3>Pro</h3>
-                    <div class="price">$20<span>/mo</span></div>
+                    <div class="badge">Proprietary</div>
+                    <h3>Commercial License</h3>
+                    <div class="price">Contact<span></span></div>
                     <ul>
-                        <li>Everything in Free, plus:</li>
-                        <li>Unlimited AI assistance</li>
-                        <li>Private repositories</li>
-                        <li>Pre-deploy validation</li>
-                        <li>Actually useful support</li>
+                        <li>Commercial use rights</li>
+                        <li>Enterprise deployment</li>
+                        <li>Custom integrations</li>
+                        <li>Support & updates</li>
                     </ul>
-                    <a href="#install" class="btn btn-primary">Try 14 Days Free</a>
+                    <a href="mailto:chairman@parserator.com" class="btn btn-primary">Contact Sales</a>
                 </div>
                 <div class="pricing-card">
-                    <h3>Team</h3>
-                    <div class="price">$50<span>/seat/mo</span></div>
+                    <h3>Source Code</h3>
+                    <div class="price">Available<span></span></div>
                     <ul>
-                        <li>Everything in Pro, plus:</li>
-                        <li>Shared team dashboard</li>
-                        <li>Config templates</li>
-                        <li>CI/CD hooks</li>
-                        <li>Usage analytics</li>
+                        <li>View on GitHub</li>
+                        <li>Study implementation</li>
+                        <li>Report issues</li>
+                        <li>License required for use</li>
                     </ul>
-                    <a href="#install" class="btn btn-outline">Let's Talk</a>
+                    <a href="https://github.com/Domusgpt/nimbus-guardian" class="btn btn-outline">View Source</a>
                 </div>
             </div>
+            <p style="text-align:center; margin-top:30px; color:rgba(255,255,255,0.6);">
+                Copyright © 2025 Paul Phillips - Clear Seas Solutions LLC. All Rights Reserved.
+            </p>
         </div>
     </section>
 
@@ -279,11 +284,8 @@
             <h2 class="section-title">Get Started</h2>
             <div class="install-steps">
                 <div class="install-code">
-                    <h3>Clone & Install</h3>
-                    <pre><code>git clone https://github.com/yourusername/nimbus-guardian
-cd nimbus-guardian
-npm install
-npm link</code></pre>
+                    <h3>Install from npm</h3>
+                    <pre><code>npm install -g nimbus-guardian</code></pre>
                 </div>
                 <div class="install-code">
                     <h3>Use It</h3>
@@ -291,14 +293,11 @@ npm link</code></pre>
 nimbus setup
 nimbus scan
 nimbus dashboard</code></pre>
-                    <p style="margin-top:15px;font-size:14px;color:rgba(255,255,255,0.6);">
-                        <em>Coming soon to npm</em>
-                    </p>
                 </div>
             </div>
             <div class="install-links">
-                <a href="https://github.com/yourusername/nimbus-guardian" class="link">Documentation</a>
-                <a href="https://github.com/yourusername/nimbus-guardian" class="link">Star on GitHub</a>
+                <a href="https://github.com/Domusgpt/nimbus-guardian" class="link">Documentation</a>
+                <a href="https://github.com/Domusgpt/nimbus-guardian" class="link">Star on GitHub</a>
                 <a href="dashboard.html" class="link">Try Dashboard Demo</a>
             </div>
         </div>
@@ -321,16 +320,14 @@ nimbus dashboard</code></pre>
                 </div>
                 <div class="footer-section">
                     <h4>Resources</h4>
-                    <a href="https://github.com/yourusername/nimbus-guardian">Documentation</a>
-                    <a href="https://github.com/yourusername/nimbus-guardian">GitHub</a>
-                    <a href="#">API Reference</a>
-                    <a href="#">Community</a>
+                    <a href="https://github.com/Domusgpt/nimbus-guardian">Documentation</a>
+                    <a href="https://github.com/Domusgpt/nimbus-guardian">GitHub</a>
+                    <a href="https://www.npmjs.com/package/nimbus-guardian">npm Package</a>
                 </div>
                 <div class="footer-section">
                     <h4>Company</h4>
-                    <a href="#">About</a>
-                    <a href="#">Blog</a>
-                    <a href="mailto:paul@clearseassolutions.com">Contact</a>
+                    <a href="https://parserator.com">Parserator</a>
+                    <a href="mailto:chairman@parserator.com">Contact</a>
                 </div>
             </div>
             <div class="footer-bottom">

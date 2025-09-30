@@ -1,52 +1,52 @@
-# 🛡️ Nimbus Guardian
+# Nimbus Guardian
 
-**AI-Powered Cloud Deployment Safety for Everyone**
+AI-Powered Cloud Deployment Safety for Everyone
 
 [![npm version](https://img.shields.io/npm/v/nimbus-guardian.svg)](https://www.npmjs.com/package/nimbus-guardian)
 [![GitHub](https://img.shields.io/github/stars/Domusgpt/nimbus-guardian?style=social)](https://github.com/Domusgpt/nimbus-guardian)
-[![Website](https://img.shields.io/badge/website-live-blue)](https://nimbus-guardian.web.app)
 
 Never deploy broken code again. Your personal AI mentor for cloud deployment, security, and best practices.
 
 ---
 
-## 🌟 What is Nimbus Guardian?
+## What is Nimbus Guardian?
 
-Nimbus Guardian is like having a senior developer watching over your shoulder, catching mistakes **before** they become problems. It uses Claude (Anthropic) and Gemini (Google AI) to explain issues in plain English and teach you as you code.
+Nimbus Guardian is like having a senior developer watching over your shoulder, catching mistakes before they become problems. It uses Claude (Anthropic) and Gemini (Google AI) to explain issues in plain English and teach you as you code.
 
 ### Perfect for:
 
-- 🌱 **New developers** - Learn deployment the right way
-- 🚀 **Solo developers** - Catch issues before production
-- 👥 **Teams** - Enforce best practices automatically
-- 🎓 **Learners** - Get instant explanations of concepts
+- **New developers** - Learn deployment the right way
+- **Solo developers** - Catch issues before production
+- **Teams** - Enforce best practices automatically
+- **Learners** - Get instant explanations of concepts
 
 ---
 
-## ✨ Features
+## Features
 
-### 🔍 Smart Scanning
+### Smart Scanning
 - **Security:** Catches exposed API keys, secrets, and vulnerabilities
 - **Configuration:** Validates .env, .gitignore, and deployment configs
 - **Dependencies:** Finds vulnerabilities and outdated packages
 - **Performance:** Suggests optimizations and caching strategies
 - **Docker:** Validates container security and best practices
+- **Firebase:** Checks security rules and configuration
 
-### 🤖 AI-Powered Assistance
+### AI-Powered Assistance
 - **Natural Language:** Ask questions in plain English
 - **Context-Aware:** Understands your project and experience level
 - **Explanations:** Learn WHY something is wrong, not just WHAT
 - **Code Review:** Get AI feedback on your code
 - **Debugging Help:** Understand and fix errors faster
 
-### 🔧 Auto-Fix Everything
+### Auto-Fix
 - Missing .gitignore patterns
 - Exposed .env files
 - Security vulnerabilities
 - Missing environment examples
 - Common configuration issues
 
-### 📚 Interactive Learning
+### Interactive Learning
 - Built-in tutorials for beginners
 - Concept explanations at your level
 - Best practices guidance
@@ -54,15 +54,15 @@ Nimbus Guardian is like having a senior developer watching over your shoulder, c
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. Install
+### Install
 
 ```bash
 npm install -g nimbus-guardian
 ```
 
-### 2. Setup (Super Easy!)
+### Setup
 
 ```bash
 nimbus setup
@@ -72,9 +72,9 @@ Answer a few questions:
 - What's your project name?
 - Are you new to coding? (We adjust our help!)
 - Which cloud platform? (Firebase, AWS, etc.)
-- API keys for AI assistants (optional - we'll help you get them!)
+- API keys for AI assistants (optional)
 
-### 3. Scan Your Project
+### Scan Your Project
 
 ```bash
 nimbus scan
@@ -86,7 +86,7 @@ Get instant feedback on:
 - Missing best practices
 - Deployment readiness
 
-### 4. Fix Issues Automatically
+### Fix Issues Automatically
 
 ```bash
 nimbus fix
@@ -94,7 +94,7 @@ nimbus fix
 
 Let the AI fix common issues automatically.
 
-### 5. Get Help Anytime
+### Get Help Anytime
 
 ```bash
 nimbus chat
@@ -104,11 +104,11 @@ Chat with your AI assistant:
 - "What does this error mean?"
 - "How do I deploy to Firebase?"
 - "Is my code secure?"
-- "Explain environment variables like I'm 5"
+- "Explain environment variables"
 
 ---
 
-## 📖 Commands
+## Commands
 
 ### Essential Commands
 
@@ -134,29 +134,7 @@ nimbus debug "<error>"          # Get help with errors
 
 ---
 
-## 💬 Chat Examples
-
-The AI assistant speaks human, not just code:
-
-```bash
-nimbus chat
-```
-
-**You:** *"I'm getting 'Cannot read property of undefined'. What does that mean?"*
-
-**AI:** *"Great question! This error means you're trying to access a property on something that doesn't exist yet..."*
-
-**You:** *"How do I deploy my Node.js app?"*
-
-**AI:** *"Let me walk you through it step-by-step..."*
-
-**You:** *"What's the difference between dependencies and devDependencies?"*
-
-**AI:** *"Think of it like this: dependencies are ingredients you need to serve your dish to customers..."*
-
----
-
-## 📊 Web Dashboard
+## Web Dashboard
 
 Launch the interactive dashboard:
 
@@ -165,35 +143,14 @@ nimbus dashboard
 ```
 
 Opens at http://localhost:3333 with:
-- 🔍 Real-time project scanning
-- 📈 Security metrics
-- 🎯 Issue tracking
-- 🤖 AI-powered insights
-- ⚡ One-click fixes
+- Real-time project scanning
+- Security metrics
+- Issue tracking
+- AI-powered insights
 
 ---
 
-## 🎓 Learning Mode
-
-Built-in tutorials for beginners:
-
-```bash
-nimbus learn
-```
-
-Choose from:
-- 🌱 Git & Version Control Basics
-- 🌍 Environment Variables
-- 🔐 Security Best Practices
-- 🚀 Deploying Your First App
-- 🐛 Debugging Like a Pro
-- 📦 Understanding Dependencies
-- 🐳 Docker Containers
-- ⚙️ CI/CD Pipelines
-
----
-
-## 🔑 Getting API Keys
+## Getting API Keys
 
 ### Claude (Anthropic)
 1. Visit: https://console.anthropic.com/
@@ -211,83 +168,83 @@ Choose from:
 
 **Best for:** Quick answers, code generation
 
-**Cost:** Both have generous free tiers! Perfect for learning.
+**Cost:** Both have generous free tiers.
 
 ---
 
-## 🛡️ What Nimbus Catches
+## What Nimbus Catches
 
 ### Security Issues (CRITICAL)
-- ❌ API keys in code
-- ❌ .env files in git
-- ❌ Missing .gitignore patterns
-- ❌ Hardcoded passwords
-- ❌ Security vulnerabilities
-- ❌ Exposed secrets
+- API keys in code
+- .env files in git
+- Missing .gitignore patterns
+- Hardcoded passwords
+- Security vulnerabilities
+- Exposed secrets
 
 ### Platform Validation (HIGH)
-- 🐳 **Docker**: Root user detection, hardcoded secrets, :latest tags, multi-stage builds
-- 🔥 **Firebase**: Security rules, open database access, configuration validation
-- ⚠️ Missing environment files
-- ⚠️ No .env.example
-- ⚠️ Missing security headers
+- **Docker**: Root user detection, hardcoded secrets, :latest tags, multi-stage builds
+- **Firebase**: Security rules, open database access, configuration validation
+- Missing environment files
+- No .env.example
+- Missing security headers
 
 ### Best Practices (MEDIUM)
-- 💡 Missing compression
-- 💡 No caching strategy
-- 💡 Outdated dependencies
-- 💡 Performance optimizations
+- Missing compression
+- No caching strategy
+- Outdated dependencies
+- Performance optimizations
 
 ---
 
-## 🎯 Real-World Example
+## Real-World Example
 
 ```bash
 $ nimbus scan --ai
 
-🔍 Starting comprehensive analysis...
+Starting comprehensive analysis...
 
-📊 Scan Results
-🔴 Critical: 1
-🟠 High: 2
-🟡 Medium: 3
+Scan Results
+Critical: 1
+High: 2
+Medium: 3
 
-❌ Issues Found:
+Issues Found:
 
-🔴 .env file is tracked in git (exposes secrets!)
-   📄 .env
-   ✅ Auto-fixable
+[CRITICAL] .env file is tracked in git (exposes secrets!)
+   File: .env
+   Auto-fixable: Yes
 
-   🤖 AI Explanation:
+   AI Explanation:
    When you commit .env to git, anyone with access to your repository
    can see your secret keys and passwords. This is extremely dangerous
    because attackers could use these to access your databases, APIs,
    and user data. Always keep .env in .gitignore!
 
-🟠 Dockerfile doesn't specify USER (runs as root by default)
-   ✅ Auto-fixable
+[HIGH] Dockerfile doesn't specify USER (runs as root by default)
+   Auto-fixable: Yes
 
-   🤖 AI Explanation:
+   AI Explanation:
    Running containers as root is a security risk. If an attacker
    compromises your container, they have full system access. Always
-   create a non-root user in your Dockerfile...
+   create a non-root user in your Dockerfile.
 
 $ nimbus fix
 
-🔧 Found 2 fixable issues
+Found 2 fixable issues
 ? Fix these issues? Yes
 
-✅ Removed .env from git
-✅ Added USER directive to Dockerfile
+✓ Removed .env from git
+✓ Added USER directive to Dockerfile
 
 All fixes applied!
 ```
 
 ---
 
-## 🌱 For Complete Beginners
+## For Complete Beginners
 
-Don't worry if terms like "environment variables" or "API keys" sound confusing. Nimbus explains everything in plain English!
+Don't worry if terms like "environment variables" or "API keys" sound confusing. Nimbus explains everything in plain English.
 
 **First time?** Just run:
 
@@ -304,11 +261,11 @@ Choose "Git & Version Control Basics" and start learning by doing.
 nimbus chat
 ```
 
-Type your question in normal English. No technical jargon required!
+Type your question in normal English. No technical jargon required.
 
 ---
 
-## 🔧 How It Works
+## How It Works
 
 1. **Scans** your project files for common issues
 2. **Analyzes** Docker, Firebase, dependencies, security patterns
@@ -320,7 +277,7 @@ Type your question in normal English. No technical jargon required!
 
 ---
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 nimbus-guardian/
@@ -332,7 +289,6 @@ nimbus-guardian/
 ├── ai-assistant.js             # Claude & Gemini integration
 ├── dashboard-server.js         # Web dashboard backend
 ├── public/                     # Dashboard frontend
-│   └── dashboard.html         # Interactive UI
 ├── setup.js                    # Interactive setup wizard
 ├── package.json                # Dependencies
 └── README.md                  # This file
@@ -340,7 +296,7 @@ nimbus-guardian/
 
 ---
 
-## 🤝 CI/CD Integration
+## CI/CD Integration
 
 ### GitHub Actions
 
@@ -365,7 +321,7 @@ jobs:
 # Install git hooks
 nimbus install-hooks
 
-# Now every commit will be scanned automatically!
+# Now every commit will be scanned automatically
 ```
 
 **Manual hook:**
@@ -376,23 +332,23 @@ nimbus scan --quick || exit 1
 
 ---
 
-## 📊 Experience Levels
+## Experience Levels
 
 Nimbus adapts to your experience:
 
-### 🌱 Beginner
+### Beginner
 - Simple, jargon-free explanations
 - Step-by-step instructions
 - Lots of encouragement
 - "Why" explanations for everything
 
-### 🌿 Intermediate
+### Intermediate
 - Best practices focus
 - Multiple solution approaches
 - Industry standards
 - Practical examples
 
-### 🌳 Advanced
+### Advanced
 - Architecture insights
 - Performance deep-dives
 - Enterprise considerations
@@ -402,7 +358,7 @@ Change anytime: `nimbus setup`
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### "No AI provider configured"
 Run `nimbus setup` and add your API keys.
@@ -423,7 +379,7 @@ Ask: "I'm having trouble with [your issue]"
 
 ---
 
-## 🌟 Pro Tips
+## Pro Tips
 
 1. **Auto-scan commits:** `nimbus install-hooks`
 2. **Quick checks:** `nimbus scan --quick` (< 5 seconds)
@@ -433,7 +389,7 @@ Ask: "I'm having trouble with [your issue]"
 
 ---
 
-## 🎯 What's Next?
+## What's Next?
 
 After setup, try this workflow:
 
@@ -456,51 +412,38 @@ nimbus dashboard
 
 ---
 
-## 📜 License
+## Licensing
 
-© 2025 Paul Phillips - Clear Seas Solutions LLC
-All Rights Reserved - Proprietary Technology
+**Copyright © 2025 Paul Phillips - Clear Seas Solutions LLC**
+**All Rights Reserved - Proprietary Software**
 
-For licensing inquiries: Paul@clearseassolutions.com
+This is proprietary software. Personal, non-commercial use is permitted for evaluation purposes only.
 
----
+For commercial use, enterprise licensing, or custom deployments, contact:
 
-## 🌟 A Paul Phillips Manifestation
+**Paul Phillips**
+Chairman, Clear Seas Solutions LLC
+Email: chairman@parserator.com
+Website: https://parserator.com
 
-**Send Love, Hate, or Opportunity to:** Paul@clearseassolutions.com
-**Join The Exoditical Moral Architecture Movement:** [Parserator.com](https://parserator.com)
-
-> *"The Revolution Will Not be in a Structured Format"*
-
-**Making cloud deployment safe and accessible for everyone, one commit at a time.**
+See LICENSE.md for full terms.
 
 ---
 
-**Ready to deploy with confidence?**
+## Links
 
-```bash
-npm install -g nimbus-guardian
-nimbus setup
-```
-
-Let's go! 🚀
+- npm: https://www.npmjs.com/package/nimbus-guardian
+- GitHub: https://github.com/Domusgpt/nimbus-guardian
+- Website: https://nimbus-guardian.web.app
+- Documentation: Coming soon
 
 ---
 
-## 🔗 Links
+## Current Status
 
-- 📦 **npm**: https://www.npmjs.com/package/nimbus-guardian
-- 💻 **GitHub**: https://github.com/Domusgpt/nimbus-guardian
-- 🌐 **Website**: https://nimbus-guardian.web.app
-- 📚 **Documentation**: Coming soon at docs.nimbus-guardian.web.app
+**Version**: 1.0.0
 
----
-
-## 📈 Current Status
-
-**Version**: 1.0.0 (Launch Ready!)
-
-### ✅ Fully Tested Features
+### Fully Tested Features
 - Security scanning (API keys, secrets, .env exposure)
 - Docker validation (5 security checks)
 - Firebase validation (security rules, config)
@@ -508,15 +451,28 @@ Let's go! 🚀
 - AI assistance (Claude + Gemini)
 - Auto-fix capabilities
 - CLI with all commands
-- Web dashboard (backend ready)
+- Web dashboard backend
 - Pre-commit hooks
 - CI/CD integration
 
-### 🔜 Coming Soon
-- Dashboard frontend integration (guide available)
+### Upcoming Features
+- Dashboard frontend integration
 - AWS validator
 - GCP validator
-- Documentation site (Docusaurus)
+- Documentation site
 - Video tutorials
 
-See [WIP-STATUS.md](WIP-STATUS.md) for detailed progress tracking.
+See WIP-STATUS.md for detailed progress tracking.
+
+---
+
+**A Paul Phillips Manifestation**
+
+Making cloud deployment safe and accessible for everyone, one commit at a time.
+
+**Ready to deploy with confidence?**
+
+```bash
+npm install -g nimbus-guardian
+nimbus setup
+```

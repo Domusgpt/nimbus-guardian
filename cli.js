@@ -411,6 +411,107 @@ program
         console.log(chalk.white('  nimbus chat       - Ask AI about specific tools\n'));
     });
 
+// Install hooks command
+program
+    .command('install-hooks')
+    .description('Install pre-commit hooks for automatic scanning')
+    .action(async () => {
+        const gitDir = path.join(process.cwd(), '.git');
+
+        // Check if git repo
+        if (!await fs.pathExists(gitDir)) {
+            console.log(chalk.red('\n❌ Not a git repository!'));
+            console.log(chalk.gray('Initialize git first: git init\n'));
+            return;
+        }
+
+        const hookPath = path.join(gitDir, 'hooks', 'pre-commit');
+
+        // Check if hook already exists
+        if (await fs.pathExists(hookPath)) {
+            const { overwrite } = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'overwrite',
+                message: 'pre-commit hook already exists. Overwrite?',
+                default: false
+            }]);
+
+            if (!overwrite) {
+                console.log(chalk.yellow('\n❌ Installation cancelled\n'));
+                return;
+            }
+        }
+
+        // Create hook content
+        const hookContent = `#!/bin/bash
+# Nimbus Guardian Pre-commit Hook
+# Automatically runs security checks before each commit
+
+echo ""
+echo "🛡️  Running Nimbus Guardian security check..."
+echo ""
+
+nimbus scan --quick --fail-on critical
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ COMMIT BLOCKED: Critical security issues found!"
+    echo ""
+    echo "Fix these issues before committing:"
+    echo "  • Run 'nimbus fix' to auto-fix issues"
+    echo "  • Run 'nimbus chat' for help"
+    echo "  • Run 'nimbus scan' for details"
+    echo ""
+    echo "To commit anyway (not recommended):"
+    echo "  git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+echo "✅ All security checks passed!"
+echo ""
+`;
+
+        try {
+            // Ensure hooks directory exists
+            await fs.ensureDir(path.join(gitDir, 'hooks'));
+
+            // Write hook
+            await fs.writeFile(hookPath, hookContent, { mode: 0o755 });
+
+            console.log(chalk.green('\n✅ Pre-commit hook installed successfully!\n'));
+            console.log(chalk.white('What this does:'));
+            console.log(chalk.gray('  • Runs nimbus scan --quick before each commit'));
+            console.log(chalk.gray('  • Blocks commits if critical issues found'));
+            console.log(chalk.gray('  • Fast scan mode (< 5 seconds)\n'));
+            console.log(chalk.white('To uninstall:'));
+            console.log(chalk.gray('  nimbus uninstall-hooks\n'));
+            console.log(chalk.white('To bypass (not recommended):'));
+            console.log(chalk.gray('  git commit --no-verify\n'));
+        } catch (error) {
+            console.log(chalk.red('\n❌ Failed to install hook:'), error.message);
+        }
+    });
+
+// Uninstall hooks command
+program
+    .command('uninstall-hooks')
+    .description('Remove pre-commit hooks')
+    .action(async () => {
+        const hookPath = path.join(process.cwd(), '.git', 'hooks', 'pre-commit');
+
+        try {
+            if (await fs.pathExists(hookPath)) {
+                await fs.remove(hookPath);
+                console.log(chalk.green('\n✅ Pre-commit hook removed\n'));
+            } else {
+                console.log(chalk.yellow('\n⚠️  No pre-commit hook found\n'));
+            }
+        } catch (error) {
+            console.log(chalk.red('\n❌ Failed to remove hook:'), error.message);
+        }
+    });
+
 // Deploy check command
 program
     .command('pre-deploy')

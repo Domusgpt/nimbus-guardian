@@ -1,6 +1,6 @@
 {
   "name": "nimbus-guardian",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Stop shipping broken code. AI-powered deployment safety net that catches secrets, missing tools, and rookie mistakes before they hit production.",
   "main": "cli.js",
   "bin": {

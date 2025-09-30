@@ -42,11 +42,42 @@ program
     .option('--fail-on <severity>', 'Exit with error code if issues found (critical, high, medium)')
     .option('--json', 'Output results as JSON')
     .action(async (options) => {
+        // Check license and rate limits
+        const LicenseManager = require('./lib/license-manager');
+        const RateLimiter = require('./lib/rate-limiter');
+        const AccountManager = require('./lib/account-manager');
+
+        const licenseManager = new LicenseManager();
+        const rateLimiter = new RateLimiter();
+        const accountManager = new AccountManager();
+
+        const license = licenseManager.getLicense();
+
+        // Check rate limits
+        const limitCheck = rateLimiter.checkLimit('scans', license.tier);
+        if (!limitCheck.allowed) {
+            console.log(chalk.red('\n⛔ ' + limitCheck.reason + '\n'));
+            console.log(chalk.yellow(`Resets at: ${new Date(limitCheck.resetAt).toLocaleString()}\n`));
+            console.log(chalk.gray('Upgrade: ' + limitCheck.upgrade + '\n'));
+            process.exit(1);
+        }
+
+        // Check if AI is requested but not allowed
+        if (options.ai && !licenseManager.canUseFeature('ai')) {
+            console.log(chalk.yellow('\n⚠️  AI features require a commercial license\n'));
+            console.log(chalk.gray('Contact: chairman@parserator.com\n'));
+            options.ai = false;
+        }
+
         const config = await loadConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
         }
+
+        // Record usage
+        rateLimiter.recordAction('scans');
+        licenseManager.trackUsage('scan');
 
         const spinner = ora('Scanning your project...').start();
 
@@ -681,6 +712,165 @@ async function interactiveChat(ai, config) {
     }
 }
 
+// Account management commands
+program
+    .command('register')
+    .description('Register your account')
+    .action(async () => {
+        const AccountManager = require('./lib/account-manager');
+        const accountManager = new AccountManager();
+
+        if (accountManager.isLoggedIn()) {
+            console.log(chalk.yellow('\n⚠️  Already registered!\n'));
+            const account = accountManager.getAccount();
+            console.log(`Email: ${account.email}`);
+            console.log(`Tier: ${account.tier}\n`);
+            return;
+        }
+
+        const answers = await inquirer.prompt([
+            {
+                type: 'input',
+                name: 'email',
+                message: 'Email address:',
+                validate: (input) => input.includes('@') || 'Please enter a valid email'
+            },
+            {
+                type: 'input',
+                name: 'projectName',
+                message: 'Project name:',
+                default: 'My Project'
+            },
+            {
+                type: 'list',
+                name: 'useCase',
+                message: 'Primary use case:',
+                choices: ['Personal/Learning', 'Open Source', 'Commercial/Business', 'Enterprise']
+            }
+        ]);
+
+        const spinner = ora('Creating account...').start();
+
+        try {
+            const account = accountManager.register(
+                answers.email,
+                answers.projectName,
+                answers.useCase
+            );
+
+            spinner.succeed('Account created!');
+
+            console.log('\n' + boxen(
+                chalk.green.bold('✅ Registration Complete\n\n') +
+                chalk.white(`Account ID: ${account.id}\n`) +
+                chalk.white(`Email: ${account.email}\n`) +
+                chalk.white(`Tier: ${account.tier}\n\n`) +
+                chalk.gray('Personal tier is for non-commercial use only.\n') +
+                chalk.gray('For commercial use, contact: chairman@parserator.com'),
+                { padding: 1, margin: 1, borderStyle: 'round', borderColor: 'green' }
+            ));
+
+            if (answers.useCase === 'Commercial/Business' || answers.useCase === 'Enterprise') {
+                console.log(chalk.yellow('\n⚠️  Commercial use detected!'));
+                console.log('You\'ll need a commercial license to use Nimbus for business.');
+                console.log('Contact: chairman@parserator.com\n');
+            }
+
+        } catch (error) {
+            spinner.fail('Registration failed');
+            console.error(chalk.red(error.message + '\n'));
+        }
+    });
+
+program
+    .command('activate <license-key>')
+    .description('Activate commercial license')
+    .action(async (licenseKey) => {
+        const LicenseManager = require('./lib/license-manager');
+        const AccountManager = require('./lib/account-manager');
+
+        const licenseManager = new LicenseManager();
+        const accountManager = new AccountManager();
+
+        const spinner = ora('Activating license...').start();
+
+        try {
+            const license = await licenseManager.activateKey(licenseKey);
+
+            // Update account tier if registered
+            if (accountManager.isLoggedIn()) {
+                accountManager.update({ tier: license.tier });
+            }
+
+            spinner.succeed('License activated!');
+
+            console.log('\n' + boxen(
+                chalk.green.bold('✅ License Activated\n\n') +
+                chalk.white(`Tier: ${license.tier}\n`) +
+                chalk.white(`Activated: ${new Date(license.activated).toLocaleDateString()}\n\n`) +
+                chalk.green('You can now use Nimbus commercially!'),
+                { padding: 1, margin: 1, borderStyle: 'round', borderColor: 'green' }
+            ));
+
+        } catch (error) {
+            spinner.fail('Activation failed');
+            console.error(chalk.red(error.message + '\n'));
+            console.log('Contact support: chairman@parserator.com\n');
+        }
+    });
+
+program
+    .command('account')
+    .description('View account information')
+    .action(() => {
+        const AccountManager = require('./lib/account-manager');
+        const LicenseManager = require('./lib/license-manager');
+
+        const accountManager = new AccountManager();
+        const licenseManager = new LicenseManager();
+
+        const accountInfo = accountManager.getAccountInfo();
+        const licenseInfo = licenseManager.getLicenseInfo();
+
+        if (!accountInfo.loggedIn) {
+            console.log(chalk.yellow('\n⚠️  Not registered\n'));
+            console.log('Run: nimbus register\n');
+            return;
+        }
+
+        console.log('\n' + boxen(
+            chalk.cyan.bold('👤 Account Information\n\n') +
+            chalk.white(`Email: ${accountInfo.email}\n`) +
+            chalk.white(`Account ID: ${accountInfo.id}\n`) +
+            chalk.white(`Tier: ${accountInfo.tier}\n`) +
+            chalk.white(`Registered: ${new Date(accountInfo.registeredAt).toLocaleDateString()}\n\n`) +
+            chalk.cyan.bold('📊 Usage\n\n') +
+            chalk.white(`Scans: ${licenseInfo.usage.scans || 0}\n`) +
+            chalk.white(`AI Queries: ${licenseInfo.usage.aiQueries || 0}\n`) +
+            chalk.white(`Auto-fixes: ${licenseInfo.usage.fixes || 0}\n\n`) +
+            (accountInfo.tier === 'FREE' ?
+                chalk.gray('Upgrade for commercial use: chairman@parserator.com') :
+                chalk.green('✅ Licensed for commercial use')),
+            { padding: 1, margin: 1, borderStyle: 'round', borderColor: 'cyan' }
+        ));
+    });
+
+program
+    .command('logout')
+    .description('Logout and remove local account')
+    .action(() => {
+        const AccountManager = require('./lib/account-manager');
+        const accountManager = new AccountManager();
+
+        if (!accountManager.isLoggedIn()) {
+            console.log(chalk.yellow('\n⚠️  Not logged in\n'));
+            return;
+        }
+
+        accountManager.logout();
+        console.log(chalk.green('\n✅ Logged out\n'));
+    });
+
 // Parse command line
 program.parse();
 
@@ -690,13 +880,11 @@ if (!process.argv.slice(2).length) {
         chalk.cyan.bold('☁️  Nimbus Guardian\n\n') +
         chalk.white('AI-Powered Deployment Safety for Everyone\n\n') +
         chalk.gray('Quick Start:\n') +
-        chalk.white('  nimbus setup       Get started\n') +
-        chalk.white('  nimbus dashboard   🔥 Launch web dashboard\n') +
+        chalk.white('  nimbus register    Create account\n') +
+        chalk.white('  nimbus setup       Configure tools\n') +
         chalk.white('  nimbus scan        Check your project\n') +
-        chalk.white('  nimbus tools       Detect needed CLIs\n') +
-        chalk.white('  nimbus chat        Ask for help\n') +
-        chalk.white('  nimbus fix         Fix issues\n') +
-        chalk.white('  nimbus learn       Interactive tutorials\n\n') +
+        chalk.white('  nimbus dashboard   Launch web dashboard\n') +
+        chalk.white('  nimbus account     View license & usage\n\n') +
         chalk.gray('Run "nimbus --help" for all commands'),
         {
             padding: 1,

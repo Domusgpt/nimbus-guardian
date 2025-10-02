@@ -1,0 +1,377 @@
+/**
+ * Nimbus Guardian - Cloud Functions
+ * License validation, usage tracking, and rate limiting
+ *
+ * © 2025 Paul Phillips - Clear Seas Solutions LLC
+ * Contact: chairman@parserator.com
+ */
+
+const {onInit} = require("firebase-functions/v2/core");
+const {onRequest, onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onDocumentCreated} = require("firebase-functions/v2/firestore");
+const admin = require("firebase-admin");
+const crypto = require("crypto");
+
+// Defer initialization to avoid deployment timeout
+onInit(() => {
+    admin.initializeApp();
+});
+
+// Get Firestore instance (will be initialized when function runs)
+const getDb = () => admin.firestore();
+
+// ============================================================================
+// LICENSE VALIDATION
+// ============================================================================
+
+/**
+ * Validate and activate license key
+ * Called by CLI when user runs: nimbus activate <key>
+ */
+exports.validateLicense = onCall({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (request) => {
+    const {licenseKey, machineId, email} = request.data;
+
+    if (!licenseKey || !machineId) {
+        throw new HttpsError("invalid-argument", "License key and machine ID required");
+    }
+
+    // Check if license exists
+    const db = getDb();
+    const licenseRef = db.collection("licenses").doc(licenseKey);
+    const licenseDoc = await licenseRef.get();
+
+    if (!licenseDoc.exists) {
+        throw new HttpsError("not-found", "Invalid license key");
+    }
+
+    const license = licenseDoc.data();
+
+    // Check if revoked
+    if (license.status === "revoked") {
+        throw new HttpsError("permission-denied", "License key has been revoked");
+    }
+
+    // Check if expired
+    if (license.expiresAt && license.expiresAt.toDate() < new Date()) {
+        throw new HttpsError("permission-denied", "License key has expired");
+    }
+
+    // Check machine limit
+    const maxMachines = license.maxMachines || 1;
+    const machineIds = license.machineIds || [];
+
+    if (!machineIds.includes(machineId) && machineIds.length >= maxMachines) {
+        throw new HttpsError(
+            "resource-exhausted",
+            `License already activated on ${maxMachines} machine(s)`
+        );
+    }
+
+    // Add machine ID if new
+    if (!machineIds.includes(machineId)) {
+        machineIds.push(machineId);
+        await licenseRef.update({
+            machineIds: machineIds,
+            lastActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+
+    // If first activation, assign user
+    if (!license.userId) {
+        // Create or get user
+        const userId = `user_${crypto.randomBytes(8).toString("hex")}`;
+        const db = getDb();
+        await db.collection("users").doc(userId).set({
+            account: {
+                email: email || license.email || "unknown@example.com",
+                registeredAt: admin.firestore.FieldValue.serverTimestamp(),
+                machineId: machineId,
+                tier: license.tier,
+            },
+            license: {
+                key: licenseKey,
+                tier: license.tier,
+                activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+        });
+
+        await licenseRef.update({userId: userId});
+
+        return {
+            success: true,
+            userId: userId,
+            tier: license.tier,
+            message: "License activated successfully",
+        };
+    }
+
+    return {
+        success: true,
+        userId: license.userId,
+        tier: license.tier,
+        message: "License validated",
+    };
+});
+
+// ============================================================================
+// RATE LIMITING & USAGE TRACKING
+// ============================================================================
+
+/**
+ * Check if user is within rate limits
+ * Called by CLI before every scan/AI query
+ */
+exports.checkRateLimit = onCall({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (request) => {
+    const {userId, action} = request.data;
+
+    if (!userId || !action) {
+        throw new HttpsError("invalid-argument", "User ID and action required");
+    }
+
+    // Get user account
+    const db = getDb();
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) {
+        throw new HttpsError("not-found", "User not found");
+    }
+
+    const user = userDoc.data();
+    const tier = user.account.tier || "FREE";
+
+    // Define rate limits
+    const limits = {
+        FREE: {
+            scans: {perDay: 50, perHour: 10},
+            ai: {perMonth: 0}, // No AI on free tier
+            fixes: {perDay: 20},
+        },
+        PRO: {
+            scans: {perDay: Infinity},
+            ai: {perMonth: Infinity},
+            fixes: {perDay: Infinity},
+        },
+        ENTERPRISE: {
+            scans: {perDay: Infinity},
+            ai: {perMonth: Infinity},
+            fixes: {perDay: Infinity},
+        },
+    };
+
+    const actionLimits = limits[tier][action];
+    if (!actionLimits) {
+        throw new HttpsError("invalid-argument", `Unknown action: ${action}`);
+    }
+
+    // Get today's usage
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const usageRef = db.collection("users").doc(userId).collection("usage").doc(today);
+    const usageDoc = await usageRef.get();
+    const usage = usageDoc.exists ? usageDoc.data() : {};
+
+    const actionCount = usage[action] || 0;
+
+    // Check daily limit
+    if (actionLimits.perDay && actionCount >= actionLimits.perDay) {
+        return {
+            allowed: false,
+            reason: `Rate limit exceeded: ${actionLimits.perDay} ${action}s per day`,
+            resetAt: new Date(new Date().setHours(24, 0, 0, 0)).toISOString(),
+            upgrade: "https://nimbus-guardian.web.app/#pricing",
+        };
+    }
+
+    // Check hourly limit (approximate - check last hour's usage)
+    if (actionLimits.perHour) {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const recentUsage = await db
+            .collection("users")
+            .doc(userId)
+            .collection("usage")
+            .where("lastAction", ">=", oneHourAgo)
+            .get();
+
+        let hourlyCount = 0;
+        recentUsage.forEach((doc) => {
+            hourlyCount += doc.data()[action] || 0;
+        });
+
+        if (hourlyCount >= actionLimits.perHour) {
+            return {
+                allowed: false,
+                reason: `Rate limit exceeded: ${actionLimits.perHour} ${action}s per hour`,
+                resetAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                upgrade: "https://nimbus-guardian.web.app/#pricing",
+            };
+        }
+    }
+
+    return {
+        allowed: true,
+        remaining: actionLimits.perDay === Infinity ? "unlimited" : actionLimits.perDay - actionCount,
+        tier: tier,
+    };
+});
+
+/**
+ * Record usage action
+ * Called by CLI after every scan/AI query/fix
+ */
+exports.syncUsage = onCall({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (request) => {
+    const {userId, action, metadata} = request.data;
+
+    if (!userId || !action) {
+        throw new HttpsError("invalid-argument", "User ID and action required");
+    }
+
+    const db = getDb();
+    const today = new Date().toISOString().split("T")[0];
+    const usageRef = db.collection("users").doc(userId).collection("usage").doc(today);
+
+    // Increment counter
+    await usageRef.set(
+        {
+            [action]: admin.firestore.FieldValue.increment(1),
+            lastAction: admin.firestore.FieldValue.serverTimestamp(),
+            metadata: metadata || {},
+        },
+        {merge: true}
+    );
+
+    return {
+        success: true,
+        message: "Usage recorded",
+    };
+});
+
+// ============================================================================
+// LICENSE GENERATION (ADMIN ONLY)
+// ============================================================================
+
+/**
+ * Generate new license key
+ * Called manually or by Stripe webhook
+ * REQUIRES ADMIN AUTHENTICATION
+ */
+exports.generateLicenseKey = onCall({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (request) => {
+    // CRITICAL SECURITY: Only admins can generate licenses
+    if (!request.auth) {
+        throw new HttpsError(
+            "unauthenticated",
+            "Authentication required to generate licenses"
+        );
+    }
+
+    // Check for admin custom claim
+    if (!request.auth.token.admin) {
+        throw new HttpsError(
+            "permission-denied",
+            "Admin access required. Contact chairman@parserator.com for license generation."
+        );
+    }
+
+    const {tier, email, maxMachines, expiresInDays} = request.data;
+
+    if (!tier || !email) {
+        throw new HttpsError("invalid-argument", "Tier and email required");
+    }
+
+    // Generate license key: NIMBUS-XXXX-XXXX-XXXX-XXXX
+    const generateSegment = () => {
+        return crypto.randomBytes(2).toString("hex").toUpperCase();
+    };
+
+    const licenseKey = `NIMBUS-${generateSegment()}-${generateSegment()}-${generateSegment()}-${generateSegment()}`;
+
+    // Calculate expiration
+    let expiresAt = null;
+    if (expiresInDays) {
+        expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+    }
+
+    // Create license document
+    const db = getDb();
+    await db.collection("licenses").doc(licenseKey).set({
+        tier: tier,
+        email: email,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: "active",
+        maxMachines: maxMachines || (tier === "PRO" ? 3 : tier === "ENTERPRISE" ? 10 : 1),
+        machineIds: [],
+        userId: null,
+        expiresAt: expiresAt,
+    });
+
+    // TODO: Send email with license key
+
+    return {
+        success: true,
+        licenseKey: licenseKey,
+        tier: tier,
+        email: email,
+    };
+});
+
+// ============================================================================
+// STRIPE WEBHOOK (FUTURE)
+// ============================================================================
+
+/**
+ * Handle Stripe payment webhook
+ * Automatically generates license key when payment succeeds
+ */
+exports.handleStripeWebhook = onRequest(async (req, res) => {
+    // TODO: Verify Stripe signature
+    // TODO: Parse webhook payload
+    // TODO: Call generateLicenseKey
+    // TODO: Email license to customer
+
+    res.status(200).send({received: true});
+});
+
+// ============================================================================
+// FIRESTORE TRIGGERS
+// ============================================================================
+
+/**
+ * Send welcome email when user registers
+ */
+exports.onUserCreated = onDocumentCreated("users/{userId}", async (event) => {
+    const userData = event.data.data();
+    const userId = event.params.userId;
+
+    console.log(`New user registered: ${userId}`, userData.account.email);
+
+    // TODO: Send welcome email
+    // TODO: Create initial usage document
+    // TODO: Add to mailing list
+
+    return null;
+});
+
+/**
+ * Track license activations
+ */
+exports.onLicenseActivated = onDocumentCreated("licenses/{licenseKey}", async (event) => {
+    const licenseData = event.data.data();
+    const licenseKey = event.params.licenseKey;
+
+    console.log(`New license created: ${licenseKey}`, licenseData.tier);
+
+    // TODO: Log to analytics
+    // TODO: Send notification to admin
+
+    return null;
+});

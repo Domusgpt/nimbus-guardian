@@ -709,10 +709,80 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         console.log('☁️ Nimbus Holographic Interface Loaded');
         console.log('🎨 Glassmorphism + Holographic Effects Active');
         console.log('✨ This is the future of deployment monitoring');
+
+        // Firebase configuration
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, doc, getDoc, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdJO1Y_s-s_phMrTmm6VDQG-pvNEtyPSI",
+            authDomain: "nimbus-guardian.firebaseapp.com",
+            projectId: "nimbus-guardian",
+            storageBucket: "nimbus-guardian.firebasestorage.app",
+            messagingSenderId: "672144468079",
+            appId: "1:672144468079:web:6e0fdc5736d9d27b13859a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Auto sign-in anonymously for demo
+        signInAnonymously(auth);
+
+        // Load real data from Firestore
+        async function loadRealData() {
+            try {
+                // Get user account (replace with actual userId from CLI)
+                const userId = 'demo-user'; // TODO: Get from URL param or login
+                const userDoc = await getDoc(doc(db, 'users', userId));
+
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    updateDashboard(userData);
+                } else {
+                    console.log('No user data found - showing demo data');
+                    showDemoData();
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showDemoData();
+            }
+        }
+
+        function updateDashboard(userData) {
+            // Update project status
+            document.querySelector('#project-name').textContent = userData.account?.email || 'Unknown';
+
+            // Update metrics based on real data
+            const statusBadge = document.querySelector('.status-badge');
+            if (userData.usage?.scans > 40) {
+                statusBadge.textContent = 'High Usage';
+                statusBadge.className = 'status-badge status-warning';
+            } else {
+                statusBadge.textContent = 'Active';
+                statusBadge.className = 'status-badge status-good';
+            }
+
+            // TODO: Update other metrics from Firestore data
+        }
+
+        function showDemoData() {
+            // Current demo data is fine for now
+            console.log('Showing demo data');
+        }
+
+        // Load data on page load
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadRealData();
+            }
+        });
 
         // Add subtle mouse parallax effect to cards
         document.addEventListener('mousemove', (e) => {

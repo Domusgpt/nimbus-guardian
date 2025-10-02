@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection - users can only READ their own data
+    // ONLY Cloud Functions can write (using Admin SDK)
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Cloud Functions only
+
+      // Usage subcollection - users can READ their own usage
+      match /usage/{date} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // Cloud Functions only
+      }
+    }
+
+    // Licenses collection - COMPLETELY RESTRICTED
+    // Only accessible via Cloud Functions with Admin SDK
+    // Users should never directly read license data
+    match /licenses/{licenseKey} {
+      allow read, write: if false; // Cloud Functions only
+    }
+
+    // Admin collection - no public access
+    match /admin/{document=**} {
+      allow read, write: if false; // Only Cloud Functions
+    }
+  }
+}

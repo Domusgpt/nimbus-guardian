@@ -44,22 +44,26 @@ program
     .action(async (options) => {
         // Check license and rate limits
         const LicenseManager = require('./lib/license-manager');
-        const RateLimiter = require('./lib/rate-limiter');
-        const AccountManager = require('./lib/account-manager');
 
         const licenseManager = new LicenseManager();
-        const rateLimiter = new RateLimiter();
-        const accountManager = new AccountManager();
-
         const license = licenseManager.getLicense();
 
-        // Check rate limits
-        const limitCheck = rateLimiter.checkLimit('scans', license.tier);
+        // Check rate limits (calls Cloud Function)
+        const limitCheck = await licenseManager.checkRateLimit('scans');
         if (!limitCheck.allowed) {
             console.log(chalk.red('\n⛔ ' + limitCheck.reason + '\n'));
-            console.log(chalk.yellow(`Resets at: ${new Date(limitCheck.resetAt).toLocaleString()}\n`));
-            console.log(chalk.gray('Upgrade: ' + limitCheck.upgrade + '\n'));
+            if (limitCheck.resetAt) {
+                console.log(chalk.yellow(`Resets at: ${new Date(limitCheck.resetAt).toLocaleString()}\n`));
+            }
+            if (limitCheck.upgrade) {
+                console.log(chalk.gray('Upgrade: ' + limitCheck.upgrade + '\n'));
+            }
             process.exit(1);
+        }
+
+        // Show remaining scans if limited
+        if (limitCheck.remaining !== undefined && limitCheck.remaining !== 'unlimited') {
+            console.log(chalk.gray(`(${limitCheck.remaining} scans remaining)\n`));
         }
 
         // Check if AI is requested but not allowed
@@ -75,10 +79,6 @@ program
             return;
         }
 
-        // Record usage
-        rateLimiter.recordAction('scans');
-        licenseManager.trackUsage('scan');
-
         const spinner = ora('Scanning your project...').start();
 
         try {
@@ -89,6 +89,14 @@ program
             });
 
             spinner.succeed('Scan complete!\n');
+
+            // Track usage (async, don't wait)
+            licenseManager.trackUsage('scans', {
+                issuesFound: results.issues.length,
+                critical: results.issues.filter(i => i.severity === 'CRITICAL').length,
+                high: results.issues.filter(i => i.severity === 'HIGH').length,
+                platform: config.platform
+            }).catch(() => {}); // Fail silently
 
             // JSON output mode
             if (options.json) {
@@ -785,17 +793,32 @@ program
 program
     .command('activate <license-key>')
     .description('Activate commercial license')
-    .action(async (licenseKey) => {
+    .option('-e, --email <email>', 'Email address for license')
+    .action(async (licenseKey, options) => {
         const LicenseManager = require('./lib/license-manager');
         const AccountManager = require('./lib/account-manager');
 
         const licenseManager = new LicenseManager();
         const accountManager = new AccountManager();
 
+        // Prompt for email if not provided
+        let email = options.email;
+        if (!email) {
+            const answers = await inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'email',
+                    message: 'Email address:',
+                    validate: (input) => input.includes('@') || 'Please enter a valid email'
+                }
+            ]);
+            email = answers.email;
+        }
+
         const spinner = ora('Activating license...').start();
 
         try {
-            const license = await licenseManager.activateKey(licenseKey);
+            const license = await licenseManager.activateKey(licenseKey, email);
 
             // Update account tier if registered
             if (accountManager.isLoggedIn()) {
@@ -807,6 +830,8 @@ program
             console.log('\n' + boxen(
                 chalk.green.bold('✅ License Activated\n\n') +
                 chalk.white(`Tier: ${license.tier}\n`) +
+                chalk.white(`User ID: ${license.userId}\n`) +
+                chalk.white(`Email: ${email}\n`) +
                 chalk.white(`Activated: ${new Date(license.activated).toLocaleDateString()}\n\n`) +
                 chalk.green('You can now use Nimbus commercially!'),
                 { padding: 1, margin: 1, borderStyle: 'round', borderColor: 'green' }
@@ -814,7 +839,7 @@ program
 
         } catch (error) {
             spinner.fail('Activation failed');
-            console.error(chalk.red(error.message + '\n'));
+            console.error(chalk.red('\n' + error.message + '\n'));
             console.log('Contact support: chairman@parserator.com\n');
         }
     });

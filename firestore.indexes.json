@@ -1,0 +1,15 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "usage",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "lastAction",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

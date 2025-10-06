@@ -108,11 +108,13 @@ class DockerValidator {
     }
 
     async checkSecrets(lines) {
+        const secretIndicators = ['PASSWORD', 'API_KEY', 'SECRET'];
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
 
             // Check for hardcoded secrets
-            if (line.includes('PASSWORD=') || line.includes('API_KEY=') || line.includes('SECRET=')) {
+            if (secretIndicators.some(indicator => line.includes(`${indicator}=`))) {
                 this.issues.push({
                     id: 'docker-hardcoded-secret',
                     severity: 'CRITICAL',

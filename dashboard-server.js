@@ -12,9 +12,52 @@ const http = require('http');
 const fs = require('fs-extra');
 const path = require('path');
 const { execSync } = require('child_process');
+const crypto = require('crypto');
 const GuardianEngine = require('./guardian-engine');
 const ToolDetector = require('./tool-detector');
 const AIAssistant = require('./ai-assistant');
+
+const normalizeToolId = (value) => {
+    return value
+        ? value
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+        : null;
+};
+
+const normalizeOrigin = (origin) => {
+    if (!origin) return origin;
+    return origin.endsWith('/') ? origin.slice(0, -1) : origin;
+};
+
+const SAFE_TOOL_INSTALLERS = Object.freeze({
+    'firebase-tools': {
+        command: 'npm install -g firebase-tools',
+        displayName: 'Firebase CLI',
+        description: 'Installs the Firebase CLI globally using npm.',
+        successMessage: 'Firebase CLI installed successfully.'
+    },
+    'vercel': {
+        command: 'npm install -g vercel',
+        displayName: 'Vercel CLI',
+        description: 'Installs the Vercel CLI globally using npm.',
+        successMessage: 'Vercel CLI installed successfully.'
+    },
+    'netlify-cli': {
+        command: 'npm install -g netlify-cli',
+        displayName: 'Netlify CLI',
+        description: 'Installs the Netlify CLI globally using npm.',
+        successMessage: 'Netlify CLI installed successfully.'
+    },
+    'supabase': {
+        command: 'npm install -g supabase',
+        displayName: 'Supabase CLI',
+        description: 'Installs the Supabase CLI globally using npm.',
+        successMessage: 'Supabase CLI installed successfully.'
+    }
+});
 
 class DashboardServer {
     constructor(port = 3333) {
@@ -22,6 +65,12 @@ class DashboardServer {
         this.projectPath = process.cwd();
         this.config = null;
         this.cache = {};
+        this.csrfToken = crypto.randomBytes(32).toString('hex');
+        this.allowedOrigins = new Set([
+            `http://localhost:${this.port}`,
+            `http://127.0.0.1:${this.port}`,
+            `http://[::1]:${this.port}`
+        ].map(normalizeOrigin));
     }
 
     async start() {
@@ -46,16 +95,48 @@ class DashboardServer {
     }
 
     async loadConfig() {
-        const configPath = path.join(this.projectPath, '.guardian', 'config.json');
+        const configDir = path.join(this.projectPath, '.guardian');
+        const configPath = path.join(configDir, 'config.json');
+        const envPath = path.join(configDir, '.env');
+
         try {
-            this.config = await fs.readJson(configPath);
-            require('dotenv').config({ path: path.join(this.projectPath, '.guardian', '.env') });
+            const rawConfig = await fs.readJson(configPath);
+            this.config = await this.normalizeConfig(rawConfig, configPath);
         } catch {
             this.config = {
                 projectName: path.basename(this.projectPath),
                 experienceLevel: 'intermediate'
             };
         }
+
+        if (await fs.pathExists(envPath)) {
+            require('dotenv').config({ path: envPath });
+        }
+
+        this.config.claudeApiKey = this.config.claudeApiKey || process.env.CLAUDE_API_KEY;
+        this.config.geminiApiKey = this.config.geminiApiKey || process.env.GEMINI_API_KEY;
+    }
+
+    async normalizeConfig(config, configPath) {
+        const normalized = { ...config };
+        let needsWrite = false;
+
+        if (normalized.experience && !normalized.experienceLevel) {
+            normalized.experienceLevel = normalized.experience;
+            delete normalized.experience;
+            needsWrite = true;
+        }
+
+        if (!normalized.experienceLevel) {
+            normalized.experienceLevel = 'intermediate';
+            needsWrite = true;
+        }
+
+        if (needsWrite) {
+            await fs.writeJson(configPath, normalized, { spaces: 2 });
+        }
+
+        return normalized;
     }
 
     async handleRequest(req, res) {
@@ -78,15 +159,37 @@ class DashboardServer {
 
     async handleAPI(url, req, res) {
         res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Vary', 'Origin');
+
+        const requestOrigin = normalizeOrigin(req.headers.origin);
+        if (requestOrigin) {
+            if (!this.allowedOrigins.has(requestOrigin)) {
+                res.writeHead(403);
+                res.end(JSON.stringify({ error: 'Origin not allowed' }));
+                return;
+            }
+            res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        } else {
+            res.setHeader('Access-Control-Allow-Origin', `http://localhost:${this.port}`);
+        }
+
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token');
 
         // Handle OPTIONS preflight
         if (req.method === 'OPTIONS') {
-            res.writeHead(200);
+            res.writeHead(204);
             res.end();
             return;
+        }
+
+        if (req.method !== 'GET') {
+            const csrfHeader = req.headers['x-csrf-token'];
+            if (!csrfHeader || csrfHeader !== this.csrfToken) {
+                res.writeHead(403);
+                res.end(JSON.stringify({ error: 'Invalid CSRF token' }));
+                return;
+            }
         }
 
         try {
@@ -111,6 +214,16 @@ class DashboardServer {
             if (url.pathname === '/api/tools' && req.method === 'GET') {
                 const detector = new ToolDetector(this.projectPath);
                 const tools = await detector.analyze();
+                tools.missing = tools.missing.map(tool => {
+                    const safeInstallerId = this.getSafeInstallerId(tool);
+                    const installer = safeInstallerId ? SAFE_TOOL_INSTALLERS[safeInstallerId] : null;
+                    return {
+                        ...tool,
+                        safeInstallerId,
+                        installerLabel: installer?.displayName,
+                        installerDescription: installer?.description
+                    };
+                });
                 res.writeHead(200);
                 res.end(JSON.stringify(tools));
                 return;
@@ -132,8 +245,8 @@ class DashboardServer {
                 const body = await this.readRequestBody(req);
                 const { message } = JSON.parse(body);
                 const ai = new AIAssistant({
-                    claudeApiKey: process.env.CLAUDE_API_KEY,
-                    geminiApiKey: process.env.GEMINI_API_KEY,
+                    claudeApiKey: this.config.claudeApiKey || process.env.CLAUDE_API_KEY,
+                    geminiApiKey: this.config.geminiApiKey || process.env.GEMINI_API_KEY,
                     experienceLevel: this.config.experienceLevel
                 });
                 const response = await ai.ask(message);
@@ -169,9 +282,9 @@ class DashboardServer {
             // POST /api/install-tool - Install missing tool
             if (url.pathname === '/api/install-tool' && req.method === 'POST') {
                 const body = await this.readRequestBody(req);
-                const { tool, command } = JSON.parse(body);
-                const result = await this.installTool(command);
-                res.writeHead(200);
+                const { toolId } = JSON.parse(body);
+                const result = await this.installTool(toolId);
+                res.writeHead(result.success ? 200 : 400);
                 res.end(JSON.stringify(result));
                 return;
             }
@@ -336,16 +449,55 @@ class DashboardServer {
         }
     }
 
-    async installTool(command) {
-        try {
-            execSync(command, {
-                cwd: this.projectPath,
-                stdio: 'inherit'
-            });
-            return { success: true, message: 'Tool installed successfully' };
-        } catch (error) {
-            return { success: false, message: error.message };
+    async installTool(toolId) {
+        const normalizedId = normalizeToolId(toolId);
+        if (!normalizedId) {
+            return { success: false, message: 'Invalid tool identifier.' };
         }
+
+        const installer = SAFE_TOOL_INSTALLERS[normalizedId];
+        if (!installer) {
+            return { success: false, message: 'This tool must be installed manually.' };
+        }
+
+        try {
+            execSync(installer.command, {
+                cwd: this.projectPath,
+                stdio: 'inherit',
+                shell: true,
+                timeout: 5 * 60 * 1000
+            });
+
+            return {
+                success: true,
+                message: installer.successMessage || `${installer.displayName || normalizedId} installed successfully.`
+            };
+        } catch (error) {
+            const errorMessage = error.stderr?.toString().trim() || error.stdout?.toString().trim() || error.message;
+            return {
+                success: false,
+                message: errorMessage || 'Installation failed.'
+            };
+        }
+    }
+
+    getSafeInstallerId(tool) {
+        const candidates = [
+            tool.safeInstallerId,
+            tool.id,
+            tool.cli,
+            tool.name,
+            tool.command
+        ];
+
+        for (const candidate of candidates) {
+            const normalized = normalizeToolId(candidate);
+            if (normalized && SAFE_TOOL_INSTALLERS[normalized]) {
+                return normalized;
+            }
+        }
+
+        return null;
     }
 
     async serveDashboard(res) {
@@ -356,11 +508,15 @@ class DashboardServer {
         const holographicPath = path.join(__dirname, 'dashboard-holographic.html');
         try {
             const holographicHTML = await fs.readFile(holographicPath, 'utf-8');
-            res.end(holographicHTML);
+            res.end(this.injectSecurityContext(holographicHTML));
         } catch {
             // Fallback to built-in dashboard
             res.end(this.getDashboardHTML());
         }
+    }
+
+    injectSecurityContext(html) {
+        return html.replace(/__CSRF_TOKEN__/g, this.csrfToken);
     }
 
     getDashboardHTML() {
@@ -369,7 +525,11 @@ class DashboardServer {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="${this.csrfToken}">
     <title>Cloud Guardian Dashboard</title>
+    <script>
+        window.__CSRF_TOKEN__ = '${this.csrfToken}';
+    </script>
     <style>
         * {
             margin: 0;
@@ -566,6 +726,12 @@ class DashboardServer {
             font-weight: 600;
         }
 
+        .tool-install-warning {
+            color: #c05621;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
         .tool-missing {
             color: #dc3545;
             font-weight: 600;
@@ -740,6 +906,23 @@ class DashboardServer {
     <script>
         let chatHistory = [];
 
+        const getJsonHeaders = () => {
+            const headers = { 'Content-Type': 'application/json' };
+            if (window.__CSRF_TOKEN__) {
+                headers['X-CSRF-Token'] = window.__CSRF_TOKEN__;
+            }
+            return headers;
+        };
+
+        async function parseJsonResponse(response) {
+            const data = await response.json();
+            if (!response.ok) {
+                const message = data && (data.error || data.message) ? (data.error || data.message) : 'Request failed';
+                throw new Error(message);
+            }
+            return data;
+        }
+
         async function loadDashboard() {
             await Promise.all([
                 loadProjectStatus(),
@@ -752,7 +935,7 @@ class DashboardServer {
         async function loadProjectStatus() {
             try {
                 const res = await fetch('/api/status');
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
                 document.getElementById('project-name').textContent =
                     data.projectName + ' • ' + data.path;
@@ -792,8 +975,11 @@ class DashboardServer {
 
         async function loadSecurityScan() {
             try {
-                const res = await fetch('/api/scan');
-                const data = await res.json();
+                const res = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: getJsonHeaders()
+                });
+                const data = await parseJsonResponse(res);
 
                 const critical = data.issues.filter(i => i.severity === 'CRITICAL').length;
                 const high = data.issues.filter(i => i.severity === 'HIGH').length;
@@ -849,13 +1035,16 @@ class DashboardServer {
                 }
             } catch (error) {
                 console.error('Failed to load scan:', error);
+                const scan = document.getElementById('security-scan');
+                scan.className = '';
+                scan.innerHTML = '<div class="metric-label" style="color: #dc3545;">' + error.message + '</div>';
             }
         }
 
         async function loadGitStatus() {
             try {
                 const res = await fetch('/api/git-status');
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
                 const gitStatus = document.getElementById('git-status');
                 gitStatus.className = '';
@@ -887,7 +1076,7 @@ class DashboardServer {
         async function loadTools() {
             try {
                 const res = await fetch('/api/tools');
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
                 const toolsList = document.getElementById('tools-list');
                 toolsList.className = '';
@@ -909,15 +1098,26 @@ class DashboardServer {
                     \${missing.length > 0 ? \`
                         <h3 style="margin: 20px 0 15px;">Missing Tools</h3>
                         <ul class="tool-list">
-                            \${missing.map(t => \`
+                            \${missing.map(t => {
+                                const label = t.name || t.cli || t.command || t.provider || 'Tool';
+                                const description = t.installerDescription ? ' — ' + t.installerDescription : '';
+                                const docsLink = t.docs ? '<div style="font-size: 12px;"><a href="' + t.docs + '" target="_blank" rel="noopener noreferrer">View docs</a></div>' : '';
+                                const safeId = JSON.stringify(t.safeInstallerId);
+                                const safeLabel = JSON.stringify(label);
+                                const action = t.safeInstallerId
+                                    ? '<button class="btn btn-small" onclick=\'installTool(' + safeId + ', ' + safeLabel + ')\'>Install</button>'
+                                    : '<span class="tool-install-warning">Manual install required</span>';
+                                return \`
                                 <li class="tool-item">
                                     <div>
-                                        <div>\${t.name}</div>
-                                        <div style="font-size: 12px; color: #666;">\${t.reason}</div>
+                                        <div>${label}</div>
+                                        <div style="font-size: 12px; color: #666;">${t.reason}${description}</div>
+                                        ${docsLink}
                                     </div>
-                                    <button class="btn btn-small" onclick="installTool('\${t.name}', '\${t.install}')">Install</button>
+                                    ${action}
                                 </li>
-                            \`).join('')}
+                                \`;
+                            }).join('')}
                         </ul>
                     \` : ''}
 
@@ -954,31 +1154,44 @@ class DashboardServer {
             try {
                 const res = await fetch('/api/fix', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getJsonHeaders(),
                     body: JSON.stringify({ issueId })
                 });
-                const result = await res.json();
-                alert(result.message);
+                const result = await parseJsonResponse(res);
+                alert(result.message || 'Issue fixed successfully.');
                 loadSecurityScan(); // Refresh
             } catch (error) {
                 alert('Failed to fix issue: ' + error.message);
             }
         }
 
-        async function installTool(name, command) {
-            if (confirm(\`Install \${name}?\\n\\nCommand: \${command}\`)) {
-                try {
-                    const res = await fetch('/api/install-tool', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tool: name, command })
-                    });
-                    const result = await res.json();
-                    alert(result.message);
-                    loadTools(); // Refresh
-                } catch (error) {
-                    alert('Failed to install: ' + error.message);
+        async function installTool(toolId, toolName) {
+            if (!toolId) {
+                alert('Manual installation required. Please follow the documentation for this tool.');
+                return;
+            }
+
+            const nameLabel = toolName || 'tool';
+            if (!confirm('Install ' + nameLabel + '?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/install-tool', {
+                    method: 'POST',
+                    headers: getJsonHeaders(),
+                    body: JSON.stringify({ toolId })
+                });
+                const result = await parseJsonResponse(res);
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Installation failed.');
                 }
+
+                alert(result.message || (nameLabel + ' installed successfully.'));
+                loadTools(); // Refresh
+            } catch (error) {
+                alert('Failed to install ' + nameLabel + ': ' + error.message);
             }
         }
 
@@ -1010,10 +1223,10 @@ class DashboardServer {
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getJsonHeaders(),
                     body: JSON.stringify({ message })
                 });
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
                 // Add AI response
                 messagesDiv.innerHTML += \`<div class="message message-ai">\${data.response}</div>\`;

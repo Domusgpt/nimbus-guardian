@@ -15,6 +15,7 @@ const { execSync } = require('child_process');
 const GuardianEngine = require('./guardian-engine');
 const ToolDetector = require('./tool-detector');
 const AIAssistant = require('./ai-assistant');
+const { readConfig } = require('./lib/config-utils');
 
 class DashboardServer {
     constructor(port = 3333) {
@@ -46,16 +47,20 @@ class DashboardServer {
     }
 
     async loadConfig() {
-        const configPath = path.join(this.projectPath, '.guardian', 'config.json');
-        try {
-            this.config = await fs.readJson(configPath);
-            require('dotenv').config({ path: path.join(this.projectPath, '.guardian', '.env') });
-        } catch {
+        const config = await readConfig(this.projectPath);
+
+        if (config) {
+            this.config = config;
+        } else {
             this.config = {
                 projectName: path.basename(this.projectPath),
-                experienceLevel: 'intermediate'
+                experienceLevel: 'intermediate',
+                preferredProvider: 'claude',
+                platform: 'Unknown'
             };
         }
+
+        require('dotenv').config({ path: path.join(this.projectPath, '.guardian', '.env') });
     }
 
     async handleRequest(req, res) {

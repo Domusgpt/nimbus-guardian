@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Guardian Dashboard - Holographic Interface</title>
+    <script>
+        window.__CSRF_TOKEN__ = '__CSRF_TOKEN__';
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         * {
@@ -765,6 +768,39 @@
 
         function fixIssue(issueId) {
             alert(`Fixing issue: ${issueId}\n\nIn production, this would call the Guardian API to auto-fix the issue.`);
+        }
+
+        async function installTool(toolId, toolName) {
+            if (!toolId) {
+                alert('Manual installation required for this tool.');
+                return;
+            }
+
+            const label = toolName || 'tool';
+            if (!confirm(`Install ${label}?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/install-tool', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.__CSRF_TOKEN__
+                    },
+                    body: JSON.stringify({ toolId })
+                });
+                const result = await res.json();
+
+                if (!res.ok || !result.success) {
+                    const message = result && (result.error || result.message) ? (result.error || result.message) : 'Installation failed.';
+                    throw new Error(message);
+                }
+
+                alert(result.message || `${label} installed successfully.`);
+            } catch (error) {
+                alert(`Failed to install ${label}: ${error.message}`);
+            }
         }
 
         function refreshScan() {

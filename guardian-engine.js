@@ -10,6 +10,7 @@ const { execSync } = require('child_process');
 const AIAssistant = require('./ai-assistant');
 const DockerValidator = require('./validators/docker-validator');
 const FirebaseValidator = require('./validators/firebase-validator');
+const { normalizeExperienceLevel } = require('./lib/config-service');
 
 class GuardianEngine {
     constructor(projectPath = process.cwd(), config = {}) {
@@ -20,12 +21,19 @@ class GuardianEngine {
         this.warnings = [];
         this.insights = [];
 
+        this.config.experienceLevel = normalizeExperienceLevel(this.config.experienceLevel || this.config.experience);
+        delete this.config.experience;
+        const claudeApiKey = this.config.claudeApiKey || process.env.CLAUDE_API_KEY;
+        const geminiApiKey = this.config.geminiApiKey || process.env.GEMINI_API_KEY;
+        this.config.claudeApiKey = claudeApiKey;
+        this.config.geminiApiKey = geminiApiKey;
+
         // Initialize AI Assistant
         this.ai = new AIAssistant({
-            claudeApiKey: config.claudeApiKey,
-            geminiApiKey: config.geminiApiKey,
-            experienceLevel: config.experienceLevel || 'beginner',
-            preferredProvider: config.preferredProvider
+            claudeApiKey,
+            geminiApiKey,
+            experienceLevel: this.config.experienceLevel,
+            preferredProvider: this.config.preferredProvider
         });
     }
 

@@ -19,6 +19,16 @@ class ToolDetector {
         this.recommendations = [];
     }
 
+    normalizeId(value) {
+        return value
+            ? value
+                .toString()
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+            : null;
+    }
+
     async analyze() {
         console.log('🔍 Analyzing project structure and dependencies...\n');
 
@@ -383,6 +393,7 @@ class ToolDetector {
             const dockerInstalled = this.isCommandAvailable('docker');
             if (!dockerInstalled) {
                 this.missingTools.push({
+                    id: this.normalizeId('docker'),
                     category: 'containerization',
                     name: 'docker',
                     reason: 'Docker files detected but Docker not installed',
@@ -402,6 +413,7 @@ class ToolDetector {
             const kubectlInstalled = this.isCommandAvailable('kubectl');
             if (!kubectlInstalled) {
                 this.missingTools.push({
+                    id: this.normalizeId('kubectl'),
                     category: 'orchestration',
                     name: 'kubectl',
                     reason: 'Kubernetes config detected but kubectl not installed',
@@ -521,9 +533,11 @@ class ToolDetector {
 
             if (!isInstalled) {
                 this.missingTools.push({
+                    id: this.normalizeId(cliInfo.name),
                     category: 'cli',
                     provider,
                     cli: cliInfo.name,
+                    name: cliInfo.name,
                     command: cliInfo.command,
                     install: cliInfo.install,
                     docs: cliInfo.docs,
@@ -558,6 +572,7 @@ class ToolDetector {
                 });
             } else if (!tool.optional) {
                 this.missingTools.push({
+                    id: this.normalizeId(tool.name),
                     category: tool.category,
                     name: tool.name,
                     reason: `${tool.name} is required but not installed`

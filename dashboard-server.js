@@ -12,9 +12,61 @@ const http = require('http');
 const fs = require('fs-extra');
 const path = require('path');
 const { execSync } = require('child_process');
+const crypto = require('crypto');
 const GuardianEngine = require('./guardian-engine');
 const ToolDetector = require('./tool-detector');
 const AIAssistant = require('./ai-assistant');
+const { loadConfig: loadGuardianConfig } = require('./lib/config-service');
+
+class HttpError extends Error {
+    constructor(statusCode, message) {
+        super(message);
+        this.name = 'HttpError';
+        this.statusCode = statusCode;
+    }
+}
+
+const normalizeToolId = (value) => {
+    return value
+        ? value
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+        : null;
+};
+
+const normalizeOrigin = (origin) => {
+    if (!origin) return origin;
+    return origin.endsWith('/') ? origin.slice(0, -1) : origin;
+};
+
+const SAFE_TOOL_INSTALLERS = Object.freeze({
+    'firebase-tools': {
+        command: 'npm install -g firebase-tools',
+        displayName: 'Firebase CLI',
+        description: 'Installs the Firebase CLI globally using npm.',
+        successMessage: 'Firebase CLI installed successfully.'
+    },
+    'vercel': {
+        command: 'npm install -g vercel',
+        displayName: 'Vercel CLI',
+        description: 'Installs the Vercel CLI globally using npm.',
+        successMessage: 'Vercel CLI installed successfully.'
+    },
+    'netlify-cli': {
+        command: 'npm install -g netlify-cli',
+        displayName: 'Netlify CLI',
+        description: 'Installs the Netlify CLI globally using npm.',
+        successMessage: 'Netlify CLI installed successfully.'
+    },
+    'supabase': {
+        command: 'npm install -g supabase',
+        displayName: 'Supabase CLI',
+        description: 'Installs the Supabase CLI globally using npm.',
+        successMessage: 'Supabase CLI installed successfully.'
+    }
+});
 
 class DashboardServer {
     constructor(port = 3333) {
@@ -22,6 +74,12 @@ class DashboardServer {
         this.projectPath = process.cwd();
         this.config = null;
         this.cache = {};
+        this.csrfToken = crypto.randomBytes(32).toString('hex');
+        this.allowedOrigins = new Set([
+            `http://localhost:${this.port}`,
+            `http://127.0.0.1:${this.port}`,
+            `http://[::1]:${this.port}`
+        ].map(normalizeOrigin));
     }
 
     async start() {
@@ -46,16 +104,7 @@ class DashboardServer {
     }
 
     async loadConfig() {
-        const configPath = path.join(this.projectPath, '.guardian', 'config.json');
-        try {
-            this.config = await fs.readJson(configPath);
-            require('dotenv').config({ path: path.join(this.projectPath, '.guardian', '.env') });
-        } catch {
-            this.config = {
-                projectName: path.basename(this.projectPath),
-                experienceLevel: 'intermediate'
-            };
-        }
+        this.config = await loadGuardianConfig(this.projectPath, { createIfMissing: true });
     }
 
     async handleRequest(req, res) {
@@ -76,17 +125,67 @@ class DashboardServer {
         res.end('Not found');
     }
 
+    applyApiSecurityHeaders(res) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Referrer-Policy', 'same-origin');
+        res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        res.setHeader('Cache-Control', 'no-store');
+    }
+
+    applyHtmlSecurityHeaders(res) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Referrer-Policy', 'same-origin');
+        res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader(
+            'Content-Security-Policy',
+            [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline'",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "font-src 'self' https://fonts.gstatic.com",
+                "img-src 'self' data:",
+                "connect-src 'self'"
+            ].join('; ')
+        );
+    }
+
     async handleAPI(url, req, res) {
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        this.applyApiSecurityHeaders(res);
+        res.setHeader('Vary', 'Origin');
+
+        const requestOrigin = normalizeOrigin(req.headers.origin);
+        if (requestOrigin) {
+            if (!this.allowedOrigins.has(requestOrigin)) {
+                res.writeHead(403);
+                res.end(JSON.stringify({ error: 'Origin not allowed' }));
+                return;
+            }
+            res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        } else {
+            res.setHeader('Access-Control-Allow-Origin', `http://localhost:${this.port}`);
+        }
+
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token, Accept');
 
         // Handle OPTIONS preflight
         if (req.method === 'OPTIONS') {
-            res.writeHead(200);
+            res.writeHead(204);
             res.end();
             return;
+        }
+
+        if (req.method !== 'GET') {
+            const csrfHeader = req.headers['x-csrf-token'];
+            if (!csrfHeader || csrfHeader !== this.csrfToken) {
+                res.writeHead(403);
+                res.end(JSON.stringify({ error: 'Invalid CSRF token' }));
+                return;
+            }
         }
 
         try {
@@ -111,6 +210,16 @@ class DashboardServer {
             if (url.pathname === '/api/tools' && req.method === 'GET') {
                 const detector = new ToolDetector(this.projectPath);
                 const tools = await detector.analyze();
+                tools.missing = tools.missing.map(tool => {
+                    const safeInstallerId = this.getSafeInstallerId(tool);
+                    const installer = safeInstallerId ? SAFE_TOOL_INSTALLERS[safeInstallerId] : null;
+                    return {
+                        ...tool,
+                        safeInstallerId,
+                        installerLabel: installer?.displayName,
+                        installerDescription: installer?.description
+                    };
+                });
                 res.writeHead(200);
                 res.end(JSON.stringify(tools));
                 return;
@@ -118,8 +227,10 @@ class DashboardServer {
 
             // POST /api/fix - Auto-fix an issue
             if (url.pathname === '/api/fix' && req.method === 'POST') {
-                const body = await this.readRequestBody(req);
-                const { issueId } = JSON.parse(body);
+                const { issueId } = await this.parseJsonBody(req);
+                if (!issueId || typeof issueId !== 'string') {
+                    throw new HttpError(400, 'issueId is required');
+                }
                 const engine = new GuardianEngine(this.projectPath, this.config);
                 const result = await engine.autoFix(issueId);
                 res.writeHead(200);
@@ -129,11 +240,13 @@ class DashboardServer {
 
             // POST /api/chat - Chat with AI
             if (url.pathname === '/api/chat' && req.method === 'POST') {
-                const body = await this.readRequestBody(req);
-                const { message } = JSON.parse(body);
+                const { message } = await this.parseJsonBody(req);
+                if (!message || typeof message !== 'string') {
+                    throw new HttpError(400, 'message is required');
+                }
                 const ai = new AIAssistant({
-                    claudeApiKey: process.env.CLAUDE_API_KEY,
-                    geminiApiKey: process.env.GEMINI_API_KEY,
+                    claudeApiKey: this.config.claudeApiKey || process.env.CLAUDE_API_KEY,
+                    geminiApiKey: this.config.geminiApiKey || process.env.GEMINI_API_KEY,
                     experienceLevel: this.config.experienceLevel
                 });
                 const response = await ai.ask(message);
@@ -168,10 +281,12 @@ class DashboardServer {
 
             // POST /api/install-tool - Install missing tool
             if (url.pathname === '/api/install-tool' && req.method === 'POST') {
-                const body = await this.readRequestBody(req);
-                const { tool, command } = JSON.parse(body);
-                const result = await this.installTool(command);
-                res.writeHead(200);
+                const { toolId } = await this.parseJsonBody(req);
+                if (!toolId || typeof toolId !== 'string') {
+                    throw new HttpError(400, 'toolId is required');
+                }
+                const result = await this.installTool(toolId);
+                res.writeHead(result.success ? 200 : 400);
                 res.end(JSON.stringify(result));
                 return;
             }
@@ -180,20 +295,51 @@ class DashboardServer {
             res.end(JSON.stringify({ error: 'API endpoint not found' }));
 
         } catch (error) {
+            if (error instanceof HttpError || error.statusCode) {
+                const statusCode = error.statusCode || 500;
+                res.writeHead(statusCode);
+                res.end(JSON.stringify({ error: error.message }));
+                return;
+            }
+
             console.error('API Error:', error);
             res.writeHead(500);
-            res.end(JSON.stringify({ error: error.message }));
+            res.end(JSON.stringify({ error: 'Internal server error' }));
         }
     }
 
     // Helper to read request body
-    readRequestBody(req) {
+    readRequestBody(req, maxBytes = 1024 * 1024) {
         return new Promise((resolve, reject) => {
             let body = '';
-            req.on('data', chunk => body += chunk);
+            let received = 0;
+
+            req.on('data', chunk => {
+                received += chunk.length;
+                if (received > maxBytes) {
+                    req.destroy();
+                    reject(new HttpError(413, 'Payload too large'));
+                    return;
+                }
+                body += chunk;
+            });
+
             req.on('end', () => resolve(body));
             req.on('error', reject);
         });
+    }
+
+    async parseJsonBody(req, options = {}) {
+        const body = await this.readRequestBody(req, options.maxBytes);
+        if (!body) {
+            return {};
+        }
+
+        try {
+            return JSON.parse(body);
+        } catch {
+            throw new HttpError(400, 'Invalid JSON payload');
+        }
     }
 
     async getProjectStatus() {
@@ -336,31 +482,74 @@ class DashboardServer {
         }
     }
 
-    async installTool(command) {
+    async installTool(toolId) {
+        const normalizedId = normalizeToolId(toolId);
+        if (!normalizedId) {
+            return { success: false, message: 'Invalid tool identifier.' };
+        }
+
+        const installer = SAFE_TOOL_INSTALLERS[normalizedId];
+        if (!installer) {
+            return { success: false, message: 'This tool must be installed manually.' };
+        }
+
         try {
-            execSync(command, {
+            execSync(installer.command, {
                 cwd: this.projectPath,
-                stdio: 'inherit'
+                stdio: 'inherit',
+                shell: true,
+                timeout: 5 * 60 * 1000
             });
-            return { success: true, message: 'Tool installed successfully' };
+
+            return {
+                success: true,
+                message: installer.successMessage || `${installer.displayName || normalizedId} installed successfully.`
+            };
         } catch (error) {
-            return { success: false, message: error.message };
+            const errorMessage = error.stderr?.toString().trim() || error.stdout?.toString().trim() || error.message;
+            return {
+                success: false,
+                message: errorMessage || 'Installation failed.'
+            };
         }
     }
 
+    getSafeInstallerId(tool) {
+        const candidates = [
+            tool.safeInstallerId,
+            tool.id,
+            tool.cli,
+            tool.name,
+            tool.command
+        ];
+
+        for (const candidate of candidates) {
+            const normalized = normalizeToolId(candidate);
+            if (normalized && SAFE_TOOL_INSTALLERS[normalized]) {
+                return normalized;
+            }
+        }
+
+        return null;
+    }
+
     async serveDashboard(res) {
-        res.setHeader('Content-Type', 'text/html');
+        this.applyHtmlSecurityHeaders(res);
         res.writeHead(200);
 
         // Check if holographic dashboard exists
         const holographicPath = path.join(__dirname, 'dashboard-holographic.html');
         try {
             const holographicHTML = await fs.readFile(holographicPath, 'utf-8');
-            res.end(holographicHTML);
+            res.end(this.injectSecurityContext(holographicHTML));
         } catch {
             // Fallback to built-in dashboard
             res.end(this.getDashboardHTML());
         }
+    }
+
+    injectSecurityContext(html) {
+        return html.replace(/__CSRF_TOKEN__/g, this.csrfToken);
     }
 
     getDashboardHTML() {
@@ -369,7 +558,11 @@ class DashboardServer {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="${this.csrfToken}">
     <title>Cloud Guardian Dashboard</title>
+    <script>
+        window.__CSRF_TOKEN__ = '${this.csrfToken}';
+    </script>
     <style>
         * {
             margin: 0;
@@ -527,6 +720,14 @@ class DashboardServer {
             font-size: 14px;
         }
 
+        .issue-file {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
         .btn {
             background: #667eea;
             color: white;
@@ -564,6 +765,12 @@ class DashboardServer {
         .tool-installed {
             color: #28a745;
             font-weight: 600;
+        }
+
+        .tool-install-warning {
+            color: #c05621;
+            font-weight: 600;
+            font-size: 12px;
         }
 
         .tool-missing {
@@ -740,6 +947,52 @@ class DashboardServer {
     <script>
         let chatHistory = [];
 
+        const escapeHtml = (value) => {
+            if (value === undefined || value === null) {
+                return '';
+            }
+
+            return value
+                .toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        };
+
+        const formatMultiline = (value) => escapeHtml(value).replace(/\n/g, '<br>');
+
+        const getJsonHeaders = () => {
+            const headers = { 'Content-Type': 'application/json' };
+            if (window.__CSRF_TOKEN__) {
+                headers['X-CSRF-Token'] = window.__CSRF_TOKEN__;
+            }
+            return headers;
+        };
+
+        async function parseJsonResponse(response) {
+            const text = await response.text();
+            let data = {};
+
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (error) {
+                    throw new Error('Invalid server response.');
+                }
+            }
+
+            if (!response.ok) {
+                const message = data && (data.error || data.message)
+                    ? (data.error || data.message)
+                    : 'Request failed (' + response.status + ')';
+                throw new Error(message);
+            }
+
+            return data;
+        }
+
         async function loadDashboard() {
             await Promise.all([
                 loadProjectStatus(),
@@ -752,39 +1005,51 @@ class DashboardServer {
         async function loadProjectStatus() {
             try {
                 const res = await fetch('/api/status');
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
-                document.getElementById('project-name').textContent =
-                    data.projectName + ' • ' + data.path;
+                const name = data.projectName || 'Project';
+                const projectPath = data.path ? ' • ' + data.path : '';
+                document.getElementById('project-name').textContent = name + projectPath;
 
                 const metrics = document.getElementById('project-metrics');
                 metrics.className = '';
-                metrics.innerHTML = \`
-                    <div class="metric">
-                        <span class="metric-label">Experience Level</span>
-                        <span class="metric-value">\${data.experienceLevel}</span>
-                    </div>
-                    \${data.package ? \`
-                        <div class="metric">
-                            <span class="metric-label">Dependencies</span>
-                            <span class="metric-value">\${data.package.dependencies}</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Dev Dependencies</span>
-                            <span class="metric-value">\${data.package.devDependencies}</span>
-                        </div>
-                    \` : ''}
-                    \${data.git ? \`
-                        <div class="metric">
-                            <span class="metric-label">Branch</span>
-                            <span class="metric-value">\${data.git.branch}</span>
-                        </div>
-                        <div class="metric">
-                            <span class="metric-label">Uncommitted Changes</span>
-                            <span class="metric-value">\${data.git.uncommitted}</span>
-                        </div>
-                    \` : ''}
-                \`;
+
+                const experienceMetric = '<div class="metric">' +
+                    '<span class="metric-label">Experience Level</span>' +
+                    '<span class="metric-value">' + escapeHtml(data.experienceLevel || 'intermediate') + '</span>' +
+                '</div>';
+
+                const sections = [experienceMetric];
+
+                if (data.package) {
+                    sections.push(
+                        '<div class="metric">' +
+                            '<span class="metric-label">Dependencies</span>' +
+                            '<span class="metric-value">' + escapeHtml(data.package.dependencies ?? 0) + '</span>' +
+                        '</div>' +
+                        '<div class="metric">' +
+                            '<span class="metric-label">Dev Dependencies</span>' +
+                            '<span class="metric-value">' + escapeHtml(data.package.devDependencies ?? 0) + '</span>' +
+                        '</div>'
+                    );
+                }
+
+                if (data.git) {
+                    const branchValue = escapeHtml(data.git.branch || 'unknown');
+                    const uncommittedValue = escapeHtml(data.git.uncommitted ?? 0);
+                    sections.push(
+                        '<div class="metric">' +
+                            '<span class="metric-label">Branch</span>' +
+                            '<span class="metric-value">' + branchValue + '</span>' +
+                        '</div>' +
+                        '<div class="metric">' +
+                            '<span class="metric-label">Uncommitted Changes</span>' +
+                            '<span class="metric-value">' + uncommittedValue + '</span>' +
+                        '</div>'
+                    );
+                }
+
+                metrics.innerHTML = sections.join('');
             } catch (error) {
                 console.error('Failed to load status:', error);
             }
@@ -792,8 +1057,11 @@ class DashboardServer {
 
         async function loadSecurityScan() {
             try {
-                const res = await fetch('/api/scan');
-                const data = await res.json();
+                const res = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: getJsonHeaders()
+                });
+                const data = await parseJsonResponse(res);
 
                 const critical = data.issues.filter(i => i.severity === 'CRITICAL').length;
                 const high = data.issues.filter(i => i.severity === 'HIGH').length;
@@ -839,46 +1107,66 @@ class DashboardServer {
                 if (data.issues.length === 0) {
                     issuesList.innerHTML = '<div class="metric-label" style="text-align: center; padding: 20px;">✅ No issues found!</div>';
                 } else {
-                    issuesList.innerHTML = data.issues.slice(0, 10).map(issue => \`
-                        <li class="issue-item">
-                            <span class="issue-icon">\${getSeverityIcon(issue.severity)}</span>
-                            <span class="issue-text">\${issue.message}</span>
-                            \${issue.autoFixable ? '<button class="btn btn-small" onclick="fixIssue(\'' + issue.id + '\')">Fix</button>' : ''}
-                        </li>
-                    \`).join('');
+                    const issuesHtml = data.issues.slice(0, 10).map(issue => {
+                        const message = formatMultiline(issue.message || 'Issue detected');
+                        const fileDetail = issue.file ? '<span class="issue-file">' + escapeHtml(issue.file) + '</span>' : '';
+                        const fileMarkup = fileDetail ? ' ' + fileDetail : '';
+                        const issueIdArg = issue.id ? JSON.stringify(issue.id) : null;
+                        const fixButton = issue.autoFixable && issueIdArg
+                            ? '<button class="btn btn-small" onclick="fixIssue(' + issueIdArg + ')">Fix</button>'
+                            : '';
+
+                        let row = '<li class="issue-item">' +
+                            '<span class="issue-icon">' + getSeverityIcon(issue.severity) + '</span>' +
+                            '<span class="issue-text">' + message + fileMarkup + '</span>';
+
+                        if (fixButton) {
+                            row += fixButton;
+                        }
+
+                        row += '</li>';
+                        return row;
+                    }).join('');
+
+                    issuesList.innerHTML = issuesHtml;
                 }
             } catch (error) {
                 console.error('Failed to load scan:', error);
+                const scan = document.getElementById('security-scan');
+                scan.className = '';
+                scan.innerHTML = '<div class="metric-label" style="color: #dc3545;">' + escapeHtml(error.message) + '</div>';
             }
         }
 
         async function loadGitStatus() {
             try {
                 const res = await fetch('/api/git-status');
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
                 const gitStatus = document.getElementById('git-status');
                 gitStatus.className = '';
 
                 if (data.error) {
-                    gitStatus.innerHTML = '<p class="metric-label">' + data.error + '</p>';
+                    gitStatus.innerHTML = '<p class="metric-label">' + escapeHtml(data.error) + '</p>';
                     return;
                 }
 
-                gitStatus.innerHTML = \`
-                    <div class="metric">
-                        <span class="metric-label">Current Branch</span>
-                        <span class="metric-value">\${data.branch}</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Uncommitted Files</span>
-                        <span class="metric-value">\${data.status.length}</span>
-                    </div>
-                    <div class="metric">
-                        <span class="metric-label">Recent Commits</span>
-                        <span class="metric-value">\${data.commits.length}</span>
-                    </div>
-                \`;
+                const branch = escapeHtml(data.branch || 'unknown');
+                const uncommitted = escapeHtml((data.status || []).length);
+                const commits = escapeHtml((data.commits || []).length);
+
+                gitStatus.innerHTML = '<div class="metric">' +
+                    '<span class="metric-label">Current Branch</span>' +
+                    '<span class="metric-value">' + branch + '</span>' +
+                '</div>' +
+                '<div class="metric">' +
+                    '<span class="metric-label">Uncommitted Files</span>' +
+                    '<span class="metric-value">' + uncommitted + '</span>' +
+                '</div>' +
+                '<div class="metric">' +
+                    '<span class="metric-label">Recent Commits</span>' +
+                    '<span class="metric-value">' + commits + '</span>' +
+                '</div>';
             } catch (error) {
                 console.error('Failed to load git status:', error);
             }
@@ -887,54 +1175,80 @@ class DashboardServer {
         async function loadTools() {
             try {
                 const res = await fetch('/api/tools');
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
                 const toolsList = document.getElementById('tools-list');
                 toolsList.className = '';
 
-                const cloud = data.detected.filter(t => t.category === 'cloud');
-                const missing = data.missing;
+                const detected = Array.isArray(data.detected) ? data.detected : [];
+                const missingTools = Array.isArray(data.missing) ? data.missing : [];
+                const recommendations = Array.isArray(data.recommendations) ? data.recommendations : [];
 
-                toolsList.innerHTML = \`
-                    <h3 style="margin-bottom: 15px;">Detected Cloud Providers</h3>
-                    <ul class="tool-list">
-                        \${cloud.length > 0 ? cloud.map(t => \`
-                            <li class="tool-item">
-                                <span>\${t.provider}</span>
-                                <span class="tool-installed">✓ Detected</span>
-                            </li>
-                        \`).join('') : '<li class="tool-item"><span>No cloud providers detected</span></li>'}
-                    </ul>
+                const cloud = detected.filter(t => t.category === 'cloud');
 
-                    \${missing.length > 0 ? \`
-                        <h3 style="margin: 20px 0 15px;">Missing Tools</h3>
-                        <ul class="tool-list">
-                            \${missing.map(t => \`
-                                <li class="tool-item">
-                                    <div>
-                                        <div>\${t.name}</div>
-                                        <div style="font-size: 12px; color: #666;">\${t.reason}</div>
-                                    </div>
-                                    <button class="btn btn-small" onclick="installTool('\${t.name}', '\${t.install}')">Install</button>
-                                </li>
-                            \`).join('')}
-                        </ul>
-                    \` : ''}
+                const cloudHtml = cloud.length > 0
+                    ? cloud.map(t => {
+                        return '<li class="tool-item">' +
+                            '<span>' + escapeHtml(t.provider || 'Provider') + '</span>' +
+                            '<span class="tool-installed">✓ Detected</span>' +
+                        '</li>';
+                    }).join('')
+                    : '<li class="tool-item"><span>No cloud providers detected</span></li>';
 
-                    \${data.recommendations.length > 0 ? \`
-                        <h3 style="margin: 20px 0 15px;">Recommendations</h3>
-                        <ul class="tool-list">
-                            \${data.recommendations.map(r => \`
-                                <li class="tool-item">
-                                    <div>
-                                        <div>\${r.category}: \${r.type}</div>
-                                        <div style="font-size: 12px; color: #666;">\${r.reason}</div>
-                                    </div>
-                                </li>
-                            \`).join('')}
-                        </ul>
-                    \` : ''}
-                \`;
+                let missingHtml = '';
+                if (missingTools.length > 0) {
+                    missingHtml += '<h3 style="margin: 20px 0 15px;">Missing Tools</h3>';
+                    missingHtml += '<ul class="tool-list">';
+                    missingHtml += missingTools.map(t => {
+                        const label = t.name || t.cli || t.command || t.provider || 'Tool';
+                        const reason = t.reason ? escapeHtml(t.reason) : '';
+                        const description = t.installerDescription ? ' — ' + escapeHtml(t.installerDescription) : '';
+                        const docsUrl = typeof t.docs === 'string' && /^https?:\/\//i.test(t.docs) ? t.docs : null;
+                        const docsLink = docsUrl
+                            ? '<div style="font-size: 12px;"><a href="' + escapeHtml(docsUrl) + '" target="_blank" rel="noopener noreferrer">View docs</a></div>'
+                            : '';
+                        const safeId = JSON.stringify(t.safeInstallerId);
+                        const safeLabel = JSON.stringify(label);
+                        const action = t.safeInstallerId
+                            ? '<button class="btn btn-small" onclick=\'installTool(' + safeId + ', ' + safeLabel + ')\'>Install</button>'
+                            : '<span class="tool-install-warning">Manual install required</span>';
+
+                        return '<li class="tool-item">' +
+                            '<div>' +
+                                '<div>' + escapeHtml(label) + '</div>' +
+                                '<div style="font-size: 12px; color: #666;">' + reason + description + '</div>' +
+                                docsLink +
+                            '</div>' +
+                            action +
+                        '</li>';
+                    }).join('');
+                    missingHtml += '</ul>';
+                }
+
+                let recommendationsHtml = '';
+                if (recommendations.length > 0) {
+                    recommendationsHtml += '<h3 style="margin: 20px 0 15px;">Recommendations</h3>';
+                    recommendationsHtml += '<ul class="tool-list">';
+                    recommendationsHtml += recommendations.map(r => {
+                        const category = escapeHtml(r.category || 'Recommendation');
+                        const type = escapeHtml(r.type || 'Suggestion');
+                        const reason = escapeHtml(r.reason || '');
+                        return '<li class="tool-item">' +
+                            '<div>' +
+                                '<div>' + category + ': ' + type + '</div>' +
+                                '<div style="font-size: 12px; color: #666;">' + reason + '</div>' +
+                            '</div>' +
+                        '</li>';
+                    }).join('');
+                    recommendationsHtml += '</ul>';
+                }
+
+                toolsList.innerHTML = '<h3 style="margin-bottom: 15px;">Detected Cloud Providers</h3>' +
+                    '<ul class="tool-list">' +
+                        cloudHtml +
+                    '</ul>' +
+                    missingHtml +
+                    recommendationsHtml;
             } catch (error) {
                 console.error('Failed to load tools:', error);
             }
@@ -954,31 +1268,44 @@ class DashboardServer {
             try {
                 const res = await fetch('/api/fix', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getJsonHeaders(),
                     body: JSON.stringify({ issueId })
                 });
-                const result = await res.json();
-                alert(result.message);
+                const result = await parseJsonResponse(res);
+                alert(result.message || 'Issue fixed successfully.');
                 loadSecurityScan(); // Refresh
             } catch (error) {
                 alert('Failed to fix issue: ' + error.message);
             }
         }
 
-        async function installTool(name, command) {
-            if (confirm(\`Install \${name}?\\n\\nCommand: \${command}\`)) {
-                try {
-                    const res = await fetch('/api/install-tool', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tool: name, command })
-                    });
-                    const result = await res.json();
-                    alert(result.message);
-                    loadTools(); // Refresh
-                } catch (error) {
-                    alert('Failed to install: ' + error.message);
+        async function installTool(toolId, toolName) {
+            if (!toolId) {
+                alert('Manual installation required. Please follow the documentation for this tool.');
+                return;
+            }
+
+            const nameLabel = toolName || 'tool';
+            if (!confirm('Install ' + nameLabel + '?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/install-tool', {
+                    method: 'POST',
+                    headers: getJsonHeaders(),
+                    body: JSON.stringify({ toolId })
+                });
+                const result = await parseJsonResponse(res);
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Installation failed.');
                 }
+
+                alert(result.message || (nameLabel + ' installed successfully.'));
+                loadTools(); // Refresh
+            } catch (error) {
+                alert('Failed to install ' + nameLabel + ': ' + error.message);
             }
         }
 
@@ -1003,23 +1330,24 @@ class DashboardServer {
             const messagesDiv = document.getElementById('chat-messages');
 
             // Add user message
-            messagesDiv.innerHTML += \`<div class="message message-user">\${message}</div>\`;
+            messagesDiv.innerHTML += '<div class="message message-user">' + formatMultiline(message) + '</div>';
             input.value = '';
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getJsonHeaders(),
                     body: JSON.stringify({ message })
                 });
-                const data = await res.json();
+                const data = await parseJsonResponse(res);
 
                 // Add AI response
-                messagesDiv.innerHTML += \`<div class="message message-ai">\${data.response}</div>\`;
+                const responseText = data && data.response ? formatMultiline(data.response) : 'No response available.';
+                messagesDiv.innerHTML += '<div class="message message-ai">' + responseText + '</div>';
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             } catch (error) {
-                messagesDiv.innerHTML += \`<div class="message message-ai">Sorry, I encountered an error: \${error.message}</div>\`;
+                messagesDiv.innerHTML += '<div class="message message-ai">Sorry, I encountered an error: ' + escapeHtml(error.message) + '</div>';
             }
         }
 

@@ -126,6 +126,32 @@
             font-size: 18px;
         }
 
+        .config-alert {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: rgba(255, 193, 7, 0.18);
+            border: 1px solid rgba(255, 193, 7, 0.45);
+            color: #f0c419;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .config-alert.hidden {
+            display: none;
+        }
+
+        .config-alert strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #ffe08a;
+        }
+
+        .config-alert ul {
+            margin-left: 18px;
+            margin-bottom: 0;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -339,6 +365,56 @@
             margin-top: 4px;
         }
 
+        .tool-list {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tool-chip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px 16px;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .tool-chip:hover {
+            transform: translateX(5px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .tool-chip .tool-name {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .tool-chip .tool-status {
+            font-weight: 500;
+            color: #34d399;
+        }
+
+        .tool-chip.missing {
+            background: rgba(255, 153, 0, 0.1);
+            border-color: rgba(255, 153, 0, 0.4);
+        }
+
+        .tool-chip.missing .tool-status {
+            color: #f59e0b;
+        }
+
+        .tool-chip small {
+            display: block;
+            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+        }
+
         .btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -548,6 +624,7 @@
         <div class="header shimmer">
             <h1>☁️ NIMBUS</h1>
             <p>Holographic Security Interface • Real-time Project Analysis</p>
+            <div class="config-alert hidden" data-field="config-warnings"></div>
         </div>
 
         <div class="grid">
@@ -555,27 +632,27 @@
             <div class="card depth-layer-1">
                 <h2>
                     📊 PROJECT STATUS
-                    <span class="status-badge status-warning">Issues Detected</span>
+                    <span class="status-badge status-warning" data-field="status-badge">Issues Detected</span>
                 </h2>
                 <div class="metric">
                     <span class="metric-label">Project Name</span>
-                    <span class="metric-value">Nimbus</span>
+                    <span class="metric-value" data-field="project-name">Nimbus</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Experience Level</span>
-                    <span class="metric-value">Advanced</span>
+                    <span class="metric-value" data-field="experience-level">Advanced</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Dependencies</span>
-                    <span class="metric-value">12</span>
+                    <span class="metric-value" data-field="dependency-count">12</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Dev Dependencies</span>
-                    <span class="metric-value">1</span>
+                    <span class="metric-value" data-field="dev-dependency-count">1</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Git Branch</span>
-                    <span class="metric-value">main</span>
+                    <span class="metric-value" data-field="git-branch">main</span>
                 </div>
             </div>
 
@@ -584,87 +661,35 @@
                 <h2>🛡️ SECURITY SCAN</h2>
                 <div class="metric">
                     <span class="metric-label">🔴 Critical</span>
-                    <span class="metric-value" style="color: #34d399;">0</span>
+                    <span class="metric-value" data-field="scan-critical" style="color: #34d399;">0</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">🟠 High</span>
-                    <span class="metric-value" style="color: #fbbf24;">1</span>
+                    <span class="metric-value" data-field="scan-high" style="color: #fbbf24;">1</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">🟡 Medium</span>
-                    <span class="metric-value" style="color: #fbbf24;">1</span>
+                    <span class="metric-value" data-field="scan-medium" style="color: #fbbf24;">1</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">⚪ Warnings</span>
-                    <span class="metric-value">3</span>
+                    <span class="metric-value" data-field="scan-warnings">3</span>
                 </div>
             </div>
 
             <!-- Tools Detected -->
             <div class="card depth-layer-1">
                 <h2>🔧 TOOLS DETECTED</h2>
-                <div class="metric">
-                    <span class="metric-label">✓ git</span>
-                    <span class="metric-value" style="color: #34d399;">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ node</span>
-                    <span class="metric-value" style="color: #34d399;">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ npm</span>
-                    <span class="metric-value" style="color: #34d399;">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ docker</span>
-                    <span class="metric-value" style="color: #34d399;">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ gh (GitHub CLI)</span>
-                    <span class="metric-value" style="color: #34d399;">Installed</span>
-                </div>
+                <ul class="tool-list" id="tool-list">
+                    <li class="metric">Loading tools…</li>
+                </ul>
             </div>
 
             <!-- Issues Found -->
             <div class="card full-width depth-layer-2">
                 <h2>⚠️ ISSUES & RECOMMENDATIONS</h2>
-                <ul class="issue-list">
-                    <li class="issue-item">
-                        <span class="issue-icon">🟠</span>
-                        <div class="issue-text">
-                            <strong>HIGH:</strong> .gitignore missing critical patterns
-                            <small>Missing: .env.*, *.env, dist/, logs/, *.pem, *.key</small>
-                        </div>
-                        <button class="btn" onclick="alert('Run: nimbus fix\n\nThis will automatically add missing patterns to .gitignore')">FIX NOW</button>
-                    </li>
-                    <li class="issue-item">
-                        <span class="issue-icon">🟡</span>
-                        <div class="issue-text">
-                            <strong>MEDIUM:</strong> Missing .env.example for team reference
-                        </div>
-                        <button class="btn" onclick="alert('Run: nimbus fix\n\nThis will create a template .env.example file')">FIX NOW</button>
-                    </li>
-                    <li class="issue-item">
-                        <span class="issue-icon">💡</span>
-                        <div class="issue-text">
-                            <strong>Recommendation:</strong> Add testing framework (Jest)
-                            <small>No testing setup detected - add tests to ensure code quality</small>
-                        </div>
-                    </li>
-                    <li class="issue-item">
-                        <span class="issue-icon">💡</span>
-                        <div class="issue-text">
-                            <strong>Recommendation:</strong> Setup CI/CD pipeline
-                            <small>Add GitHub Actions or GitLab CI for automated testing</small>
-                        </div>
-                    </li>
-                    <li class="issue-item">
-                        <span class="issue-icon">💡</span>
-                        <div class="issue-text">
-                            <strong>Recommendation:</strong> Add error monitoring
-                            <small>Install Sentry or Winston for production error tracking</small>
-                        </div>
-                    </li>
+                <ul class="issue-list" id="issue-list">
+                    <li class="issue-item">Loading recent scan results…</li>
                 </ul>
             </div>
 
@@ -714,75 +739,301 @@
         console.log('🎨 Glassmorphism + Holographic Effects Active');
         console.log('✨ This is the future of deployment monitoring');
 
-        // Firebase configuration
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, doc, getDoc, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCdJO1Y_s-s_phMrTmm6VDQG-pvNEtyPSI",
-            authDomain: "nimbus-guardian.firebaseapp.com",
-            projectId: "nimbus-guardian",
-            storageBucket: "nimbus-guardian.firebasestorage.app",
-            messagingSenderId: "672144468079",
-            appId: "1:672144468079:web:6e0fdc5736d9d27b13859a"
+        const fields = {
+            projectName: document.querySelector('[data-field="project-name"]'),
+            experienceLevel: document.querySelector('[data-field="experience-level"]'),
+            dependencyCount: document.querySelector('[data-field="dependency-count"]'),
+            devDependencyCount: document.querySelector('[data-field="dev-dependency-count"]'),
+            gitBranch: document.querySelector('[data-field="git-branch"]'),
+            configWarnings: document.querySelector('[data-field="config-warnings"]'),
+            statusBadge: document.querySelector('[data-field="status-badge"]'),
+            scanCritical: document.querySelector('[data-field="scan-critical"]'),
+            scanHigh: document.querySelector('[data-field="scan-high"]'),
+            scanMedium: document.querySelector('[data-field="scan-medium"]'),
+            scanWarnings: document.querySelector('[data-field="scan-warnings"]')
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        function setField(name, value) {
+            const el = fields[name];
+            if (el) {
+                el.textContent = value ?? '—';
+            }
+        }
 
-        // Auto sign-in anonymously for demo
-        signInAnonymously(auth);
+        function setNumberField(name, value) {
+            setField(name, typeof value === 'number' ? value : '—');
+        }
 
-        // Load real data from Firestore
-        async function loadRealData() {
-            try {
-                // Get user account (replace with actual userId from CLI)
-                const userId = 'demo-user'; // TODO: Get from URL param or login
-                const userDoc = await getDoc(doc(db, 'users', userId));
+        function renderConfigWarnings(warnings) {
+            const container = fields.configWarnings;
+            if (!container) return;
 
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    updateDashboard(userData);
+            const entries = Array.isArray(warnings) ? warnings.filter(Boolean) : [];
+
+            if (!entries.length) {
+                container.classList.add('hidden');
+                container.replaceChildren();
+                return;
+            }
+
+            container.classList.remove('hidden');
+            const title = document.createElement('strong');
+            title.textContent = entries.length > 1
+                ? 'Configuration warnings detected:'
+                : 'Configuration warning detected:';
+
+            const list = document.createElement('ul');
+            entries.forEach(entry => {
+                const item = document.createElement('li');
+                item.textContent = entry;
+                list.appendChild(item);
+            });
+
+            container.replaceChildren(title, list);
+        }
+
+        function applyStatus(status) {
+            renderConfigWarnings(status?.configWarnings);
+            if (!status) {
+                return;
+            }
+
+            setField('projectName', status.projectName || status.package?.name || 'Nimbus');
+            setField('experienceLevel', status.experienceLevel || '—');
+            setNumberField('dependencyCount', status.package?.dependencies);
+            setNumberField('devDependencyCount', status.package?.devDependencies);
+            setField('gitBranch', status.git?.branch || '—');
+        }
+
+        function applySecurity(report) {
+            const security = report?.security;
+            setNumberField('scanCritical', security?.critical);
+            setNumberField('scanHigh', security?.high);
+            setNumberField('scanMedium', security?.medium);
+            setNumberField('scanWarnings', security?.warnings);
+
+            const badge = fields.statusBadge;
+            if (!badge) return;
+
+            let text = 'Scan Pending';
+            let badgeClass = 'status-badge status-warning';
+
+            if (security) {
+                const critical = security.critical || 0;
+                const high = security.high || 0;
+                const medium = security.medium || 0;
+
+                if (critical > 0) {
+                    text = 'Critical Issues';
+                    badgeClass = 'status-badge status-error';
+                } else if (high > 0 || medium > 0) {
+                    text = 'Issues Detected';
+                    badgeClass = 'status-badge status-warning';
                 } else {
-                    console.log('No user data found - showing demo data');
-                    showDemoData();
+                    text = 'Healthy';
+                    badgeClass = 'status-badge status-good';
                 }
+            }
+
+            badge.textContent = text;
+            badge.className = badgeClass;
+        }
+
+        function renderTools(data) {
+            const list = document.getElementById('tool-list');
+            if (!list) return;
+
+            list.innerHTML = '';
+
+            const detected = Array.isArray(data?.detected) ? data.detected : [];
+            const missing = Array.isArray(data?.missing) ? data.missing : [];
+
+            if (!detected.length && !missing.length) {
+                const item = document.createElement('li');
+                item.className = 'tool-chip';
+                item.textContent = 'No tooling data available yet. Run “nimbus scan” to collect insights.';
+                list.appendChild(item);
+                return;
+            }
+
+            const addChip = (name, statusLabel, detail, options = {}) => {
+                const item = document.createElement('li');
+                item.className = 'tool-chip';
+                if (options.missing) {
+                    item.classList.add('missing');
+                }
+
+                const info = document.createElement('div');
+
+                const title = document.createElement('span');
+                title.className = 'tool-name';
+                title.textContent = name;
+                info.appendChild(title);
+
+                if (detail) {
+                    const detailEl = document.createElement('small');
+                    detailEl.textContent = detail;
+                    info.appendChild(detailEl);
+                }
+
+                const statusEl = document.createElement('span');
+                statusEl.className = 'tool-status';
+                statusEl.textContent = statusLabel;
+
+                item.appendChild(info);
+                item.appendChild(statusEl);
+                list.appendChild(item);
+            };
+
+            detected.slice(0, 8).forEach(tool => {
+                const name = tool.displayName || tool.name || tool.provider || tool.id || 'Detected Tool';
+                const detail = tool.category ? `${tool.category.toUpperCase()} toolkit` : '';
+                addChip(name, 'Installed', detail);
+            });
+
+            missing.slice(0, 8).forEach(tool => {
+                const name = tool.displayName || tool.name || tool.provider || tool.id || 'Missing Tool';
+                const detail = tool.install ? `Install: ${tool.install}` : tool.reason || 'Install required';
+                addChip(name, 'Missing', detail, { missing: true });
+            });
+        }
+
+        function severityIcon(level = '') {
+            const iconMap = {
+                CRITICAL: '🔴',
+                HIGH: '🟠',
+                MEDIUM: '🟡',
+                LOW: '⚪'
+            };
+            const normalized = String(level || '').toUpperCase();
+            return iconMap[normalized] || '💡';
+        }
+
+        function renderIssues(report) {
+            const list = document.getElementById('issue-list');
+            if (!list) return;
+
+            list.innerHTML = '';
+
+            const issues = Array.isArray(report?.security?.issues) ? report.security.issues : [];
+            const recommendations = Array.isArray(report?.tools?.recommendations) ? report.tools.recommendations : [];
+
+            if (!issues.length && !recommendations.length) {
+                const item = document.createElement('li');
+                item.className = 'issue-item';
+                item.textContent = 'Run “nimbus scan” to generate a detailed issue report.';
+                list.appendChild(item);
+                return;
+            }
+
+            const createIssueItem = (icon, title, description) => {
+                const item = document.createElement('li');
+                item.className = 'issue-item';
+
+                const iconEl = document.createElement('span');
+                iconEl.className = 'issue-icon';
+                iconEl.textContent = icon;
+                item.appendChild(iconEl);
+
+                const textEl = document.createElement('div');
+                textEl.className = 'issue-text';
+
+                const strong = document.createElement('strong');
+                strong.textContent = title;
+                textEl.appendChild(strong);
+
+                if (description) {
+                    const detail = document.createElement('small');
+                    detail.textContent = description;
+                    textEl.appendChild(detail);
+                }
+
+                item.appendChild(textEl);
+                return item;
+            };
+
+            issues.slice(0, 6).forEach(issue => {
+                const severity = issue.severity || 'Issue';
+                const details = Array.isArray(issue.details) ? issue.details.join(', ') : issue.file || '';
+                const message = issue.message || 'Issue detected';
+                const description = details ? `${message} — ${details}` : message;
+                const category = issue.category ? `: ${issue.category}` : '';
+                const item = createIssueItem(
+                    severityIcon(severity),
+                    `${severity}${category}`.trim(),
+                    description
+                );
+                list.appendChild(item);
+            });
+
+            recommendations.slice(0, 4).forEach(rec => {
+                const detailParts = [];
+                if (rec.reason) detailParts.push(rec.reason);
+                if (Array.isArray(rec.options) && rec.options.length) {
+                    const optionNames = rec.options
+                        .map(option => option.name)
+                        .filter(Boolean)
+                        .join(', ');
+                    if (optionNames) {
+                        detailParts.push(`Options: ${optionNames}`);
+                    }
+                }
+                const description = detailParts.join(' • ');
+                const item = createIssueItem('💡', `Recommendation: ${rec.suggestion || rec.category || 'Improvement'}`, description);
+                list.appendChild(item);
+            });
+        }
+
+        async function fetchJSON(url) {
+            try {
+                const response = await fetch(url, {
+                    headers: { Accept: 'application/json' },
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    if (response.status !== 404) {
+                        console.warn(`[dashboard] Failed to load ${url}: ${response.status}`);
+                    }
+                    return null;
+                }
+
+                return await response.json();
             } catch (error) {
-                console.error('Error loading data:', error);
-                showDemoData();
+                console.warn(`[dashboard] Error loading ${url}:`, error);
+                return null;
             }
         }
 
-        function updateDashboard(userData) {
-            // Update project status
-            document.querySelector('#project-name').textContent = userData.account?.email || 'Unknown';
+        async function hydrate() {
+            const [status, tools, report] = await Promise.all([
+                fetchJSON('/api/status'),
+                fetchJSON('/api/tools'),
+                fetchJSON(`/guardian-test-report.json?ts=${Date.now()}`)
+            ]);
 
-            // Update metrics based on real data
-            const statusBadge = document.querySelector('.status-badge');
-            if (userData.usage?.scans > 40) {
-                statusBadge.textContent = 'High Usage';
-                statusBadge.className = 'status-badge status-warning';
+            if (status) {
+                applyStatus(status);
+            }
+
+            if (report) {
+                applySecurity(report);
+                renderIssues(report);
             } else {
-                statusBadge.textContent = 'Active';
-                statusBadge.className = 'status-badge status-good';
+                applySecurity(null);
+                renderIssues(null);
             }
 
-            // TODO: Update other metrics from Firestore data
-        }
-
-        function showDemoData() {
-            // Current demo data is fine for now
-            console.log('Showing demo data');
-        }
-
-        // Load data on page load
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                loadRealData();
+            if (tools) {
+                renderTools(tools);
+            } else if (report?.tools) {
+                renderTools(report.tools);
+            } else {
+                renderTools(null);
             }
-        });
+        }
+
+        hydrate();
 
         // Add subtle mouse parallax effect to cards
         document.addEventListener('mousemove', (e) => {

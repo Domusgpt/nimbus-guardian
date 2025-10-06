@@ -1,7 +1,31 @@
+# Node dependencies
 node_modules/
+
+# Environment files
 .env
+.env.*
+*.env
+!.env.example
 .guardian/.env
+
+# Build outputs
+build/
+dist/
+
+# Logs and diagnostics
 *.log
+logs/
+
+# OS artifacts
 .DS_Store
+
+# Secrets and credentials
+serviceAccountKey.json
+*credentials*.json
+*.pem
+*.key
+
+# Temporary directories
+.test-results/
 test-projects/
 temp/

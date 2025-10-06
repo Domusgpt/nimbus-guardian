@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Guardian Dashboard - Holographic Interface</title>
+    <script>
+        window.__CSRF_TOKEN__ = '__CSRF_TOKEN__';
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         * {
@@ -388,6 +391,105 @@
             line-height: 1.4;
         }
 
+        .issue-note {
+            margin-top: 6px;
+            font-size: 0.7rem;
+            color: var(--holo-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .issue-file {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+            word-break: break-word;
+        }
+
+        .issue-empty {
+            justify-content: center;
+            text-align: center;
+            border-color: transparent;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .empty-state {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .tool-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tool-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            gap: 12px;
+        }
+
+        .tool-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .tool-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--holo-cyan);
+        }
+
+        .tool-status {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .tool-status.installed {
+            color: #00ff85;
+            text-shadow: 0 0 8px #00ff85;
+        }
+
+        .tool-status.missing {
+            color: var(--holo-yellow);
+            text-shadow: 0 0 8px var(--holo-yellow);
+        }
+
+        .tool-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .tool-note {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
         /* HOLOGRAPHIC BUTTONS */
         .holo-button {
             padding: 12px 24px;
@@ -435,6 +537,13 @@
                 inset 0 2px 4px rgba(0, 0, 0, 0.2),
                 0 0 30px rgba(255, 255, 0, 0.5);
             border-color: var(--holo-yellow);
+        }
+
+        .holo-button[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         /* LOADING SPINNER */
@@ -599,13 +708,13 @@
                 <div class="neo-card" style="grid-column: 1 / -1;" id="issues-card">
                     <div class="card-header">
                         <div class="card-title">⚠️ Issues</div>
-                        <button class="holo-button" onclick="refreshScan()">Rescan</button>
+                        <button class="holo-button" id="rescan-button">Rescan</button>
                     </div>
                     <div class="card-body">
-                        <ul id="issues-list" class="issue-list loading">
+                        <div id="issues-content" class="loading">
                             <div class="spinner"></div>
                             <p>Loading issues...</p>
-                        </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -614,175 +723,610 @@
 
     </div>
 
-    <script>
-        // Parallax effect on mouse move (reduced intensity)
-        const scene = document.getElementById('scene');
-        const mouseXDisplay = document.getElementById('mouseX');
-        const mouseYDisplay = document.getElementById('mouseY');
-        let isCardHovered = false;
+        <script>
 
-        // Track card hover state
-        document.querySelectorAll('.neo-card').forEach(card => {
-            card.addEventListener('mouseenter', () => {
-                isCardHovered = true;
-            });
-            card.addEventListener('mouseleave', () => {
-                isCardHovered = false;
-            });
+const scene = document.getElementById('scene');
+const mouseXDisplay = document.getElementById('mouseX');
+const mouseYDisplay = document.getElementById('mouseY');
+let isCardHovered = false;
+
+document.querySelectorAll('.neo-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+        isCardHovered = true;
+    });
+    card.addEventListener('mouseleave', () => {
+        isCardHovered = false;
+    });
+});
+
+document.addEventListener('mousemove', (e) => {
+    const x = (e.clientX / window.innerWidth - 0.5) * 8;
+    const y = (e.clientY / window.innerHeight - 0.5) * 8;
+
+    if (!isCardHovered) {
+        scene.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
+    }
+
+    mouseXDisplay.textContent = Math.round(x);
+    mouseYDisplay.textContent = Math.round(y);
+});
+
+const particlesContainer = document.getElementById('particles');
+for (let i = 0; i < 50; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.top = Math.random() * 100 + '%';
+    particle.style.animationDelay = Math.random() * 10 + 's';
+    particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+    particlesContainer.appendChild(particle);
+}
+
+document.querySelectorAll('.neo-card').forEach(card => {
+    card.addEventListener('click', function (e) {
+        if (e.target.closest('button')) {
+            return;
+        }
+        this.classList.toggle('active');
+    });
+});
+
+const rescanButton = document.getElementById('rescan-button');
+if (rescanButton) {
+    rescanButton.addEventListener('click', refreshScan);
+}
+
+const dashboardState = {
+    status: null,
+    tools: null,
+    scan: null,
+    isScanning: false
+};
+
+initializeDashboard();
+
+async function initializeDashboard() {
+    await Promise.allSettled([
+        loadStatus(),
+        loadTools()
+    ]);
+    await runScan();
+}
+
+async function loadStatus() {
+    const container = document.getElementById('status-content');
+    showLoading(container, 'Analyzing project...');
+    try {
+        dashboardState.status = await fetchJson('/api/status');
+        renderStatus();
+    } catch (error) {
+        renderError(container, error.message);
+        setBadgeState(document.getElementById('status-badge'), 'status-error', 'Error');
+    }
+}
+
+async function loadTools(skipLoading = false) {
+    const container = document.getElementById('tools-content');
+    if (!skipLoading) {
+        showLoading(container, 'Detecting tools...');
+    }
+    try {
+        dashboardState.tools = await fetchJson('/api/tools');
+        renderTools();
+    } catch (error) {
+        renderError(container, error.message);
+        setBadgeState(document.getElementById('tools-badge'), 'status-error', 'Error');
+    }
+}
+
+async function runScan(interactive = false) {
+    if (dashboardState.isScanning) {
+        return;
+    }
+
+    dashboardState.isScanning = true;
+    const securityContainer = document.getElementById('security-content');
+    const issuesContainer = document.getElementById('issues-content');
+    const securityBadge = document.getElementById('security-badge');
+    const rescanButton = document.getElementById('rescan-button');
+
+    if (rescanButton) {
+        rescanButton.disabled = true;
+    }
+
+    showLoading(securityContainer, interactive ? 'Refreshing security posture...' : 'Scanning for threats...');
+    showLoading(issuesContainer, interactive ? 'Refreshing issues...' : 'Loading issues...');
+    setBadgeState(securityBadge, 'status-warning', 'Scanning...');
+
+    try {
+        dashboardState.scan = await fetchJson('/api/scan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.__CSRF_TOKEN__
+            },
+            body: '{}'
+        });
+        renderSecurity();
+        renderIssues();
+    } catch (error) {
+        renderError(securityContainer, error.message);
+        renderError(issuesContainer, error.message);
+        setBadgeState(securityBadge, 'status-error', 'Error');
+    } finally {
+        dashboardState.isScanning = false;
+        if (rescanButton) {
+            rescanButton.disabled = false;
+        }
+    }
+}
+
+async function refreshScan() {
+    const card = document.getElementById('issues-card');
+    card.classList.add('active');
+    await runScan(true);
+    setTimeout(() => card.classList.remove('active'), 600);
+}
+
+function renderStatus() {
+    const data = dashboardState.status;
+    const container = document.getElementById('status-content');
+    const badge = document.getElementById('status-badge');
+
+    clearContainer(container);
+
+    if (!data) {
+        renderMessage(container, 'Status unavailable.');
+        setBadgeState(badge, 'status-warning', 'Pending');
+        return;
+    }
+
+    document.getElementById('project-name').textContent = data.projectName || 'Unknown Project';
+
+    if (!data.git) {
+        setBadgeState(badge, 'status-warning', 'No Git');
+    } else if (typeof data.git.uncommitted === 'number' && data.git.uncommitted > 0) {
+        setBadgeState(badge, 'status-warning', 'Uncommitted');
+    } else {
+        setBadgeState(badge, 'status-good', 'Clean');
+    }
+
+    const metrics = [
+        { label: 'Experience Level', value: formatExperience(data.experienceLevel) },
+        { label: 'Dependencies', value: formatCount(data.package?.dependencies) },
+        { label: 'Dev Dependencies', value: formatCount(data.package?.devDependencies) },
+        { label: 'Branch', value: data.git?.branch || '—' },
+        { label: 'Uncommitted', value: typeof data.git?.uncommitted === 'number' ? data.git.uncommitted : '—' }
+    ];
+
+    renderMetrics(container, metrics);
+}
+
+function renderSecurity() {
+    const results = dashboardState.scan;
+    const container = document.getElementById('security-content');
+    const badge = document.getElementById('security-badge');
+
+    clearContainer(container);
+
+    if (!results) {
+        renderMessage(container, 'Run a scan to view security insights.');
+        setBadgeState(badge, 'status-warning', 'Pending');
+        return;
+    }
+
+    const counts = { critical: 0, high: 0, medium: 0 };
+    (results.issues || []).forEach(issue => {
+        const severity = (issue.severity || '').toUpperCase();
+        if (severity === 'CRITICAL') counts.critical++;
+        else if (severity === 'HIGH') counts.high++;
+        else if (severity === 'MEDIUM') counts.medium++;
+    });
+
+    const warningsCount = (results.warnings || []).length;
+
+    const severityClass = counts.critical > 0
+        ? 'status-error'
+        : counts.high > 0
+            ? 'status-warning'
+            : 'status-good';
+    const badgeLabel = counts.critical + counts.high + counts.medium > 0 ? 'Issues Found' : 'Secure';
+
+    setBadgeState(badge, severityClass, badgeLabel);
+
+    const metrics = [
+        { label: '🔴 Critical', value: counts.critical },
+        { label: '🟠 High', value: counts.high },
+        { label: '🟡 Medium', value: counts.medium },
+        { label: '⚪ Warnings', value: warningsCount }
+    ];
+
+    renderMetrics(container, metrics);
+
+    const score = Math.max(0, Math.min(100, 100 - (counts.critical * 40 + counts.high * 25 + counts.medium * 15 + warningsCount * 5)));
+    container.appendChild(createProgressBar(score));
+}
+
+function renderTools() {
+    const data = dashboardState.tools;
+    const container = document.getElementById('tools-content');
+    const badge = document.getElementById('tools-badge');
+
+    clearContainer(container);
+
+    if (!data) {
+        renderMessage(container, 'Tool data unavailable.');
+        setBadgeState(badge, 'status-warning', 'Pending');
+        return;
+    }
+
+    const detectedCli = (data.detected || []).filter(tool => tool.category === 'cli' && tool.installed);
+    const missing = data.missing || [];
+
+    if (missing.length === 0 && detectedCli.length === 0) {
+        renderMessage(container, 'No CLI tools detected yet.');
+        setBadgeState(badge, 'status-warning', 'No Data');
+        return;
+    }
+
+    const list = document.createElement('ul');
+    list.className = 'tool-list';
+
+    detectedCli.forEach(tool => {
+        const item = document.createElement('li');
+        item.className = 'tool-item';
+
+        const details = document.createElement('div');
+        details.className = 'tool-details';
+
+        const name = document.createElement('div');
+        name.className = 'tool-name';
+        name.textContent = (tool.name || tool.provider || 'Tool').toString();
+
+        const status = document.createElement('span');
+        status.className = 'tool-status installed';
+        status.textContent = 'Installed';
+
+        details.appendChild(name);
+        details.appendChild(status);
+        item.appendChild(details);
+        list.appendChild(item);
+    });
+
+    missing.forEach(tool => {
+        const item = document.createElement('li');
+        item.className = 'tool-item';
+
+        const details = document.createElement('div');
+        details.className = 'tool-details';
+
+        const name = document.createElement('div');
+        name.className = 'tool-name';
+        name.textContent = (tool.installerLabel || tool.name || tool.cli || tool.provider || 'Tool').toString();
+
+        const status = document.createElement('span');
+        status.className = 'tool-status missing';
+        status.textContent = 'Missing';
+
+        details.appendChild(name);
+        details.appendChild(status);
+
+        if (tool.reason || tool.installerDescription) {
+            const note = document.createElement('span');
+            note.className = 'tool-note';
+            note.textContent = tool.installerDescription || tool.reason;
+            details.appendChild(note);
+        }
+
+        item.appendChild(details);
+
+        const actions = document.createElement('div');
+        actions.className = 'tool-actions';
+
+        if (tool.safeInstallerId) {
+            const button = document.createElement('button');
+            button.className = 'holo-button';
+            button.textContent = 'Install';
+            button.addEventListener('click', () => installTool(tool.safeInstallerId, tool.installerLabel || tool.name || tool.cli, button));
+            actions.appendChild(button);
+        } else {
+            const note = document.createElement('span');
+            note.className = 'tool-note';
+            note.textContent = 'Install manually';
+            actions.appendChild(note);
+        }
+
+        item.appendChild(actions);
+        list.appendChild(item);
+    });
+
+    container.appendChild(list);
+
+    if (missing.length === 0) {
+        setBadgeState(badge, 'status-good', detectedCli.length ? 'All Ready' : 'No Missing Tools');
+    } else {
+        setBadgeState(badge, 'status-warning', `${missing.length} Missing`);
+    }
+}
+
+function renderIssues() {
+    const results = dashboardState.scan;
+    const container = document.getElementById('issues-content');
+
+    clearContainer(container);
+
+    if (!results) {
+        renderMessage(container, 'Run a scan to see issues.');
+        return;
+    }
+
+    const issues = results.issues || [];
+
+    if (issues.length === 0) {
+        renderMessage(container, 'No issues detected. Great job!');
+        return;
+    }
+
+    const list = document.createElement('ul');
+    list.className = 'issue-list';
+
+    const severityIcons = {
+        CRITICAL: '🔴',
+        HIGH: '🟠',
+        MEDIUM: '🟡'
+    };
+
+    issues.slice(0, 10).forEach(issue => {
+        const severity = (issue.severity || '').toUpperCase();
+        const item = document.createElement('li');
+        item.className = `issue-item ${severity.toLowerCase()}`;
+
+        const icon = document.createElement('span');
+        icon.className = 'issue-icon';
+        icon.textContent = severityIcons[severity] || '⚪';
+
+        const text = document.createElement('div');
+        text.className = 'issue-text';
+        text.textContent = issue.message || 'Issue';
+
+        if (issue.file) {
+            const file = document.createElement('span');
+            file.className = 'issue-file';
+            file.textContent = issue.file;
+            text.appendChild(file);
+        }
+
+        if (issue.autoFixable) {
+            const note = document.createElement('div');
+            note.className = 'issue-note';
+            note.textContent = 'Auto-fix available';
+            text.appendChild(note);
+        }
+
+        item.appendChild(icon);
+        item.appendChild(text);
+
+        if (issue.autoFixable && issue.id) {
+            const button = document.createElement('button');
+            button.className = 'holo-button';
+            button.textContent = 'Auto-fix';
+            button.addEventListener('click', () => fixIssue(issue.id, button));
+            item.appendChild(button);
+        }
+
+        list.appendChild(item);
+    });
+
+    container.appendChild(list);
+}
+
+async function fixIssue(issueId, button) {
+    if (!issueId) {
+        return;
+    }
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Fixing…';
+    }
+
+    let fixSucceeded = false;
+
+    try {
+        const result = await fetchJson('/api/fix', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.__CSRF_TOKEN__
+            },
+            body: JSON.stringify({ issueId })
         });
 
-        document.addEventListener('mousemove', (e) => {
-            // Reduce parallax intensity from ±20 to ±8 degrees
-            const x = (e.clientX / window.innerWidth - 0.5) * 8;
-            const y = (e.clientY / window.innerHeight - 0.5) * 8;
+        if (result?.success) {
+            fixSucceeded = true;
+            alert(result.message || 'Issue fixed successfully.');
+        } else {
+            throw new Error(result?.message || 'Issue not auto-fixable.');
+        }
+    } catch (error) {
+        alert(`Failed to fix issue: ${error.message}`);
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Auto-fix';
+        }
+    }
 
-            // Only apply parallax when NOT hovering over a card
-            if (!isCardHovered) {
-                scene.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
-            }
+    if (fixSucceeded) {
+        await runScan(true);
+    }
+}
 
-            mouseXDisplay.textContent = Math.round(x);
-            mouseYDisplay.textContent = Math.round(y);
+async function installTool(toolId, toolName, button) {
+    if (!toolId) {
+        alert('Manual installation required for this tool.');
+        return;
+    }
+
+    const label = toolName || 'tool';
+    if (!confirm(`Install ${label}?`)) {
+        return;
+    }
+
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Installing…';
+    }
+
+    try {
+        const result = await fetchJson('/api/install-tool', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': window.__CSRF_TOKEN__
+            },
+            body: JSON.stringify({ toolId })
         });
 
-        // Generate ambient particles
-        const particlesContainer = document.getElementById('particles');
-        for (let i = 0; i < 50; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.top = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 10 + 's';
-            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
-            particlesContainer.appendChild(particle);
+        if (!result?.success) {
+            throw new Error(result?.message || 'Installation failed.');
         }
 
-        // Mock data loading (replace with real API calls)
-        setTimeout(() => {
-            loadStatus();
-            loadSecurity();
-            loadTools();
-            loadIssues();
-        }, 1000);
-
-        function loadStatus() {
-            document.getElementById('project-name').textContent = 'intelligent-cloud-guardian';
-            document.getElementById('status-badge').textContent = 'Healthy';
-            document.getElementById('status-badge').className = 'status-badge status-good';
-
-            document.getElementById('status-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">Experience Level</span>
-                    <span class="metric-value">Advanced</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Dependencies</span>
-                    <span class="metric-value">12</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Branch</span>
-                    <span class="metric-value">main</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Uncommitted</span>
-                    <span class="metric-value">4,510</span>
-                </div>
-            `;
+        alert(result.message || `${label} installed successfully.`);
+        await loadTools(true);
+    } catch (error) {
+        alert(`Failed to install ${label}: ${error.message}`);
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Install';
         }
+    }
+}
 
-        function loadSecurity() {
-            document.getElementById('security-badge').textContent = 'Issues Found';
-            document.getElementById('security-badge').className = 'status-badge status-warning';
+function showLoading(container, message) {
+    clearContainer(container);
+    container.classList.add('loading');
 
-            document.getElementById('security-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">🔴 Critical</span>
-                    <span class="metric-value">0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟠 High</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟡 Medium</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">⚪ Warnings</span>
-                    <span class="metric-value">3</span>
-                </div>
-                <div style="margin-top: 20px;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 85%"></div>
-                        <div class="progress-text">85% Secure</div>
-                    </div>
-                </div>
-            `;
+    const spinner = document.createElement('div');
+    spinner.className = 'spinner';
+
+    const text = document.createElement('p');
+    text.textContent = message;
+
+    container.appendChild(spinner);
+    container.appendChild(text);
+}
+
+function clearContainer(container) {
+    container.classList.remove('loading');
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+}
+
+function renderError(container, message) {
+    clearContainer(container);
+    const error = document.createElement('p');
+    error.className = 'error-message';
+    error.textContent = message;
+    container.appendChild(error);
+}
+
+function renderMessage(container, message) {
+    clearContainer(container);
+    const text = document.createElement('div');
+    text.className = 'empty-state';
+    text.textContent = message;
+    container.appendChild(text);
+}
+
+function renderMetrics(container, metrics) {
+    metrics.forEach(metric => {
+        const row = document.createElement('div');
+        row.className = 'metric';
+
+        const label = document.createElement('span');
+        label.className = 'metric-label';
+        label.textContent = metric.label;
+
+        const value = document.createElement('span');
+        value.className = 'metric-value';
+        value.textContent = metric.value ?? '—';
+
+        row.appendChild(label);
+        row.appendChild(value);
+        container.appendChild(row);
+    });
+}
+
+function createProgressBar(score) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'progress-bar';
+    wrapper.style.marginTop = '20px';
+
+    const fill = document.createElement('div');
+    fill.className = 'progress-fill';
+    fill.style.width = `${score}%`;
+
+    const label = document.createElement('div');
+    label.className = 'progress-text';
+    label.textContent = `${Math.round(score)}% Secure`;
+
+    fill.appendChild(label);
+    wrapper.appendChild(fill);
+    return wrapper;
+}
+
+function setBadgeState(element, variant, text) {
+    if (!element) {
+        return;
+    }
+    element.className = `status-badge ${variant}`;
+    element.textContent = text;
+}
+
+async function fetchJson(url, options = {}) {
+    let response;
+    try {
+        response = await fetch(url, options);
+    } catch (error) {
+        throw new Error('Network error. Please verify the dashboard server is running.');
+    }
+
+    const text = await response.text();
+    let payload = null;
+
+    if (text) {
+        try {
+            payload = JSON.parse(text);
+        } catch (error) {
+            throw new Error('Server returned invalid JSON.');
         }
+    }
 
-        function loadTools() {
-            document.getElementById('tools-badge').textContent = '5/5 Found';
-            document.getElementById('tools-badge').className = 'status-badge status-good';
+    if (!response.ok) {
+        const message = payload?.error || payload?.message || `Request failed (${response.status})`;
+        throw new Error(message);
+    }
 
-            document.getElementById('tools-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">✓ Git</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Node.js</span>
-                    <span class="metric-value">v18.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ npm</span>
-                    <span class="metric-value">v9.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Docker</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ GitHub CLI</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-            `;
-        }
+    return payload;
+}
 
-        function loadIssues() {
-            document.getElementById('issues-list').innerHTML = `
-                <li class="issue-item high">
-                    <span class="issue-icon">🟠</span>
-                    <span class="issue-text">.gitignore missing critical patterns</span>
-                    <button class="holo-button" onclick="fixIssue('gitignore')">Fix</button>
-                </li>
-                <li class="issue-item medium">
-                    <span class="issue-icon">🟡</span>
-                    <span class="issue-text">Missing .env.example for team reference</span>
-                    <button class="holo-button" onclick="fixIssue('env-example')">Fix</button>
-                </li>
-            `;
-        }
+function formatExperience(value) {
+    if (!value) {
+        return 'Intermediate';
+    }
+    const normalized = value.toString().toLowerCase();
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
 
-        function fixIssue(issueId) {
-            alert(`Fixing issue: ${issueId}\n\nIn production, this would call the Guardian API to auto-fix the issue.`);
-        }
-
-        function refreshScan() {
-            document.getElementById('issues-card').classList.add('active');
-            setTimeout(() => {
-                document.getElementById('issues-card').classList.remove('active');
-                alert('Scan complete! No new issues found.');
-            }, 1000);
-        }
-
-        // Card click effects
-        document.querySelectorAll('.neo-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                if (e.target.tagName !== 'BUTTON') {
-                    this.classList.toggle('active');
-                }
-            });
-        });
+function formatCount(value) {
+    if (typeof value === 'number') {
+        return value;
+    }
+    return '—';
+}
     </script>
 </body>
 </html>

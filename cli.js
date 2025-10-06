@@ -13,7 +13,7 @@ const ora = require('ora');
 const boxen = require('boxen');
 const path = require('path');
 const fs = require('fs-extra');
-require('dotenv').config({ path: path.join(process.cwd(), '.guardian', '.env') });
+const { loadConfig: loadGuardianConfig } = require('./lib/config-service');
 
 const GuardianEngine = require('./guardian-engine');
 const AIAssistant = require('./ai-assistant');
@@ -73,7 +73,7 @@ program
             options.ai = false;
         }
 
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -140,7 +140,7 @@ program
     .command('chat')
     .description('Chat with your AI assistant')
     .action(async () => {
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -159,10 +159,13 @@ program
             }
         ));
 
+        const preferredProvider = (config.aiProvider && config.aiProvider !== 'both') ? config.aiProvider : config.preferredProvider;
+
         const ai = new AIAssistant({
-            claudeApiKey: process.env.CLAUDE_API_KEY,
-            geminiApiKey: process.env.GEMINI_API_KEY,
-            experienceLevel: config.experienceLevel
+            claudeApiKey: config.claudeApiKey || process.env.CLAUDE_API_KEY,
+            geminiApiKey: config.geminiApiKey || process.env.GEMINI_API_KEY,
+            experienceLevel: config.experienceLevel,
+            preferredProvider
         });
 
         await interactiveChat(ai, config);
@@ -174,7 +177,7 @@ program
     .description('Auto-fix issues in your project')
     .option('-a, --all', 'Fix all auto-fixable issues')
     .action(async (options) => {
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -230,7 +233,7 @@ program
     .description('Get AI explanation of a concept')
     .option('-d, --depth <level>', 'Explanation depth: beginner, intermediate, advanced')
     .action(async (topic, options) => {
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -272,7 +275,7 @@ program
     .command('debug <error>')
     .description('Get help debugging an error')
     .action(async (error) => {
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -314,7 +317,7 @@ program
     .command('learn [topic]')
     .description('Interactive learning tutorials')
     .action(async (topic) => {
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -386,7 +389,7 @@ program
     .command('tools')
     .description('Detect and recommend tools for your project')
     .action(async () => {
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -556,7 +559,7 @@ program
     .command('pre-deploy')
     .description('Pre-deployment checklist and validation')
     .action(async () => {
-        const config = await loadConfig();
+        const config = await getConfig();
         if (!config) {
             console.log(chalk.yellow('\n⚠️  Please run "nimbus setup" first!\n'));
             return;
@@ -597,14 +600,8 @@ program
 
 // Helper functions
 
-async function loadConfig() {
-    const configPath = path.join(process.cwd(), '.guardian', 'config.json');
-
-    try {
-        return await fs.readJson(configPath);
-    } catch {
-        return null;
-    }
+async function getConfig() {
+    return loadGuardianConfig(process.cwd());
 }
 
 function displayResults(results, experienceLevel) {

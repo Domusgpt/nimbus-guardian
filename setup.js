@@ -148,10 +148,10 @@ EXPERIENCE_LEVEL=${answers.experience}
         chalk.green.bold('✅ Setup Complete!\n\n') +
         chalk.white('Your Cloud Guardian is ready to help.\n\n') +
         chalk.cyan('Try these commands:\n') +
-        chalk.gray('  guardian scan     - Check your project\n') +
-        chalk.gray('  guardian chat     - Talk to your AI assistant\n') +
-        chalk.gray('  guardian fix      - Auto-fix issues\n') +
-        chalk.gray('  guardian learn    - Get tutorials\n'),
+        chalk.gray('  nimbus scan     - Check your project\n') +
+        chalk.gray('  nimbus chat     - Talk to your AI assistant\n') +
+        chalk.gray('  nimbus fix      - Auto-fix issues\n') +
+        chalk.gray('  nimbus learn    - Get tutorials\n'),
         {
             padding: 1,
             margin: 1,
@@ -161,7 +161,7 @@ EXPERIENCE_LEVEL=${answers.experience}
     ));
 
     if (answers.experience === 'beginner') {
-        console.log(chalk.yellow('\n💡 First time? Try: ') + chalk.cyan.bold('guardian learn basics\n'));
+        console.log(chalk.yellow('\n💡 First time? Try: ') + chalk.cyan.bold('nimbus learn basics\n'));
     }
 }
 
@@ -204,14 +204,14 @@ Think of it as your personal coding mentor. It:
 
 ## Your First Steps
 
-1. **Check your project**: Run \`guardian scan\`
+1. **Check your project**: Run \`nimbus scan\`
    - This looks at your code and tells you what needs attention
 
-2. **Chat with your AI assistant**: Run \`guardian chat\`
+2. **Chat with your AI assistant**: Run \`nimbus chat\`
    - Ask questions like "What does this error mean?"
    - Get explanations about anything confusing
 
-3. **Learn the basics**: Run \`guardian learn\`
+3. **Learn the basics**: Run \`nimbus learn\`
    - Interactive tutorials
    - Learn by doing
 
@@ -228,7 +228,7 @@ A: Guardian checks for problems before they happen!
 
 ## Need Help?
 
-Just ask! Type \`guardian chat\` and say:
+Just ask! Type \`nimbus chat\` and say:
 - "I don't understand this error"
 - "How do I deploy my app?"
 - "What should I do first?"
@@ -250,27 +250,27 @@ Cloud Guardian helps you level up your deployment and cloud skills.
 ## Quick Start
 
 \`\`\`bash
-guardian scan          # Audit your project
-guardian fix           # Auto-fix safe issues
-guardian chat          # AI-powered help
-guardian deploy        # Guided deployment
+nimbus scan          # Audit your project
+nimbus fix           # Auto-fix safe issues
+nimbus chat          # AI-powered help
+nimbus deploy        # Guided deployment
 \`\`\`
 
 ## Common Use Cases
 
 **Before Deployment:**
 \`\`\`bash
-guardian pre-deploy    # Pre-flight checklist
+nimbus pre-deploy    # Pre-flight checklist
 \`\`\`
 
 **Debugging:**
 \`\`\`bash
-guardian debug         # AI-powered debugging help
+nimbus debug         # AI-powered debugging help
 \`\`\`
 
 **Learning:**
 \`\`\`bash
-guardian explain <topic>   # Deep dive explanations
+nimbus explain <topic>   # Deep dive explanations
 \`\`\``,
 
         advanced: `# 🌳 Welcome, Experienced Developer!
@@ -288,11 +288,11 @@ Cloud Guardian provides enterprise-grade deployment intelligence.
 ## CLI Commands
 
 \`\`\`bash
-guardian scan --deep             # Comprehensive audit
-guardian analyze performance     # Performance profiling
-guardian analyze security        # Security audit
-guardian analyze costs           # Cost optimization
-guardian explain <complex-topic> # AI-powered deep dives
+nimbus scan --deep             # Comprehensive audit
+nimbus analyze performance     # Performance profiling
+nimbus analyze security        # Security audit
+nimbus analyze costs           # Cost optimization
+nimbus explain <complex-topic> # AI-powered deep dives
 \`\`\`
 
 ## Integration
@@ -300,7 +300,7 @@ guardian explain <complex-topic> # AI-powered deep dives
 Add to your CI/CD pipeline:
 \`\`\`yaml
 - name: Cloud Guardian Scan
-  run: guardian scan --ci --fail-on high
+  run: nimbus scan --ci --fail-on high
 \`\`\`
 
 ## AI Assistance

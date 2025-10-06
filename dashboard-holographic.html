@@ -273,6 +273,36 @@
             text-shadow: 0 0 10px var(--holo-cyan);
         }
 
+        .metric-details {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .metric-section-title {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(0, 255, 255, 0.6);
+        }
+
+        .muted-text {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .error-text {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
+        }
+
         /* HOLOGRAPHIC PROGRESS BAR */
         .progress-bar {
             width: 100%;
@@ -377,6 +407,21 @@
             background: rgba(255, 255, 0, 0.05);
         }
 
+        .issue-item.low {
+            border-color: var(--holo-cyan);
+            background: rgba(0, 255, 255, 0.05);
+        }
+
+        .issue-item.info {
+            border-color: var(--holo-magenta);
+            background: rgba(255, 0, 255, 0.05);
+        }
+
+        .issue-item.success {
+            border-color: #00ff99;
+            background: rgba(0, 255, 153, 0.08);
+        }
+
         .issue-icon {
             font-size: 1.5rem;
             filter: drop-shadow(0 0 8px currentColor);
@@ -386,6 +431,14 @@
             flex: 1;
             font-size: 0.85rem;
             line-height: 1.4;
+        }
+
+        .issue-details {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
         }
 
         /* HOLOGRAPHIC BUTTONS */
@@ -412,6 +465,8 @@
                 0 5px 15px rgba(0, 0, 0, 0.3),
                 inset 0 1px 2px rgba(255, 255, 255, 0.2),
                 0 0 20px rgba(0, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
         }
 
         .holo-button:hover {
@@ -437,10 +492,60 @@
             border-color: var(--holo-yellow);
         }
 
-        /* LOADING SPINNER */
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .holo-button.is-busy {
+            cursor: progress;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .holo-button.is-busy::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 18px;
+            width: 16px;
+            height: 16px;
+            margin-top: -8px;
+            border: 2px solid rgba(0, 255, 255, 0.25);
+            border-top-color: var(--holo-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+        }
+
+        /* LOADING EXPERIENCE */
+        .is-loading {
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            border-radius: inherit;
+            background: rgba(5, 0, 25, 0.3);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .loading-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-text {
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .spinner {
@@ -457,6 +562,60 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* TOAST NOTIFICATIONS */
+        .toast-stack {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 999;
+            pointer-events: none;
+            max-width: min(320px, 90vw);
+        }
+
+        .toast {
+            background: rgba(10, 0, 30, 0.85);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-left-width: 4px;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-info {
+            border-left-color: var(--holo-cyan);
+        }
+
+        .toast-success {
+            border-left-color: #00ff9d;
+            color: #aaffdd;
+        }
+
+        .toast-warning {
+            border-left-color: var(--holo-yellow);
+            color: #fff6bf;
+        }
+
+        .toast-error {
+            border-left-color: #ff3b6b;
+            color: #ffc7d4;
         }
 
         /* BACKGROUND AMBIENT PARTICLES */
@@ -553,10 +712,7 @@
                         <div class="status-badge status-good" id="status-badge">Loading...</div>
                     </div>
                     <div class="card-body">
-                        <div id="status-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Analyzing project...</p>
-                        </div>
+                        <div id="status-content"></div>
                     </div>
                 </div>
 
@@ -567,10 +723,7 @@
                         <div class="status-badge status-good" id="security-badge">Scanning...</div>
                     </div>
                     <div class="card-body">
-                        <div id="security-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Scanning for threats...</p>
-                        </div>
+                        <div id="security-content"></div>
                     </div>
                 </div>
 
@@ -581,10 +734,7 @@
                         <div class="status-badge status-good" id="tools-badge">Detecting...</div>
                     </div>
                     <div class="card-body">
-                        <div id="tools-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Detecting tools...</p>
-                        </div>
+                        <div id="tools-content"></div>
                     </div>
                 </div>
 
@@ -602,10 +752,7 @@
                         <button class="holo-button" onclick="refreshScan()">Rescan</button>
                     </div>
                     <div class="card-body">
-                        <ul id="issues-list" class="issue-list loading">
-                            <div class="spinner"></div>
-                            <p>Loading issues...</p>
-                        </ul>
+                        <ul id="issues-list" class="issue-list" aria-live="polite"></ul>
                     </div>
                 </div>
 
@@ -613,6 +760,8 @@
         </div>
 
     </div>
+
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
     <script>
         // Parallax effect on mouse move (reduced intensity)
@@ -657,123 +806,891 @@
             particlesContainer.appendChild(particle);
         }
 
-        // Mock data loading (replace with real API calls)
-        setTimeout(() => {
-            loadStatus();
+        const latestData = {
+            scan: null,
+            git: null
+        };
+
+        const inflightRequests = new Map();
+        const refreshTimers = new Map();
+
+        const REFRESH_INTERVALS = {
+            status: 60_000,
+            tools: 120_000,
+            issues: 45_000
+        };
+
+        const DEFAULT_TIMEOUT = 20_000;
+
+        async function fetchJSON(key, url, options = {}) {
+            if (!key) {
+                throw new Error('fetchJSON requires a request key');
+            }
+
+            if (inflightRequests.has(key)) {
+                inflightRequests.get(key).abort();
+            }
+
+            const controller = new AbortController();
+            inflightRequests.set(key, controller);
+
+            const { timeout = DEFAULT_TIMEOUT, ...requestOptions } = options;
+            let abortedByTimeout = false;
+            const timeoutId = timeout
+                ? setTimeout(() => {
+                    abortedByTimeout = true;
+                    controller.abort();
+                }, timeout)
+                : null;
+
+            try {
+                const response = await fetch(url, { ...requestOptions, signal: controller.signal });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                if (error.name === 'AbortError' && abortedByTimeout) {
+                    const timeoutError = new Error(`Request timed out after ${Math.round(timeout / 1000)}s`);
+                    timeoutError.name = 'TimeoutError';
+                    throw timeoutError;
+                }
+                throw error;
+            } finally {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+                if (inflightRequests.get(key) === controller) {
+                    inflightRequests.delete(key);
+                }
+            }
+        }
+
+        function showToast(message, variant = 'info', duration = 5000) {
+            const stack = document.getElementById('toast-stack');
+            if (!stack) {
+                console.warn('Toast stack missing, falling back to alert:', message);
+                if (typeof message === 'string') {
+                    alert(message);
+                }
+                return;
+            }
+
+            const normalizedVariant = ['success', 'info', 'warning', 'error'].includes((variant || '').toLowerCase())
+                ? variant.toLowerCase()
+                : 'info';
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${normalizedVariant}`;
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+            toast.textContent = (message ?? '').toString();
+
+            stack.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.add('visible');
+            });
+
+            const hide = () => {
+                toast.classList.remove('visible');
+                setTimeout(() => {
+                    if (toast.parentElement === stack) {
+                        stack.removeChild(toast);
+                    }
+                }, 300);
+            };
+
+            const timeoutId = setTimeout(hide, Math.max(2000, duration || 0));
+
+            toast.addEventListener('click', () => {
+                clearTimeout(timeoutId);
+                hide();
+            });
+        }
+
+        function scheduleRefresh(key, callback, interval) {
+            if (!key || typeof callback !== 'function' || !interval) {
+                return;
+            }
+
+            if (refreshTimers.has(key)) {
+                clearInterval(refreshTimers.get(key));
+            }
+
+            const tick = () => {
+                if (document.hidden) {
+                    return;
+                }
+                callback();
+            };
+
+            tick();
+            const id = setInterval(tick, interval);
+            refreshTimers.set(key, id);
+        }
+
+        function stopAutoRefresh() {
+            refreshTimers.forEach(id => clearInterval(id));
+            refreshTimers.clear();
+        }
+
+        function startAutoRefresh() {
+            scheduleRefresh('status', loadStatus, REFRESH_INTERVALS.status);
+            scheduleRefresh('tools', loadTools, REFRESH_INTERVALS.tools);
+            scheduleRefresh('issues', loadIssues, REFRESH_INTERVALS.issues);
+        }
+
+        function setLoadingState(element, message = 'Loading...') {
+            if (!element) return;
+
+            element.classList.add('is-loading');
+            element.setAttribute('aria-busy', 'true');
+
+            if (getComputedStyle(element).position === 'static') {
+                element.dataset.positionWasStatic = 'true';
+                element.style.position = 'relative';
+            }
+
+            let overlay = element.querySelector(':scope > .loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'loading-overlay';
+                overlay.setAttribute('role', 'status');
+                overlay.setAttribute('aria-live', 'polite');
+
+                const spinner = document.createElement('div');
+                spinner.className = 'spinner';
+                spinner.setAttribute('aria-hidden', 'true');
+
+                const text = document.createElement('p');
+                text.className = 'loading-text';
+
+                overlay.append(spinner, text);
+                overlay.setAttribute('hidden', '');
+                element.appendChild(overlay);
+            }
+
+            const textNode = overlay.querySelector('.loading-text');
+            if (textNode) {
+                textNode.textContent = message;
+            }
+
+            overlay.removeAttribute('hidden');
+            requestAnimationFrame(() => overlay.classList.add('visible'));
+        }
+
+        function clearLoadingState(element) {
+            if (!element) return;
+
+            element.removeAttribute('aria-busy');
+            element.classList.remove('is-loading');
+
+            const overlay = element.querySelector(':scope > .loading-overlay');
+            if (overlay) {
+                overlay.classList.remove('visible');
+                overlay.setAttribute('hidden', '');
+            }
+
+            if (element.dataset.positionWasStatic) {
+                element.style.position = '';
+                delete element.dataset.positionWasStatic;
+            }
+        }
+
+        function setBadge(element, text, variant = 'status-good') {
+            if (!element) return;
+            element.textContent = text;
+            element.className = `status-badge ${variant}`;
+        }
+
+        function renderMetrics(container, metrics) {
+            if (!container) return;
+            const fragment = document.createDocumentFragment();
+
+            metrics.forEach(metric => {
+                if (!metric) return;
+
+                const row = document.createElement('div');
+                row.className = 'metric';
+
+                const label = document.createElement('span');
+                label.className = 'metric-label';
+                label.textContent = metric.label;
+
+                const value = document.createElement('span');
+                value.className = 'metric-value';
+                value.textContent = metric.value;
+
+                row.append(label, value);
+                fragment.appendChild(row);
+            });
+
+            container.appendChild(fragment);
+        }
+
+        function titleCase(value = '') {
+            return value
+                .toString()
+                .split(/[_\-\s]+/)
+                .filter(Boolean)
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+        }
+
+        function formatToolLabel(tool) {
+            if (!tool) return 'Tool';
+            const primary = tool.name || tool.provider || tool.command || tool.category || 'Tool';
+            const category = tool.category && !primary.toLowerCase().includes(tool.category.toLowerCase())
+                ? ` (${titleCase(tool.category)})`
+                : '';
+            return `${titleCase(primary)}${category}`;
+        }
+
+        function getSeverityCounts(issues) {
+            const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+            (issues || []).forEach(issue => {
+                const key = (issue.severity || '').toString().toUpperCase();
+                if (counts[key] !== undefined) {
+                    counts[key] += 1;
+                }
+            });
+            return counts;
+        }
+
+        function getSecurityBadge(counts, warningCount) {
+            if (counts.CRITICAL > 0) {
+                return { text: `${counts.CRITICAL} critical`, variant: 'status-error' };
+            }
+            if (counts.HIGH > 0) {
+                return { text: `${counts.HIGH} high`, variant: 'status-warning' };
+            }
+            if (counts.MEDIUM > 0 || warningCount > 0) {
+                return { text: 'Attention', variant: 'status-warning' };
+            }
+            return { text: 'Secure', variant: 'status-good' };
+        }
+
+        function computeSecureScore(counts, warningCount) {
+            const penalty = (counts.CRITICAL * 35) + (counts.HIGH * 20) + (counts.MEDIUM * 10) + (warningCount * 5);
+            return Math.max(0, 100 - penalty);
+        }
+
+        function createProgressBar(score) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'progress-bar';
+
+            const fill = document.createElement('div');
+            fill.className = 'progress-fill';
+            fill.style.width = `${Math.max(0, Math.min(100, Math.round(score)))}%`;
+
+            const text = document.createElement('div');
+            text.className = 'progress-text';
+            text.textContent = `${Math.round(Math.max(0, Math.min(100, score)))}% Secure`;
+
+            wrapper.append(fill, text);
+            return wrapper;
+        }
+
+        function severityToClass(severity = 'INFO') {
+            const map = {
+                CRITICAL: 'critical',
+                HIGH: 'high',
+                MEDIUM: 'medium',
+                LOW: 'low',
+                INFO: 'info',
+                SUCCESS: 'success'
+            };
+            return map[severity] || 'info';
+        }
+
+        function severityIcon(severity = 'INFO') {
+            const map = {
+                CRITICAL: '🔴',
+                HIGH: '🟠',
+                MEDIUM: '🟡',
+                LOW: '🔵',
+                INFO: '⚪',
+                SUCCESS: '🟢'
+            };
+            return map[severity] || '⚪';
+        }
+
+        function gitStatusSeverity(code = '') {
+            const trimmed = code.trim();
+            if (!trimmed) return 'INFO';
+            if (trimmed.includes('U') || trimmed.includes('D')) return 'HIGH';
+            if (trimmed.includes('M') || trimmed.includes('A')) return 'MEDIUM';
+            if (trimmed === '??') return 'LOW';
+            return 'INFO';
+        }
+
+        function createInfoItem(iconSymbol, title, details, severity = 'INFO') {
+            const item = document.createElement('li');
+            item.className = `issue-item ${severityToClass(severity.toString().toUpperCase())}`;
+
+            const icon = document.createElement('span');
+            icon.className = 'issue-icon';
+            icon.textContent = iconSymbol || severityIcon(severity);
+
+            const text = document.createElement('div');
+            text.className = 'issue-text';
+            text.textContent = title;
+
+            if (details) {
+                const detailEl = document.createElement('span');
+                detailEl.className = 'issue-details';
+                detailEl.textContent = details;
+                text.appendChild(detailEl);
+            }
+
+            item.append(icon, text);
+            return item;
+        }
+
+        function createIssueItem(issue, type = 'issue') {
+            const severity = (issue?.severity || (type === 'warning' ? 'LOW' : 'INFO')).toString().toUpperCase();
+            const item = document.createElement('li');
+            item.className = `issue-item ${severityToClass(severity)}`;
+
+            const icon = document.createElement('span');
+            icon.className = 'issue-icon';
+            icon.textContent = severityIcon(severity);
+
+            const text = document.createElement('div');
+            text.className = 'issue-text';
+            text.textContent = issue.message || 'Issue detected';
+
+            if (issue.file) {
+                const fileDetail = document.createElement('span');
+                fileDetail.className = 'issue-details';
+                fileDetail.textContent = issue.file;
+                text.appendChild(fileDetail);
+            }
+
+            if (Array.isArray(issue.details) && issue.details.length) {
+                const details = document.createElement('span');
+                details.className = 'issue-details';
+                details.textContent = issue.details.join(' • ');
+                text.appendChild(details);
+            } else if (issue.details && typeof issue.details === 'string') {
+                const details = document.createElement('span');
+                details.className = 'issue-details';
+                details.textContent = issue.details;
+                text.appendChild(details);
+            }
+
+            item.append(icon, text);
+
+            if (issue.autoFixable && issue.id) {
+                const button = document.createElement('button');
+                button.className = 'holo-button';
+                button.type = 'button';
+                button.textContent = 'Auto-fix';
+                button.dataset.issueId = issue.id;
+                button.dataset.issueLabel = issue.message || issue.id;
+                button.addEventListener('click', handleAutoFix);
+                item.appendChild(button);
+            }
+
+            return item;
+        }
+
+        function createGitIssueItem(entry) {
+            const severity = gitStatusSeverity(entry.status || '');
+            const item = document.createElement('li');
+            item.className = `issue-item ${severityToClass(severity)}`;
+
+            const icon = document.createElement('span');
+            icon.className = 'issue-icon';
+            icon.textContent = severityIcon(severity);
+
+            const text = document.createElement('div');
+            text.className = 'issue-text';
+            const label = (entry.status || '').trim() || '??';
+            text.textContent = `${label} ${entry.file || ''}`.trim();
+
+            item.append(icon, text);
+            return item;
+        }
+
+        function renderIssuesList() {
+            const list = document.getElementById('issues-list');
+            if (!list) return;
+
+            if (!latestData.scan && !latestData.git) {
+                const isFirstLoad = !list.dataset.loaded;
+                setLoadingState(list, isFirstLoad ? 'Preparing issue data...' : 'Refreshing issue data...');
+                return;
+            }
+
+            Array.from(list.children).forEach(child => {
+                if (!child.classList.contains('loading-overlay')) {
+                    list.removeChild(child);
+                }
+            });
+
+            const fragment = document.createDocumentFragment();
+            let hasItems = false;
+
+            if (latestData.scan) {
+                const issues = Array.isArray(latestData.scan.issues) ? latestData.scan.issues : [];
+                const warnings = Array.isArray(latestData.scan.warnings) ? latestData.scan.warnings : [];
+
+                issues.forEach(issue => {
+                    fragment.appendChild(createIssueItem(issue));
+                    hasItems = true;
+                });
+
+                warnings.forEach(warning => {
+                    fragment.appendChild(createIssueItem(warning, 'warning'));
+                    hasItems = true;
+                });
+
+                if (!issues.length && !warnings.length) {
+                    fragment.appendChild(createInfoItem('🟢', 'No security issues detected', null, 'SUCCESS'));
+                    hasItems = true;
+                }
+            }
+
+            if (latestData.git) {
+                if (latestData.git.error) {
+                    fragment.appendChild(createInfoItem('⚠️', 'Git status unavailable', latestData.git.error, 'INFO'));
+                    hasItems = true;
+                } else {
+                    if (latestData.git.branch) {
+                        fragment.appendChild(createInfoItem('🛰️', `On branch ${latestData.git.branch}`, null, 'LOW'));
+                        hasItems = true;
+                    }
+
+                    if (Array.isArray(latestData.git.status) && latestData.git.status.length) {
+                        latestData.git.status.forEach(entry => {
+                            fragment.appendChild(createGitIssueItem(entry));
+                            hasItems = true;
+                        });
+                    }
+
+                    if (Array.isArray(latestData.git.commits) && latestData.git.commits.length) {
+                        const recent = latestData.git.commits.slice(0, 3).map(commit => `${commit.hash} ${commit.message}`);
+                        fragment.appendChild(createInfoItem('🌀', 'Recent commits', recent.join(' • '), 'INFO'));
+                        hasItems = true;
+                    }
+                }
+            } else if (inflightRequests.has('issues')) {
+                fragment.appendChild(createInfoItem('⌛', 'Repository status syncing', 'Git details will appear once the status call completes.', 'INFO'));
+                hasItems = true;
+            }
+
+            if (!hasItems) {
+                fragment.appendChild(createInfoItem('✨', 'Awaiting scan data', 'Trigger a scan to populate issues.', 'INFO'));
+            }
+
+            list.appendChild(fragment);
+        }
+
+        async function loadStatus() {
+            const content = document.getElementById('status-content');
+            const badge = document.getElementById('status-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const isFirstLoad = !content.dataset.loaded;
+            setLoadingState(content, isFirstLoad ? 'Analyzing project...' : 'Refreshing status...');
+            setBadge(badge, isFirstLoad ? 'Loading...' : 'Refreshing...', 'status-warning');
+
+            try {
+                const data = await fetchJSON('status', '/api/status', { cache: 'no-store' });
+                document.getElementById('project-name').textContent = data.projectName || data.package?.name || 'Guardian Project';
+
+                const uncommitted = data.git?.uncommitted ?? 0;
+                const dependencies = data.package
+                    ? (data.package.dependencies ?? 0) + (data.package.devDependencies ?? 0)
+                    : null;
+                const experience = data.experienceLevel ? titleCase(data.experienceLevel) : 'Unknown';
+                const badgeVariant = uncommitted > 0 ? 'status-warning' : 'status-good';
+                const badgeText = uncommitted > 0 ? `${uncommitted} pending` : 'Healthy';
+
+                clearLoadingState(content);
+                content.innerHTML = '';
+                renderMetrics(content, [
+                    { label: 'Experience Level', value: experience },
+                    data.package ? { label: 'Package Version', value: data.package.version || '—' } : null,
+                    { label: 'Dependencies', value: dependencies !== null ? dependencies : 'N/A' },
+                    { label: 'Branch', value: data.git?.branch || 'Unknown' },
+                    { label: 'Uncommitted Changes', value: uncommitted }
+                ]);
+
+                if (data.timestamp) {
+                    const timestamp = document.createElement('div');
+                    timestamp.className = 'muted-text';
+                    const updatedAt = new Date(data.timestamp);
+                    timestamp.textContent = `Updated ${updatedAt.toLocaleString()}`;
+                    content.appendChild(timestamp);
+                }
+
+                setBadge(badge, badgeText, badgeVariant);
+                content.dataset.loaded = 'true';
+                if (badge) {
+                    badge.dataset.loaded = 'true';
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error('Failed to load status', error);
+                clearLoadingState(content);
+                setBadge(badge, 'Error', 'status-error');
+                content.innerHTML = `<p class="error-text">Unable to load project status.<br><small>${error.message}</small></p>`;
+                const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                const message = error.name === 'TimeoutError'
+                    ? 'Project status request timed out. Retrying shortly.'
+                    : `Unable to load project status: ${error.message}`;
+                showToast(message, variant);
+            }
+        }
+
+        async function loadSecurity() {
+            const content = document.getElementById('security-content');
+            const badge = document.getElementById('security-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const isFirstLoad = !content.dataset.loaded;
+            setLoadingState(content, isFirstLoad ? 'Scanning for threats...' : 'Refreshing scan results...');
+            setBadge(badge, isFirstLoad ? 'Scanning...' : 'Refreshing...', 'status-warning');
+
+            try {
+                const data = await fetchJSON('security', '/api/scan', {
+                    method: 'POST',
+                    timeout: 60_000,
+                    cache: 'no-store'
+                });
+                latestData.scan = data;
+
+                const counts = getSeverityCounts(data.issues);
+                const warningCount = Array.isArray(data.warnings) ? data.warnings.length : 0;
+                const badgeInfo = getSecurityBadge(counts, warningCount);
+
+                clearLoadingState(content);
+                content.innerHTML = '';
+                renderMetrics(content, [
+                    { label: '🔴 Critical', value: counts.CRITICAL },
+                    { label: '🟠 High', value: counts.HIGH },
+                    { label: '🟡 Medium', value: counts.MEDIUM },
+                    { label: '⚪ Warnings', value: warningCount }
+                ]);
+
+                const secureScore = computeSecureScore(counts, warningCount);
+                content.appendChild(createProgressBar(secureScore));
+                setBadge(badge, badgeInfo.text, badgeInfo.variant);
+                content.dataset.loaded = 'true';
+                if (badge) {
+                    badge.dataset.loaded = 'true';
+                }
+
+                renderIssuesList();
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error('Failed to load security scan', error);
+                clearLoadingState(content);
+                setBadge(badge, 'Error', 'status-error');
+                content.innerHTML = `<p class="error-text">Security scan failed.<br><small>${error.message}</small></p>`;
+                const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                const message = error.name === 'TimeoutError'
+                    ? 'Security scan timed out. Please try again.'
+                    : `Security scan failed: ${error.message}`;
+                showToast(message, variant);
+            }
+        }
+
+        async function loadTools() {
+            const content = document.getElementById('tools-content');
+            const badge = document.getElementById('tools-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const isFirstLoad = !content.dataset.loaded;
+            setLoadingState(content, isFirstLoad ? 'Detecting tools...' : 'Refreshing tooling insights...');
+            setBadge(badge, isFirstLoad ? 'Detecting...' : 'Refreshing...', 'status-warning');
+
+            try {
+                const data = await fetchJSON('tools', '/api/tools', { cache: 'no-store' });
+                const detected = Array.isArray(data.detected) ? data.detected : [];
+                const missing = Array.isArray(data.missing) ? data.missing : [];
+                const recommendations = Array.isArray(data.recommendations) ? data.recommendations : [];
+
+                clearLoadingState(content);
+                content.innerHTML = '';
+
+                const badgeVariant = missing.length ? 'status-warning' : 'status-good';
+                const badgeText = missing.length
+                    ? `${detected.length} detected • ${missing.length} missing`
+                    : `${detected.length} detected`;
+                setBadge(badge, badgeText, badgeVariant);
+
+                if (!detected.length && !missing.length && !recommendations.length) {
+                    const empty = document.createElement('p');
+                    empty.className = 'muted-text';
+                    empty.textContent = 'No tooling signals detected yet.';
+                    content.appendChild(empty);
+                    return;
+                }
+
+                if (detected.length) {
+                    const title = document.createElement('div');
+                    title.className = 'metric-section-title';
+                    title.textContent = 'Detected';
+                    content.appendChild(title);
+
+                    renderMetrics(content, detected.map(tool => ({
+                        label: formatToolLabel(tool),
+                        value: tool.cliRequired?.command || tool.command || tool.version || tool.package || 'Available'
+                    })));
+                }
+
+                if (missing.length) {
+                    const title = document.createElement('div');
+                    title.className = 'metric-section-title';
+                    title.textContent = 'Missing';
+                    content.appendChild(title);
+
+                    missing.forEach(tool => {
+                        const row = document.createElement('div');
+                        row.className = 'metric';
+
+                        const label = document.createElement('span');
+                        label.className = 'metric-label';
+                        label.textContent = formatToolLabel(tool);
+
+                        const value = document.createElement('span');
+                        value.className = 'metric-value';
+                        value.textContent = 'Install';
+
+                        row.append(label, value);
+                        content.appendChild(row);
+
+                        const details = [tool.reason, tool.install ? `Install: ${tool.install}` : null]
+                            .filter(Boolean)
+                            .join(' • ');
+
+                        if (details) {
+                            const detailEl = document.createElement('div');
+                            detailEl.className = 'metric-details';
+                            detailEl.textContent = details;
+                            content.appendChild(detailEl);
+                        }
+                    });
+                }
+
+                if (recommendations.length) {
+                    const title = document.createElement('div');
+                    title.className = 'metric-section-title';
+                    title.textContent = 'Recommendations';
+                    content.appendChild(title);
+
+                    recommendations.forEach(rec => {
+                        const row = document.createElement('div');
+                        row.className = 'metric';
+
+                        const label = document.createElement('span');
+                        label.className = 'metric-label';
+                        label.textContent = rec.reason || titleCase(rec.category);
+
+                        const value = document.createElement('span');
+                        value.className = 'metric-value';
+                        value.textContent = rec.suggestion || 'Review';
+
+                        row.append(label, value);
+                        content.appendChild(row);
+
+                        if (Array.isArray(rec.options) && rec.options.length) {
+                            const detailEl = document.createElement('div');
+                            detailEl.className = 'metric-details';
+                            detailEl.textContent = rec.options.map(option => option.name).join(' • ');
+                            content.appendChild(detailEl);
+                        }
+                    });
+                }
+                content.dataset.loaded = 'true';
+                if (badge) {
+                    badge.dataset.loaded = 'true';
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error('Failed to load tools', error);
+                clearLoadingState(content);
+                setBadge(badge, 'Error', 'status-error');
+                content.innerHTML = `<p class="error-text">Tool detection failed.<br><small>${error.message}</small></p>`;
+                const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                const message = error.name === 'TimeoutError'
+                    ? 'Tool detection request timed out. Retrying shortly.'
+                    : `Tool detection failed: ${error.message}`;
+                showToast(message, variant);
+            }
+        }
+
+        async function loadIssues() {
+            const list = document.getElementById('issues-list');
+            if (!list) {
+                return;
+            }
+
+            const isFirstLoad = !list.dataset.loaded;
+            setLoadingState(list, isFirstLoad ? 'Gathering repository status...' : 'Refreshing repository status...');
+
+            try {
+                const data = await fetchJSON('issues', '/api/git-status', { cache: 'no-store' });
+                latestData.git = data;
+                clearLoadingState(list);
+                list.dataset.loaded = 'true';
+                renderIssuesList();
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error('Failed to load repository status', error);
+                clearLoadingState(list);
+
+                list.querySelectorAll('.temporary-error').forEach(node => node.remove());
+
+                const notice = createInfoItem('⚠️', 'Unable to load repository status', error.message, 'INFO');
+                notice.classList.add('temporary-error');
+                list.insertBefore(notice, list.firstChild || null);
+                setTimeout(() => {
+                    if (notice.parentElement === list) {
+                        notice.remove();
+                    }
+                }, 8000);
+
+                const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                const message = error.name === 'TimeoutError'
+                    ? 'Repository status request timed out. Will retry automatically.'
+                    : `Unable to load repository status: ${error.message}`;
+                showToast(message, variant);
+            }
+        }
+
+        async function refreshScan() {
+            const card = document.getElementById('issues-card');
+            if (card) {
+                card.classList.add('active');
+            }
+
+            try {
+                await Promise.all([loadSecurity(), loadIssues()]);
+            } finally {
+                setTimeout(() => {
+                    if (card) {
+                        card.classList.remove('active');
+                    }
+                }, 600);
+            }
+        }
+
+        async function handleAutoFix(event) {
+            event.stopPropagation();
+
+            const button = event.currentTarget;
+            if (!button || button.dataset.state === 'busy') {
+                return;
+            }
+
+            const issueId = button.dataset.issueId;
+            if (!issueId) {
+                showToast('Unable to determine which issue to auto-fix.', 'error');
+                return;
+            }
+
+            const issueLabel = button.dataset.issueLabel || issueId;
+            const originalText = button.textContent;
+
+            button.dataset.state = 'busy';
+            button.dataset.originalText = originalText;
+            button.textContent = 'Fixing...';
+            button.disabled = true;
+            button.classList.add('is-busy');
+            button.setAttribute('aria-busy', 'true');
+
+            let succeeded = false;
+
+            try {
+                const result = await fetchJSON(`fix-${issueId}`, '/api/fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ issueId }),
+                    timeout: 60_000
+                });
+
+                if (result?.success) {
+                    succeeded = true;
+                    const detail = result.message ? `: ${result.message}` : '';
+                    showToast(`Auto-fix applied to ${issueLabel}${detail}`, 'success');
+                    try {
+                        await refreshScan();
+                    } catch (refreshError) {
+                        console.error('Auto-fix applied but refresh failed', refreshError);
+                        showToast('Auto-fix applied, but refreshing data failed. Please rescan manually.', 'warning');
+                    }
+                } else {
+                    const reason = result?.message || 'No auto-fix available for this issue.';
+                    throw new Error(reason);
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error(`Auto-fix failed for ${issueId}`, error);
+                const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                const message = error.name === 'TimeoutError'
+                    ? `Auto-fix timed out for ${issueLabel}.`
+                    : `Auto-fix failed for ${issueLabel}: ${error.message}`;
+                showToast(message, variant);
+            } finally {
+                if (!button.isConnected) {
+                    return;
+                }
+
+                button.removeAttribute('aria-busy');
+                button.classList.remove('is-busy');
+                delete button.dataset.state;
+
+                const storedOriginal = button.dataset.originalText;
+                delete button.dataset.originalText;
+
+                if (succeeded) {
+                    button.textContent = 'Fixed';
+                    button.disabled = true;
+                } else {
+                    button.textContent = storedOriginal || originalText;
+                    button.disabled = false;
+                }
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                loadStatus();
+                loadIssues();
+                loadTools();
+            }
+        });
+
+        window.addEventListener('beforeunload', stopAutoRefresh);
+
+        requestAnimationFrame(() => {
             loadSecurity();
-            loadTools();
-            loadIssues();
-        }, 1000);
-
-        function loadStatus() {
-            document.getElementById('project-name').textContent = 'intelligent-cloud-guardian';
-            document.getElementById('status-badge').textContent = 'Healthy';
-            document.getElementById('status-badge').className = 'status-badge status-good';
-
-            document.getElementById('status-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">Experience Level</span>
-                    <span class="metric-value">Advanced</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Dependencies</span>
-                    <span class="metric-value">12</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Branch</span>
-                    <span class="metric-value">main</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Uncommitted</span>
-                    <span class="metric-value">4,510</span>
-                </div>
-            `;
-        }
-
-        function loadSecurity() {
-            document.getElementById('security-badge').textContent = 'Issues Found';
-            document.getElementById('security-badge').className = 'status-badge status-warning';
-
-            document.getElementById('security-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">🔴 Critical</span>
-                    <span class="metric-value">0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟠 High</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟡 Medium</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">⚪ Warnings</span>
-                    <span class="metric-value">3</span>
-                </div>
-                <div style="margin-top: 20px;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 85%"></div>
-                        <div class="progress-text">85% Secure</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function loadTools() {
-            document.getElementById('tools-badge').textContent = '5/5 Found';
-            document.getElementById('tools-badge').className = 'status-badge status-good';
-
-            document.getElementById('tools-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">✓ Git</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Node.js</span>
-                    <span class="metric-value">v18.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ npm</span>
-                    <span class="metric-value">v9.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Docker</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ GitHub CLI</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-            `;
-        }
-
-        function loadIssues() {
-            document.getElementById('issues-list').innerHTML = `
-                <li class="issue-item high">
-                    <span class="issue-icon">🟠</span>
-                    <span class="issue-text">.gitignore missing critical patterns</span>
-                    <button class="holo-button" onclick="fixIssue('gitignore')">Fix</button>
-                </li>
-                <li class="issue-item medium">
-                    <span class="issue-icon">🟡</span>
-                    <span class="issue-text">Missing .env.example for team reference</span>
-                    <button class="holo-button" onclick="fixIssue('env-example')">Fix</button>
-                </li>
-            `;
-        }
-
-        function fixIssue(issueId) {
-            alert(`Fixing issue: ${issueId}\n\nIn production, this would call the Guardian API to auto-fix the issue.`);
-        }
-
-        function refreshScan() {
-            document.getElementById('issues-card').classList.add('active');
-            setTimeout(() => {
-                document.getElementById('issues-card').classList.remove('active');
-                alert('Scan complete! No new issues found.');
-            }, 1000);
-        }
+            startAutoRefresh();
+        });
 
         // Card click effects
         document.querySelectorAll('.neo-card').forEach(card => {

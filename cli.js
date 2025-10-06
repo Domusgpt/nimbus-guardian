@@ -598,10 +598,39 @@ program
 // Helper functions
 
 async function loadConfig() {
-    const configPath = path.join(process.cwd(), '.guardian', 'config.json');
+    const configDir = path.join(process.cwd(), '.guardian');
+    const configPath = path.join(configDir, 'config.json');
 
     try {
-        return await fs.readJson(configPath);
+        const config = await fs.readJson(configPath);
+        const normalized = { ...config };
+        let needsWrite = false;
+
+        if (normalized.experience && !normalized.experienceLevel) {
+            normalized.experienceLevel = normalized.experience;
+            delete normalized.experience;
+            needsWrite = true;
+        }
+
+        if (!normalized.experienceLevel) {
+            normalized.experienceLevel = 'intermediate';
+            needsWrite = true;
+        }
+
+        if (needsWrite) {
+            await fs.writeJson(configPath, normalized, { spaces: 2 });
+        }
+
+        const envPath = path.join(configDir, '.env');
+        if (await fs.pathExists(envPath)) {
+            require('dotenv').config({ path: envPath });
+        }
+
+        return {
+            ...normalized,
+            claudeApiKey: normalized.claudeApiKey || process.env.CLAUDE_API_KEY,
+            geminiApiKey: normalized.geminiApiKey || process.env.GEMINI_API_KEY
+        };
     } catch {
         return null;
     }

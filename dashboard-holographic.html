@@ -184,12 +184,33 @@
                 0 0 60px rgba(255, 255, 0, 0.5);
         }
 
+        .neo-card.offline {
+            box-shadow:
+                0 10px 25px rgba(255, 255, 0, 0.15),
+                0 5px 15px rgba(0, 0, 0, 0.4),
+                inset 0 1px 2px rgba(255, 255, 255, 0.05),
+                0 0 0 1px rgba(255, 255, 0, 0.4);
+            border: 1px dashed rgba(255, 255, 0, 0.35);
+        }
+
         .card-header {
             padding: 25px;
             border-bottom: 1px solid rgba(0, 255, 255, 0.2);
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .card-header .status-badge,
+        .card-header .holo-button {
+            margin-top: 6px;
+        }
+
+        .card-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .card-title {
@@ -203,6 +224,28 @@
             text-transform: uppercase;
         }
 
+        .card-meta {
+            font-size: 0.65rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            opacity: 0.9;
+            white-space: nowrap;
+            transition: color 0.3s ease, opacity 0.3s ease;
+        }
+
+        .card-meta[data-source="cache"] {
+            color: #ffe082;
+        }
+
+        .card-meta[data-state="stale"] {
+            color: #ffb347;
+        }
+
+        .card-meta[data-state="offline"] {
+            color: #ff8c82;
+        }
+
         .status-badge {
             padding: 8px 16px;
             border-radius: 20px;
@@ -213,6 +256,22 @@
             backdrop-filter: blur(10px);
             border: 1px solid;
             box-shadow: 0 0 20px currentColor;
+        }
+
+        .status-badge[data-source="cache"] {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.25));
+            border-color: rgba(255, 215, 0, 0.65);
+            color: #ffdd80;
+        }
+
+        .status-badge[data-state="stale"] {
+            box-shadow: 0 0 20px rgba(255, 153, 0, 0.45);
+        }
+
+        .status-badge[data-source="offline"] {
+            background: linear-gradient(135deg, rgba(255, 99, 71, 0.2), rgba(255, 159, 64, 0.25));
+            border-color: rgba(255, 120, 90, 0.75);
+            color: #ff9f80;
         }
 
         .status-good {
@@ -238,6 +297,808 @@
 
         .card-body {
             padding: 25px;
+        }
+
+        /* ASSISTANT CHAT */
+        .ai-card {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-height: 320px;
+        }
+
+        .chat-log {
+            flex: 1;
+            min-height: 220px;
+            max-height: 360px;
+            overflow-y: auto;
+            padding-right: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-log::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.25);
+            border-radius: 6px;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+        }
+
+        .chat-log::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-message {
+            position: relative;
+            padding: 12px 16px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow:
+                0 10px 25px rgba(0, 0, 0, 0.35),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            max-width: 100%;
+            width: fit-content;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chat-message.chat-user {
+            align-self: flex-end;
+            background: linear-gradient(135deg,
+                rgba(0, 255, 255, 0.25) 0%,
+                rgba(255, 0, 255, 0.2) 50%,
+                rgba(0, 255, 255, 0.25) 100%
+            );
+            border-color: rgba(0, 255, 255, 0.45);
+            color: var(--holo-cyan);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+        }
+
+        .chat-message.chat-assistant {
+            align-self: flex-start;
+            border-left: 2px solid var(--holo-cyan);
+            border-color: rgba(0, 255, 255, 0.35);
+        }
+
+        .chat-message.chat-system {
+            align-self: center;
+            font-size: 0.7rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            background: rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .chat-message.error {
+            border-color: rgba(255, 99, 71, 0.7);
+            box-shadow:
+                0 10px 25px rgba(255, 99, 71, 0.25),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-message.offline-notice {
+            border-style: dashed;
+            border-color: rgba(255, 255, 0, 0.5);
+            color: rgba(255, 255, 0, 0.8);
+        }
+
+        .chat-message.pending .chat-message-text {
+            opacity: 0.7;
+        }
+
+        .chat-message.pending::after {
+            content: '';
+            position: absolute;
+            right: 18px;
+            bottom: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow:
+                0 0 6px rgba(0, 255, 255, 0.6),
+                0 0 12px rgba(0, 255, 255, 0.4);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-top-color: var(--holo-cyan);
+            animation: spin 1s linear infinite;
+        }
+
+        .chat-message-text {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            white-space: normal;
+            line-height: 1.5;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-message-text p {
+            margin: 0;
+        }
+
+        .chat-message-text p + p {
+            margin-top: 4px;
+        }
+
+        .chat-message-text ul,
+        .chat-message-text ol {
+            margin: 0;
+            padding-left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .chat-message-text li {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.8rem;
+        }
+
+        .chat-message-text code {
+            font-family: 'Fira Code', 'Source Code Pro', monospace;
+            background: rgba(0, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 0.78rem;
+            color: var(--holo-cyan);
+            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.15);
+        }
+
+        .chat-message-text pre {
+            margin: 0;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.15);
+            overflow-x: auto;
+            font-size: 0.75rem;
+        }
+
+        .chat-message-text pre code {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-message-text blockquote {
+            margin: 0;
+            padding-left: 14px;
+            border-left: 3px solid rgba(0, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .chat-message-text a {
+            color: var(--holo-cyan);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(0, 255, 255, 0.4);
+        }
+
+        .chat-message-text a:hover {
+            color: var(--holo-magenta);
+            border-bottom-color: rgba(255, 0, 255, 0.4);
+        }
+
+        .chat-message-meta {
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(0, 255, 255, 0.6);
+        }
+
+        .chat-message-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 2px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .chat-message:hover .chat-message-actions,
+        .chat-message:focus-within .chat-message-actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .holo-icon-button {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.75);
+            border-radius: 12px;
+            padding: 6px 10px;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, background 0.3s ease;
+        }
+
+        .holo-icon-button:hover:not(:disabled),
+        .holo-icon-button:focus-visible {
+            outline: none;
+            border-color: rgba(0, 255, 255, 0.55);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.18);
+            background: rgba(0, 255, 255, 0.12);
+        }
+
+        .holo-icon-button:focus-visible {
+            outline: 2px solid var(--holo-cyan);
+            outline-offset: 2px;
+        }
+
+        .holo-icon-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .chat-toolbar-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-snippet-wrapper {
+            position: relative;
+        }
+
+        .chat-snippet-wrapper .holo-button.is-active {
+            border-color: rgba(0, 255, 255, 0.55);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.2);
+            color: var(--holo-cyan);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .chat-snippet-panel {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            min-width: 240px;
+            max-width: 320px;
+            padding: 14px;
+            border-radius: 18px;
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            background: rgba(8, 15, 35, 0.92);
+            box-shadow: 0 22px 36px rgba(0, 0, 0, 0.45), inset 0 0 18px rgba(0, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-snippet-panel[hidden] {
+            display: none;
+        }
+
+        .chat-snippet-title {
+            font-size: 0.68rem;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .chat-snippet-search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0 16px;
+        }
+
+        .chat-snippet-search input {
+            flex: 1;
+            min-width: 0;
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(0, 255, 255, 0.22);
+            background: rgba(0, 0, 0, 0.45);
+            color: rgba(255, 255, 255, 0.9);
+            font-family: inherit;
+            font-size: 0.72rem;
+            letter-spacing: 0.8px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+
+        .chat-snippet-search input::placeholder {
+            color: rgba(255, 255, 255, 0.45);
+            letter-spacing: 0.6px;
+        }
+
+        .chat-snippet-search input:focus-visible {
+            outline: 2px solid var(--holo-cyan);
+            outline-offset: 2px;
+            border-color: rgba(0, 255, 255, 0.55);
+            box-shadow:
+                0 0 0 6px rgba(0, 255, 255, 0.1),
+                inset 0 0 15px rgba(0, 255, 255, 0.12);
+        }
+
+        .chat-snippet-search input:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .chat-snippet-clear {
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 255, 0.22);
+            background: rgba(0, 0, 0, 0.35);
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.6rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+        }
+
+        .chat-snippet-clear:hover:not(:disabled),
+        .chat-snippet-clear:focus-visible {
+            outline: none;
+            border-color: rgba(0, 255, 255, 0.55);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.22);
+            background: rgba(0, 255, 255, 0.12);
+        }
+
+        .chat-snippet-clear:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .chat-snippet-clear[hidden] {
+            display: none;
+        }
+
+        .chat-snippet-filters {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin: -4px 0 10px;
+        }
+
+        .chat-snippet-filters[hidden] {
+            display: none;
+        }
+
+        .chat-snippet-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 255, 0.22);
+            background: linear-gradient(135deg, rgba(8, 18, 42, 0.75), rgba(8, 12, 28, 0.6));
+            color: rgba(255, 255, 255, 0.75);
+            font-family: inherit;
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 1.1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition:
+                border-color 0.25s ease,
+                box-shadow 0.25s ease,
+                color 0.25s ease,
+                background 0.25s ease;
+        }
+
+        .chat-snippet-filter:hover,
+        .chat-snippet-filter:focus-visible {
+            outline: none;
+            border-color: rgba(0, 255, 255, 0.55);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.22);
+            background: linear-gradient(135deg, rgba(8, 30, 62, 0.85), rgba(8, 20, 48, 0.7));
+        }
+
+        .chat-snippet-filter.is-active,
+        .chat-snippet-filter[aria-pressed="true"] {
+            border-color: rgba(0, 255, 255, 0.6);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 22px rgba(0, 255, 255, 0.28);
+            background: linear-gradient(135deg, rgba(8, 40, 76, 0.92), rgba(8, 28, 58, 0.75));
+        }
+
+        .chat-snippet-filter:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .chat-snippet-filter-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.6em;
+            padding: 0.05rem 0.45rem;
+            border-radius: 999px;
+            background: rgba(0, 255, 255, 0.16);
+            color: inherit;
+            font-size: 0.58rem;
+            letter-spacing: 0.9px;
+            text-transform: uppercase;
+        }
+
+        .chat-snippet-filter.is-active .chat-snippet-filter-count,
+        .chat-snippet-filter[aria-pressed="true"] .chat-snippet-filter-count {
+            background: rgba(0, 255, 255, 0.32);
+        }
+
+        .chat-snippet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .chat-snippet-button {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            width: 100%;
+            border-radius: 14px;
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.28);
+            color: rgba(255, 255, 255, 0.85);
+            padding: 10px 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, color 0.3s ease;
+            font-size: 0.75rem;
+            letter-spacing: 0.3px;
+            box-shadow: inset 0 0 12px rgba(0, 255, 255, 0.08);
+        }
+
+        .chat-snippet-button:hover:not(:disabled),
+        .chat-snippet-button:focus-visible {
+            outline: none;
+            border-color: rgba(0, 255, 255, 0.55);
+            background: rgba(0, 255, 255, 0.12);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.22);
+        }
+
+        .chat-snippet-button:focus-visible {
+            outline: 2px solid var(--holo-cyan);
+            outline-offset: 2px;
+        }
+
+        .chat-snippet-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-snippet-label {
+            font-weight: 600;
+            letter-spacing: 0.6px;
+        }
+
+        .chat-snippet-description {
+            font-size: 0.66rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .chat-snippet-source {
+            font-size: 0.6rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: rgba(0, 255, 255, 0.65);
+        }
+
+        .chat-snippet-empty {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: left;
+        }
+
+        .chat-snippet-hint {
+            font-size: 0.6rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+        }
+
+        .chat-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chat-suggestions[hidden] {
+            display: none;
+        }
+
+        .chat-suggestions.is-empty {
+            opacity: 0.7;
+        }
+
+        .chat-suggestion {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.72rem;
+            letter-spacing: 0.6px;
+            text-transform: none;
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, background 0.3s ease;
+            box-shadow: inset 0 0 12px rgba(0, 255, 255, 0.08);
+        }
+
+        .chat-suggestion:hover:not(:disabled),
+        .chat-suggestion:focus-visible {
+            outline: none;
+            border-color: rgba(0, 255, 255, 0.55);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.2);
+            background: rgba(0, 255, 255, 0.12);
+        }
+
+        .chat-suggestion:focus-visible {
+            outline: 2px solid var(--holo-cyan);
+            outline-offset: 2px;
+        }
+
+        .chat-suggestion:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .chat-context-status {
+            font-size: 0.65rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .chat-context-status.is-empty {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .holo-button.ghost {
+            background: rgba(0, 0, 0, 0.2);
+            border-color: rgba(0, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: none;
+        }
+
+        .holo-button.ghost:hover {
+            background: rgba(0, 255, 255, 0.12);
+            border-color: rgba(0, 255, 255, 0.45);
+            color: var(--holo-cyan);
+        }
+
+        .holo-button.ghost.is-empty {
+            color: rgba(255, 255, 255, 0.5);
+            border-color: rgba(0, 255, 255, 0.12);
+        }
+
+        .holo-button.ghost.is-empty:hover {
+            background: rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .holo-button.ghost:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .chat-context-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 4px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-radius: 18px;
+            box-shadow:
+                0 15px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 1px rgba(255, 255, 255, 0.08),
+                0 0 25px rgba(0, 255, 255, 0.2);
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .chat-context-panel[hidden] {
+            display: none;
+        }
+
+        .chat-context-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .chat-context-title {
+            font-size: 0.72rem;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .chat-context-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-context-section {
+            border: 1px solid rgba(0, 255, 255, 0.18);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.08);
+        }
+
+        .chat-context-section h4 {
+            margin: 0 0 6px;
+            font-size: 0.7rem;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: var(--holo-cyan);
+        }
+
+        .chat-context-list {
+            margin: 0;
+            padding-left: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .chat-context-list li {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+        }
+
+        .chat-context-pair {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .chat-context-pair span:last-child {
+            color: rgba(255, 255, 255, 0.92);
+            font-weight: 600;
+        }
+
+        .chat-context-empty {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .chat-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-radius: 16px;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            padding: 14px 16px;
+            resize: none;
+            min-height: 80px;
+            max-height: 200px;
+            box-shadow: inset 0 0 12px rgba(0, 255, 255, 0.08);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--holo-cyan);
+            box-shadow:
+                0 0 20px rgba(0, 255, 255, 0.25),
+                inset 0 0 12px rgba(0, 255, 255, 0.1);
+        }
+
+        .chat-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.45);
+            letter-spacing: 0.5px;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .chat-actions .holo-button {
+            flex: 0 0 auto;
+        }
+
+        .holo-button.secondary {
+            background: rgba(0, 0, 0, 0.35);
+            border-color: rgba(0, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.75);
+            text-shadow: none;
+        }
+
+        .holo-button.secondary:hover {
+            background: rgba(0, 255, 255, 0.18);
+            border-color: var(--holo-cyan);
+            color: var(--holo-cyan);
+        }
+
+        .holo-button.secondary:disabled {
+            opacity: 0.55;
+        }
+
+        .holo-button.danger {
+            background: rgba(255, 0, 60, 0.22);
+            border-color: rgba(255, 64, 120, 0.55);
+            color: rgba(255, 210, 220, 0.95);
+            text-shadow: none;
+        }
+
+        .holo-button.danger:hover {
+            background: rgba(255, 45, 105, 0.28);
+            border-color: rgba(255, 128, 170, 0.85);
+            color: #ffffff;
+        }
+
+        .holo-button.danger:disabled {
+            opacity: 0.5;
         }
 
         /* METRIC DISPLAYS */
@@ -271,6 +1132,112 @@
             font-weight: 700;
             color: var(--holo-cyan);
             text-shadow: 0 0 10px var(--holo-cyan);
+        }
+
+        .metric-details {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .metric-section-title {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(0, 255, 255, 0.6);
+        }
+
+        .metric.metric-actionable {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .metric.metric-actionable .metric-label {
+            flex: 1;
+        }
+
+        .metric.metric-actionable .holo-button {
+            margin-left: auto;
+        }
+
+        .muted-text {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .timeline {
+            list-style: none;
+            margin-top: 12px;
+            padding-left: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 26px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 4px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--holo-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+        }
+
+        .timeline-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .timeline-meta {
+            margin-top: 4px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .timeline-title a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .timeline-title a:hover {
+            color: var(--holo-cyan);
+            text-decoration: underline;
+        }
+
+        .metric-link {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 0.7rem;
+            color: var(--holo-cyan);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .metric-link:hover {
+            text-decoration: underline;
+        }
+
+        .error-text {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
         }
 
         /* HOLOGRAPHIC PROGRESS BAR */
@@ -377,6 +1344,21 @@
             background: rgba(255, 255, 0, 0.05);
         }
 
+        .issue-item.low {
+            border-color: var(--holo-cyan);
+            background: rgba(0, 255, 255, 0.05);
+        }
+
+        .issue-item.info {
+            border-color: var(--holo-magenta);
+            background: rgba(255, 0, 255, 0.05);
+        }
+
+        .issue-item.success {
+            border-color: #00ff99;
+            background: rgba(0, 255, 153, 0.08);
+        }
+
         .issue-icon {
             font-size: 1.5rem;
             filter: drop-shadow(0 0 8px currentColor);
@@ -386,6 +1368,14 @@
             flex: 1;
             font-size: 0.85rem;
             line-height: 1.4;
+        }
+
+        .issue-details {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
         }
 
         /* HOLOGRAPHIC BUTTONS */
@@ -412,6 +1402,15 @@
                 0 5px 15px rgba(0, 0, 0, 0.3),
                 inset 0 1px 2px rgba(255, 255, 255, 0.2),
                 0 0 20px rgba(0, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .holo-button.compact {
+            padding: 8px 16px;
+            font-size: 0.7rem;
+            letter-spacing: 1.5px;
+            border-radius: 12px;
         }
 
         .holo-button:hover {
@@ -437,10 +1436,60 @@
             border-color: var(--holo-yellow);
         }
 
-        /* LOADING SPINNER */
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .holo-button.is-busy {
+            cursor: progress;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .holo-button.is-busy::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 18px;
+            width: 16px;
+            height: 16px;
+            margin-top: -8px;
+            border: 2px solid rgba(0, 255, 255, 0.25);
+            border-top-color: var(--holo-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+        }
+
+        /* LOADING EXPERIENCE */
+        .is-loading {
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            border-radius: inherit;
+            background: rgba(5, 0, 25, 0.3);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .loading-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-text {
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .spinner {
@@ -457,6 +1506,60 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* TOAST NOTIFICATIONS */
+        .toast-stack {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 999;
+            pointer-events: none;
+            max-width: min(320px, 90vw);
+        }
+
+        .toast {
+            background: rgba(10, 0, 30, 0.85);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-left-width: 4px;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-info {
+            border-left-color: var(--holo-cyan);
+        }
+
+        .toast-success {
+            border-left-color: #00ff9d;
+            color: #aaffdd;
+        }
+
+        .toast-warning {
+            border-left-color: var(--holo-yellow);
+            color: #fff6bf;
+        }
+
+        .toast-error {
+            border-left-color: #ff3b6b;
+            color: #ffc7d4;
         }
 
         /* BACKGROUND AMBIENT PARTICLES */
@@ -510,6 +1613,9 @@
             position: fixed;
             top: 10px;
             right: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 0.7rem;
             background: rgba(0, 0, 0, 0.8);
             padding: 8px 12px;
@@ -520,6 +1626,59 @@
             backdrop-filter: blur(10px);
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
         }
+
+        .depth-indicator .indicator-separator {
+            opacity: 0.6;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .motion-status.reduced {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .network-status {
+            font-weight: 600;
+            color: var(--holo-cyan);
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+        }
+
+        .network-status.offline {
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
+        }
+
+        body.is-offline .depth-indicator {
+            border-color: rgba(255, 107, 107, 0.8);
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+            color: rgba(255, 200, 200, 0.85);
+        }
+
+        body.reduced-motion .holographic-scene,
+        body.reduced-motion .neo-card {
+            transition: none !important;
+        }
+
+        body.reduced-motion .particle {
+            animation: none !important;
+            opacity: 0.5;
+        }
+
+        .offline-notice {
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .holographic-scene,
+            .neo-card {
+                transition: none !important;
+            }
+
+            .particle {
+                animation: none !important;
+                opacity: 0.5;
+            }
+        }
     </style>
 </head>
 <body>
@@ -528,7 +1687,11 @@
 
     <!-- Depth Indicator -->
     <div class="depth-indicator">
-        3D Depth: Active | Mouse: (<span id="mouseX">0</span>, <span id="mouseY">0</span>)
+        3D Depth: <span id="motion-status" class="motion-status">Active</span>
+        <span class="indicator-separator">|</span>
+        Network: <span id="network-status" class="network-status">Checking...</span>
+        <span class="indicator-separator">|</span>
+        Mouse: (<span id="mouseX">0</span>, <span id="mouseY">0</span>)
     </div>
 
     <!-- Main Holographic Scene -->
@@ -549,42 +1712,42 @@
                 <!-- Status Card -->
                 <div class="neo-card" id="status-card">
                     <div class="card-header">
-                        <div class="card-title">📊 Status</div>
+                        <div class="card-title-group">
+                            <div class="card-title">📊 Status</div>
+                            <div class="card-meta" id="status-updated">Awaiting data…</div>
+                        </div>
                         <div class="status-badge status-good" id="status-badge">Loading...</div>
                     </div>
                     <div class="card-body">
-                        <div id="status-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Analyzing project...</p>
-                        </div>
+                        <div id="status-content"></div>
                     </div>
                 </div>
 
                 <!-- Security Scan Card -->
                 <div class="neo-card" id="security-card">
                     <div class="card-header">
-                        <div class="card-title">🛡️ Security</div>
+                        <div class="card-title-group">
+                            <div class="card-title">🛡️ Security</div>
+                            <div class="card-meta" id="security-updated">Awaiting scan…</div>
+                        </div>
                         <div class="status-badge status-good" id="security-badge">Scanning...</div>
                     </div>
                     <div class="card-body">
-                        <div id="security-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Scanning for threats...</p>
-                        </div>
+                        <div id="security-content"></div>
                     </div>
                 </div>
 
                 <!-- Tools Card -->
                 <div class="neo-card" id="tools-card">
                     <div class="card-header">
-                        <div class="card-title">🔧 Tools</div>
+                        <div class="card-title-group">
+                            <div class="card-title">🔧 Tools</div>
+                            <div class="card-meta" id="tools-updated">Awaiting signals…</div>
+                        </div>
                         <div class="status-badge status-good" id="tools-badge">Detecting...</div>
                     </div>
                     <div class="card-body">
-                        <div id="tools-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Detecting tools...</p>
-                        </div>
+                        <div id="tools-content"></div>
                     </div>
                 </div>
 
@@ -595,17 +1758,176 @@
         <div class="depth-layer midground">
             <div class="dashboard-grid" style="margin-top: 500px;">
 
+                <!-- Deployments Card -->
+                <div class="neo-card" id="deployments-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="card-title">🚀 Deployments</div>
+                            <div class="card-meta" id="deployments-updated">Awaiting providers…</div>
+                        </div>
+                        <div class="status-badge status-good" id="deployments-badge">Loading...</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="deployments-content"></div>
+                    </div>
+                </div>
+
+                <!-- GitHub Card -->
+                <div class="neo-card" id="github-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="card-title">🐙 Repository</div>
+                            <div class="card-meta" id="github-updated">Awaiting insights…</div>
+                        </div>
+                        <div class="status-badge status-good" id="github-badge">Loading...</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="github-content"></div>
+                    </div>
+                </div>
+
+                <!-- Assistant Card -->
+                <div class="neo-card" id="assistant-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="card-title">🤖 AI Guidance</div>
+                            <div class="card-meta" id="assistant-updated">Ask anything about your project…</div>
+                        </div>
+                        <div class="status-badge status-good" id="assistant-badge">Online</div>
+                    </div>
+                    <div class="card-body ai-card">
+                        <div class="chat-toolbar">
+                            <div class="chat-toolbar-actions">
+                                <button
+                                    type="button"
+                                    class="holo-button ghost compact"
+                                    id="assistant-context"
+                                    aria-expanded="false"
+                                >
+                                    View context
+                                </button>
+                                <div class="chat-snippet-wrapper">
+                                    <button
+                                        type="button"
+                                        class="holo-button ghost compact"
+                                        id="assistant-snippets-toggle"
+                                        aria-expanded="false"
+                                        aria-haspopup="true"
+                                        aria-controls="assistant-snippets-panel"
+                                        title="Insert a project insight into your prompt"
+                                    >
+                                        Insert data
+                                    </button>
+                                    <div
+                                        id="assistant-snippets-panel"
+                                        class="chat-snippet-panel"
+                                        hidden
+                                        role="menu"
+                                        aria-label="Insert project insight"
+                                        tabindex="-1"
+                                    >
+                                        <div class="chat-snippet-title">Project insights</div>
+                                        <div class="chat-snippet-search" role="presentation">
+                                            <label class="sr-only" for="assistant-snippets-search">Filter project insights</label>
+                                            <input
+                                                type="search"
+                                                id="assistant-snippets-search"
+                                                name="assistant-snippets-search"
+                                                placeholder="Filter insights"
+                                                autocomplete="off"
+                                            />
+                                            <button
+                                                type="button"
+                                                class="chat-snippet-clear"
+                                                id="assistant-snippets-clear"
+                                                aria-label="Clear project insight filter"
+                                                hidden
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                        <div
+                                            id="assistant-snippets-filters"
+                                            class="chat-snippet-filters"
+                                            role="group"
+                                            aria-label="Filter project insights"
+                                            hidden
+                                        ></div>
+                                        <div id="assistant-snippets-list" class="chat-snippet-list" role="none"></div>
+                                        <p id="assistant-snippets-hint" class="chat-snippet-hint"></p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="holo-button ghost compact"
+                                    id="assistant-export"
+                                    aria-label="Download the Guardian transcript"
+                                    title="Download the Guardian transcript"
+                                >
+                                    Export log
+                                </button>
+                            </div>
+                            <div class="chat-context-status" id="assistant-context-status">Context: awaiting data</div>
+                        </div>
+                        <div
+                            id="assistant-suggestions"
+                            class="chat-suggestions"
+                            role="group"
+                            aria-label="Suggested prompts"
+                        ></div>
+                        <div id="assistant-log" class="chat-log" aria-live="polite" aria-atomic="false"></div>
+                        <form id="assistant-form" class="chat-form">
+                            <textarea
+                                id="assistant-input"
+                                class="chat-input"
+                                name="message"
+                                rows="2"
+                                placeholder="Ask Guardian for help with scans, tooling, or deployment strategy…"
+                                autocomplete="off"
+                                required
+                            ></textarea>
+                            <div class="chat-actions">
+                                <button type="button" class="holo-button secondary" id="assistant-clear">Clear</button>
+                                <button
+                                    type="button"
+                                    class="holo-button danger"
+                                    id="assistant-stop"
+                                    aria-label="Stop the current Guardian reply"
+                                    title="Stop the current Guardian reply"
+                                    hidden
+                                >
+                                    Stop
+                                </button>
+                                <button type="submit" class="holo-button" id="assistant-send">Send</button>
+                            </div>
+                        </form>
+                        <div
+                            id="assistant-context-panel"
+                            class="chat-context-panel"
+                            hidden
+                            role="region"
+                            aria-label="Assistant context preview"
+                        >
+                            <div class="chat-context-header">
+                                <div class="chat-context-title">Project context</div>
+                                <button type="button" class="holo-button ghost compact" id="assistant-context-close">Close</button>
+                            </div>
+                            <div class="chat-context-content" id="assistant-context-content"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Issues Card -->
                 <div class="neo-card" style="grid-column: 1 / -1;" id="issues-card">
                     <div class="card-header">
-                        <div class="card-title">⚠️ Issues</div>
-                        <button class="holo-button" onclick="refreshScan()">Rescan</button>
+                        <div class="card-title-group">
+                            <div class="card-title">⚠️ Issues</div>
+                            <div class="card-meta" id="issues-updated">Awaiting sync…</div>
+                        </div>
+                        <button class="holo-button" id="issues-rescan">Rescan</button>
                     </div>
                     <div class="card-body">
-                        <ul id="issues-list" class="issue-list loading">
-                            <div class="spinner"></div>
-                            <p>Loading issues...</p>
-                        </ul>
+                        <ul id="issues-list" class="issue-list" aria-live="polite"></ul>
                     </div>
                 </div>
 
@@ -614,175 +1936,8 @@
 
     </div>
 
-    <script>
-        // Parallax effect on mouse move (reduced intensity)
-        const scene = document.getElementById('scene');
-        const mouseXDisplay = document.getElementById('mouseX');
-        const mouseYDisplay = document.getElementById('mouseY');
-        let isCardHovered = false;
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
-        // Track card hover state
-        document.querySelectorAll('.neo-card').forEach(card => {
-            card.addEventListener('mouseenter', () => {
-                isCardHovered = true;
-            });
-            card.addEventListener('mouseleave', () => {
-                isCardHovered = false;
-            });
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            // Reduce parallax intensity from ±20 to ±8 degrees
-            const x = (e.clientX / window.innerWidth - 0.5) * 8;
-            const y = (e.clientY / window.innerHeight - 0.5) * 8;
-
-            // Only apply parallax when NOT hovering over a card
-            if (!isCardHovered) {
-                scene.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
-            }
-
-            mouseXDisplay.textContent = Math.round(x);
-            mouseYDisplay.textContent = Math.round(y);
-        });
-
-        // Generate ambient particles
-        const particlesContainer = document.getElementById('particles');
-        for (let i = 0; i < 50; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.top = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 10 + 's';
-            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
-            particlesContainer.appendChild(particle);
-        }
-
-        // Mock data loading (replace with real API calls)
-        setTimeout(() => {
-            loadStatus();
-            loadSecurity();
-            loadTools();
-            loadIssues();
-        }, 1000);
-
-        function loadStatus() {
-            document.getElementById('project-name').textContent = 'intelligent-cloud-guardian';
-            document.getElementById('status-badge').textContent = 'Healthy';
-            document.getElementById('status-badge').className = 'status-badge status-good';
-
-            document.getElementById('status-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">Experience Level</span>
-                    <span class="metric-value">Advanced</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Dependencies</span>
-                    <span class="metric-value">12</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Branch</span>
-                    <span class="metric-value">main</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Uncommitted</span>
-                    <span class="metric-value">4,510</span>
-                </div>
-            `;
-        }
-
-        function loadSecurity() {
-            document.getElementById('security-badge').textContent = 'Issues Found';
-            document.getElementById('security-badge').className = 'status-badge status-warning';
-
-            document.getElementById('security-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">🔴 Critical</span>
-                    <span class="metric-value">0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟠 High</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟡 Medium</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">⚪ Warnings</span>
-                    <span class="metric-value">3</span>
-                </div>
-                <div style="margin-top: 20px;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 85%"></div>
-                        <div class="progress-text">85% Secure</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function loadTools() {
-            document.getElementById('tools-badge').textContent = '5/5 Found';
-            document.getElementById('tools-badge').className = 'status-badge status-good';
-
-            document.getElementById('tools-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">✓ Git</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Node.js</span>
-                    <span class="metric-value">v18.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ npm</span>
-                    <span class="metric-value">v9.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Docker</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ GitHub CLI</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-            `;
-        }
-
-        function loadIssues() {
-            document.getElementById('issues-list').innerHTML = `
-                <li class="issue-item high">
-                    <span class="issue-icon">🟠</span>
-                    <span class="issue-text">.gitignore missing critical patterns</span>
-                    <button class="holo-button" onclick="fixIssue('gitignore')">Fix</button>
-                </li>
-                <li class="issue-item medium">
-                    <span class="issue-icon">🟡</span>
-                    <span class="issue-text">Missing .env.example for team reference</span>
-                    <button class="holo-button" onclick="fixIssue('env-example')">Fix</button>
-                </li>
-            `;
-        }
-
-        function fixIssue(issueId) {
-            alert(`Fixing issue: ${issueId}\n\nIn production, this would call the Guardian API to auto-fix the issue.`);
-        }
-
-        function refreshScan() {
-            document.getElementById('issues-card').classList.add('active');
-            setTimeout(() => {
-                document.getElementById('issues-card').classList.remove('active');
-                alert('Scan complete! No new issues found.');
-            }, 1000);
-        }
-
-        // Card click effects
-        document.querySelectorAll('.neo-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                if (e.target.tagName !== 'BUTTON') {
-                    this.classList.toggle('active');
-                }
-            });
-        });
-    </script>
+    <script type="module" src="dashboard-holographic.js"></script>
 </body>
 </html>

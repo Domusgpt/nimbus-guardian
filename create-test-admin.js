@@ -5,7 +5,24 @@
  * Sets up a temporary admin for testing license generation
  */
 
+const path = require('path');
+const fs = require('fs');
+const dotenv = require('dotenv');
 const admin = require('firebase-admin');
+
+// Hydrate environment variables from project .env files if present
+const envCandidates = [
+    path.join(process.cwd(), '.env'),
+    path.join(process.cwd(), '.guardian', '.env')
+];
+
+for (const candidate of envCandidates) {
+    if (fs.existsSync(candidate)) {
+        dotenv.config({ path: candidate });
+    }
+}
+
+const firebaseWebApiKey = process.env.FIREBASE_API_KEY;
 
 // Initialize with environment variable or default path
 const serviceAccountPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './serviceAccountKey.json';
@@ -85,9 +102,13 @@ async function testLicenseGeneration(customToken) {
     console.log('\n🧪 Testing license generation with admin token...\n');
 
     try {
+        if (!firebaseWebApiKey) {
+            throw new Error('FIREBASE_API_KEY environment variable is required for Firebase Identity Toolkit');
+        }
+
         // Exchange custom token for ID token
         const response = await fetch(
-            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=AIzaSyCdJO1Y_s-s_phMrTmm6VDQG-pvNEtyPSI`,
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${firebaseWebApiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

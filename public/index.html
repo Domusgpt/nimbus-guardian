@@ -26,9 +26,9 @@
                     <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                             <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:1" />
-                                <stop offset="50%" style="stop-color:#a78bfa;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                                <stop offset="0%" stop-color="#22d3ee" stop-opacity="1" />
+                                <stop offset="50%" stop-color="#a78bfa" stop-opacity="1" />
+                                <stop offset="100%" stop-color="#8b5cf6" stop-opacity="1" />
                             </linearGradient>
                         </defs>
                         <path d="M 40 100 Q 40 80 60 80 Q 60 60 80 60 Q 100 40 120 60 Q 140 60 140 80 Q 160 80 160 100 Q 160 120 140 120 L 60 120 Q 40 120 40 100 Z"
@@ -127,15 +127,15 @@
                     <p>Talks to beginners like humans, experts like experts. No condescending "helpful tips".</p>
                 </div>
             </div>
-            <svg style="position:absolute;width:0;height:0">
+            <svg class="hidden-gradient-defs" aria-hidden="true">
                 <defs>
                     <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#22d3ee"/>
-                        <stop offset="100%" style="stop-color:#a78bfa"/>
+                        <stop offset="0%" stop-color="#22d3ee"/>
+                        <stop offset="100%" stop-color="#a78bfa"/>
                     </linearGradient>
                     <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#a78bfa"/>
-                        <stop offset="100%" style="stop-color:#8b5cf6"/>
+                        <stop offset="0%" stop-color="#a78bfa"/>
+                        <stop offset="100%" stop-color="#8b5cf6"/>
                     </linearGradient>
                 </defs>
             </svg>
@@ -215,12 +215,12 @@
     <section class="platforms">
         <div class="container">
             <h2 class="section-title">Platform Support</h2>
-            <h3 style="text-align:center; margin-bottom:30px; color:#22d3ee;">v1.0: Deep Validation</h3>
+            <h3 class="timeline-heading timeline-heading--cyan">v1.0: Deep Validation</h3>
             <div class="platform-logos">
                 <div class="platform">Docker</div>
                 <div class="platform">Firebase</div>
             </div>
-            <h3 style="text-align:center; margin-top:40px; margin-bottom:30px; color:#a78bfa;">Upcoming: Detection + Validation</h3>
+            <h3 class="timeline-heading timeline-heading--purple">Upcoming: Detection + Validation</h3>
             <div class="platform-logos">
                 <div class="platform">AWS</div>
                 <div class="platform">Google Cloud</div>
@@ -272,7 +272,7 @@
                     <a href="https://github.com/Domusgpt/nimbus-guardian" class="btn btn-outline">View Source</a>
                 </div>
             </div>
-            <p style="text-align:center; margin-top:30px; color:rgba(255,255,255,0.6);">
+            <p class="footer-note">
                 Copyright © 2025 Paul Phillips - Clear Seas Solutions LLC. All Rights Reserved.
             </p>
         </div>

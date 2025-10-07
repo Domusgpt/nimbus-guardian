@@ -184,12 +184,33 @@
                 0 0 60px rgba(255, 255, 0, 0.5);
         }
 
+        .neo-card.offline {
+            box-shadow:
+                0 10px 25px rgba(255, 255, 0, 0.15),
+                0 5px 15px rgba(0, 0, 0, 0.4),
+                inset 0 1px 2px rgba(255, 255, 255, 0.05),
+                0 0 0 1px rgba(255, 255, 0, 0.4);
+            border: 1px dashed rgba(255, 255, 0, 0.35);
+        }
+
         .card-header {
             padding: 25px;
             border-bottom: 1px solid rgba(0, 255, 255, 0.2);
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .card-header .status-badge,
+        .card-header .holo-button {
+            margin-top: 6px;
+        }
+
+        .card-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .card-title {
@@ -203,6 +224,28 @@
             text-transform: uppercase;
         }
 
+        .card-meta {
+            font-size: 0.65rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            opacity: 0.9;
+            white-space: nowrap;
+            transition: color 0.3s ease, opacity 0.3s ease;
+        }
+
+        .card-meta[data-source="cache"] {
+            color: #ffe082;
+        }
+
+        .card-meta[data-state="stale"] {
+            color: #ffb347;
+        }
+
+        .card-meta[data-state="offline"] {
+            color: #ff8c82;
+        }
+
         .status-badge {
             padding: 8px 16px;
             border-radius: 20px;
@@ -213,6 +256,22 @@
             backdrop-filter: blur(10px);
             border: 1px solid;
             box-shadow: 0 0 20px currentColor;
+        }
+
+        .status-badge[data-source="cache"] {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.25));
+            border-color: rgba(255, 215, 0, 0.65);
+            color: #ffdd80;
+        }
+
+        .status-badge[data-state="stale"] {
+            box-shadow: 0 0 20px rgba(255, 153, 0, 0.45);
+        }
+
+        .status-badge[data-source="offline"] {
+            background: linear-gradient(135deg, rgba(255, 99, 71, 0.2), rgba(255, 159, 64, 0.25));
+            border-color: rgba(255, 120, 90, 0.75);
+            color: #ff9f80;
         }
 
         .status-good {
@@ -238,6 +297,510 @@
 
         .card-body {
             padding: 25px;
+        }
+
+        /* ASSISTANT CHAT */
+        .ai-card {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-height: 320px;
+        }
+
+        .chat-log {
+            flex: 1;
+            min-height: 220px;
+            max-height: 360px;
+            overflow-y: auto;
+            padding-right: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-log::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-log::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.25);
+            border-radius: 6px;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+        }
+
+        .chat-log::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-message {
+            position: relative;
+            padding: 12px 16px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow:
+                0 10px 25px rgba(0, 0, 0, 0.35),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            max-width: 100%;
+            width: fit-content;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chat-message.chat-user {
+            align-self: flex-end;
+            background: linear-gradient(135deg,
+                rgba(0, 255, 255, 0.25) 0%,
+                rgba(255, 0, 255, 0.2) 50%,
+                rgba(0, 255, 255, 0.25) 100%
+            );
+            border-color: rgba(0, 255, 255, 0.45);
+            color: var(--holo-cyan);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+        }
+
+        .chat-message.chat-assistant {
+            align-self: flex-start;
+            border-left: 2px solid var(--holo-cyan);
+            border-color: rgba(0, 255, 255, 0.35);
+        }
+
+        .chat-message.chat-system {
+            align-self: center;
+            font-size: 0.7rem;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            background: rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .chat-message.error {
+            border-color: rgba(255, 99, 71, 0.7);
+            box-shadow:
+                0 10px 25px rgba(255, 99, 71, 0.25),
+                inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-message.offline-notice {
+            border-style: dashed;
+            border-color: rgba(255, 255, 0, 0.5);
+            color: rgba(255, 255, 0, 0.8);
+        }
+
+        .chat-message.pending .chat-message-text {
+            opacity: 0.7;
+        }
+
+        .chat-message.pending::after {
+            content: '';
+            position: absolute;
+            right: 18px;
+            bottom: 10px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow:
+                0 0 6px rgba(0, 255, 255, 0.6),
+                0 0 12px rgba(0, 255, 255, 0.4);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-top-color: var(--holo-cyan);
+            animation: spin 1s linear infinite;
+        }
+
+        .chat-message-text {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            white-space: normal;
+            line-height: 1.5;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-message-text p {
+            margin: 0;
+        }
+
+        .chat-message-text p + p {
+            margin-top: 4px;
+        }
+
+        .chat-message-text ul,
+        .chat-message-text ol {
+            margin: 0;
+            padding-left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .chat-message-text li {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.8rem;
+        }
+
+        .chat-message-text code {
+            font-family: 'Fira Code', 'Source Code Pro', monospace;
+            background: rgba(0, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 0.78rem;
+            color: var(--holo-cyan);
+            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.15);
+        }
+
+        .chat-message-text pre {
+            margin: 0;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.15);
+            overflow-x: auto;
+            font-size: 0.75rem;
+        }
+
+        .chat-message-text pre code {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .chat-message-text blockquote {
+            margin: 0;
+            padding-left: 14px;
+            border-left: 3px solid rgba(0, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .chat-message-text a {
+            color: var(--holo-cyan);
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(0, 255, 255, 0.4);
+        }
+
+        .chat-message-text a:hover {
+            color: var(--holo-magenta);
+            border-bottom-color: rgba(255, 0, 255, 0.4);
+        }
+
+        .chat-message-meta {
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(0, 255, 255, 0.6);
+        }
+
+        .chat-message-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 2px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .chat-message:hover .chat-message-actions,
+        .chat-message:focus-within .chat-message-actions {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .holo-icon-button {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.75);
+            border-radius: 12px;
+            padding: 6px 10px;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, background 0.3s ease;
+        }
+
+        .holo-icon-button:hover:not(:disabled),
+        .holo-icon-button:focus-visible {
+            outline: none;
+            border-color: rgba(0, 255, 255, 0.55);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.18);
+            background: rgba(0, 255, 255, 0.12);
+        }
+
+        .holo-icon-button:focus-visible {
+            outline: 2px solid var(--holo-cyan);
+            outline-offset: 2px;
+        }
+
+        .holo-icon-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .chat-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chat-suggestions[hidden] {
+            display: none;
+        }
+
+        .chat-suggestions.is-empty {
+            opacity: 0.7;
+        }
+
+        .chat-suggestion {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.3);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.72rem;
+            letter-spacing: 0.6px;
+            text-transform: none;
+            cursor: pointer;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease, background 0.3s ease;
+            box-shadow: inset 0 0 12px rgba(0, 255, 255, 0.08);
+        }
+
+        .chat-suggestion:hover:not(:disabled),
+        .chat-suggestion:focus-visible {
+            outline: none;
+            border-color: rgba(0, 255, 255, 0.55);
+            color: var(--holo-cyan);
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.2);
+            background: rgba(0, 255, 255, 0.12);
+        }
+
+        .chat-suggestion:focus-visible {
+            outline: 2px solid var(--holo-cyan);
+            outline-offset: 2px;
+        }
+
+        .chat-suggestion:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .chat-context-status {
+            font-size: 0.65rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .chat-context-status.is-empty {
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .holo-button.ghost {
+            background: rgba(0, 0, 0, 0.2);
+            border-color: rgba(0, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: none;
+        }
+
+        .holo-button.ghost:hover {
+            background: rgba(0, 255, 255, 0.12);
+            border-color: rgba(0, 255, 255, 0.45);
+            color: var(--holo-cyan);
+        }
+
+        .holo-button.ghost.is-empty {
+            color: rgba(255, 255, 255, 0.5);
+            border-color: rgba(0, 255, 255, 0.12);
+        }
+
+        .holo-button.ghost.is-empty:hover {
+            background: rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.25);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .holo-button.ghost:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .chat-context-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 4px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-radius: 18px;
+            box-shadow:
+                0 15px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 1px rgba(255, 255, 255, 0.08),
+                0 0 25px rgba(0, 255, 255, 0.2);
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        .chat-context-panel[hidden] {
+            display: none;
+        }
+
+        .chat-context-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .chat-context-title {
+            font-size: 0.72rem;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .chat-context-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-context-section {
+            border: 1px solid rgba(0, 255, 255, 0.18);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.08);
+        }
+
+        .chat-context-section h4 {
+            margin: 0 0 6px;
+            font-size: 0.7rem;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            color: var(--holo-cyan);
+        }
+
+        .chat-context-list {
+            margin: 0;
+            padding-left: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .chat-context-list li {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+        }
+
+        .chat-context-pair {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .chat-context-pair span:last-child {
+            color: rgba(255, 255, 255, 0.92);
+            font-weight: 600;
+        }
+
+        .chat-context-empty {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .chat-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-radius: 16px;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            padding: 14px 16px;
+            resize: none;
+            min-height: 80px;
+            max-height: 200px;
+            box-shadow: inset 0 0 12px rgba(0, 255, 255, 0.08);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--holo-cyan);
+            box-shadow:
+                0 0 20px rgba(0, 255, 255, 0.25),
+                inset 0 0 12px rgba(0, 255, 255, 0.1);
+        }
+
+        .chat-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.45);
+            letter-spacing: 0.5px;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .chat-actions .holo-button {
+            flex: 0 0 auto;
+        }
+
+        .holo-button.secondary {
+            background: rgba(0, 0, 0, 0.35);
+            border-color: rgba(0, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.75);
+            text-shadow: none;
+        }
+
+        .holo-button.secondary:hover {
+            background: rgba(0, 255, 255, 0.18);
+            border-color: var(--holo-cyan);
+            color: var(--holo-cyan);
+        }
+
+        .holo-button.secondary:disabled {
+            opacity: 0.55;
         }
 
         /* METRIC DISPLAYS */
@@ -271,6 +834,112 @@
             font-weight: 700;
             color: var(--holo-cyan);
             text-shadow: 0 0 10px var(--holo-cyan);
+        }
+
+        .metric-details {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .metric-section-title {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(0, 255, 255, 0.6);
+        }
+
+        .metric.metric-actionable {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .metric.metric-actionable .metric-label {
+            flex: 1;
+        }
+
+        .metric.metric-actionable .holo-button {
+            margin-left: auto;
+        }
+
+        .muted-text {
+            margin-top: 15px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 1px;
+        }
+
+        .timeline {
+            list-style: none;
+            margin-top: 12px;
+            padding-left: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 26px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 4px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--holo-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+        }
+
+        .timeline-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .timeline-meta {
+            margin-top: 4px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+        }
+
+        .timeline-title a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .timeline-title a:hover {
+            color: var(--holo-cyan);
+            text-decoration: underline;
+        }
+
+        .metric-link {
+            display: inline-block;
+            margin-top: 6px;
+            font-size: 0.7rem;
+            color: var(--holo-cyan);
+            text-decoration: none;
+            letter-spacing: 1px;
+        }
+
+        .metric-link:hover {
+            text-decoration: underline;
+        }
+
+        .error-text {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            letter-spacing: 0.5px;
         }
 
         /* HOLOGRAPHIC PROGRESS BAR */
@@ -377,6 +1046,21 @@
             background: rgba(255, 255, 0, 0.05);
         }
 
+        .issue-item.low {
+            border-color: var(--holo-cyan);
+            background: rgba(0, 255, 255, 0.05);
+        }
+
+        .issue-item.info {
+            border-color: var(--holo-magenta);
+            background: rgba(255, 0, 255, 0.05);
+        }
+
+        .issue-item.success {
+            border-color: #00ff99;
+            background: rgba(0, 255, 153, 0.08);
+        }
+
         .issue-icon {
             font-size: 1.5rem;
             filter: drop-shadow(0 0 8px currentColor);
@@ -386,6 +1070,14 @@
             flex: 1;
             font-size: 0.85rem;
             line-height: 1.4;
+        }
+
+        .issue-details {
+            display: block;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
         }
 
         /* HOLOGRAPHIC BUTTONS */
@@ -412,6 +1104,15 @@
                 0 5px 15px rgba(0, 0, 0, 0.3),
                 inset 0 1px 2px rgba(255, 255, 255, 0.2),
                 0 0 20px rgba(0, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .holo-button.compact {
+            padding: 8px 16px;
+            font-size: 0.7rem;
+            letter-spacing: 1.5px;
+            border-radius: 12px;
         }
 
         .holo-button:hover {
@@ -437,10 +1138,60 @@
             border-color: var(--holo-yellow);
         }
 
-        /* LOADING SPINNER */
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .holo-button.is-busy {
+            cursor: progress;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        .holo-button.is-busy::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 18px;
+            width: 16px;
+            height: 16px;
+            margin-top: -8px;
+            border: 2px solid rgba(0, 255, 255, 0.25);
+            border-top-color: var(--holo-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.35);
+        }
+
+        /* LOADING EXPERIENCE */
+        .is-loading {
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            border-radius: inherit;
+            background: rgba(5, 0, 25, 0.3);
+            backdrop-filter: blur(6px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .loading-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-text {
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .spinner {
@@ -457,6 +1208,60 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* TOAST NOTIFICATIONS */
+        .toast-stack {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 999;
+            pointer-events: none;
+            max-width: min(320px, 90vw);
+        }
+
+        .toast {
+            background: rgba(10, 0, 30, 0.85);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            border-left-width: 4px;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast-info {
+            border-left-color: var(--holo-cyan);
+        }
+
+        .toast-success {
+            border-left-color: #00ff9d;
+            color: #aaffdd;
+        }
+
+        .toast-warning {
+            border-left-color: var(--holo-yellow);
+            color: #fff6bf;
+        }
+
+        .toast-error {
+            border-left-color: #ff3b6b;
+            color: #ffc7d4;
         }
 
         /* BACKGROUND AMBIENT PARTICLES */
@@ -510,6 +1315,9 @@
             position: fixed;
             top: 10px;
             right: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 0.7rem;
             background: rgba(0, 0, 0, 0.8);
             padding: 8px 12px;
@@ -520,6 +1328,59 @@
             backdrop-filter: blur(10px);
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
         }
+
+        .depth-indicator .indicator-separator {
+            opacity: 0.6;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .motion-status.reduced {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .network-status {
+            font-weight: 600;
+            color: var(--holo-cyan);
+            text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+        }
+
+        .network-status.offline {
+            color: #ff6b6b;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.6);
+        }
+
+        body.is-offline .depth-indicator {
+            border-color: rgba(255, 107, 107, 0.8);
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.3);
+            color: rgba(255, 200, 200, 0.85);
+        }
+
+        body.reduced-motion .holographic-scene,
+        body.reduced-motion .neo-card {
+            transition: none !important;
+        }
+
+        body.reduced-motion .particle {
+            animation: none !important;
+            opacity: 0.5;
+        }
+
+        .offline-notice {
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .holographic-scene,
+            .neo-card {
+                transition: none !important;
+            }
+
+            .particle {
+                animation: none !important;
+                opacity: 0.5;
+            }
+        }
     </style>
 </head>
 <body>
@@ -528,7 +1389,11 @@
 
     <!-- Depth Indicator -->
     <div class="depth-indicator">
-        3D Depth: Active | Mouse: (<span id="mouseX">0</span>, <span id="mouseY">0</span>)
+        3D Depth: <span id="motion-status" class="motion-status">Active</span>
+        <span class="indicator-separator">|</span>
+        Network: <span id="network-status" class="network-status">Checking...</span>
+        <span class="indicator-separator">|</span>
+        Mouse: (<span id="mouseX">0</span>, <span id="mouseY">0</span>)
     </div>
 
     <!-- Main Holographic Scene -->
@@ -549,42 +1414,42 @@
                 <!-- Status Card -->
                 <div class="neo-card" id="status-card">
                     <div class="card-header">
-                        <div class="card-title">📊 Status</div>
+                        <div class="card-title-group">
+                            <div class="card-title">📊 Status</div>
+                            <div class="card-meta" id="status-updated">Awaiting data…</div>
+                        </div>
                         <div class="status-badge status-good" id="status-badge">Loading...</div>
                     </div>
                     <div class="card-body">
-                        <div id="status-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Analyzing project...</p>
-                        </div>
+                        <div id="status-content"></div>
                     </div>
                 </div>
 
                 <!-- Security Scan Card -->
                 <div class="neo-card" id="security-card">
                     <div class="card-header">
-                        <div class="card-title">🛡️ Security</div>
+                        <div class="card-title-group">
+                            <div class="card-title">🛡️ Security</div>
+                            <div class="card-meta" id="security-updated">Awaiting scan…</div>
+                        </div>
                         <div class="status-badge status-good" id="security-badge">Scanning...</div>
                     </div>
                     <div class="card-body">
-                        <div id="security-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Scanning for threats...</p>
-                        </div>
+                        <div id="security-content"></div>
                     </div>
                 </div>
 
                 <!-- Tools Card -->
                 <div class="neo-card" id="tools-card">
                     <div class="card-header">
-                        <div class="card-title">🔧 Tools</div>
+                        <div class="card-title-group">
+                            <div class="card-title">🔧 Tools</div>
+                            <div class="card-meta" id="tools-updated">Awaiting signals…</div>
+                        </div>
                         <div class="status-badge status-good" id="tools-badge">Detecting...</div>
                     </div>
                     <div class="card-body">
-                        <div id="tools-content" class="loading">
-                            <div class="spinner"></div>
-                            <p>Detecting tools...</p>
-                        </div>
+                        <div id="tools-content"></div>
                     </div>
                 </div>
 
@@ -595,17 +1460,104 @@
         <div class="depth-layer midground">
             <div class="dashboard-grid" style="margin-top: 500px;">
 
+                <!-- Deployments Card -->
+                <div class="neo-card" id="deployments-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="card-title">🚀 Deployments</div>
+                            <div class="card-meta" id="deployments-updated">Awaiting providers…</div>
+                        </div>
+                        <div class="status-badge status-good" id="deployments-badge">Loading...</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="deployments-content"></div>
+                    </div>
+                </div>
+
+                <!-- GitHub Card -->
+                <div class="neo-card" id="github-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="card-title">🐙 Repository</div>
+                            <div class="card-meta" id="github-updated">Awaiting insights…</div>
+                        </div>
+                        <div class="status-badge status-good" id="github-badge">Loading...</div>
+                    </div>
+                    <div class="card-body">
+                        <div id="github-content"></div>
+                    </div>
+                </div>
+
+                <!-- Assistant Card -->
+                <div class="neo-card" id="assistant-card">
+                    <div class="card-header">
+                        <div class="card-title-group">
+                            <div class="card-title">🤖 AI Guidance</div>
+                            <div class="card-meta" id="assistant-updated">Ask anything about your project…</div>
+                        </div>
+                        <div class="status-badge status-good" id="assistant-badge">Online</div>
+                    </div>
+                    <div class="card-body ai-card">
+                        <div class="chat-toolbar">
+                            <button
+                                type="button"
+                                class="holo-button ghost compact"
+                                id="assistant-context"
+                                aria-expanded="false"
+                            >
+                                View context
+                            </button>
+                            <div class="chat-context-status" id="assistant-context-status">Context: awaiting data</div>
+                        </div>
+                        <div
+                            id="assistant-suggestions"
+                            class="chat-suggestions"
+                            role="group"
+                            aria-label="Suggested prompts"
+                        ></div>
+                        <div id="assistant-log" class="chat-log" aria-live="polite" aria-atomic="false"></div>
+                        <form id="assistant-form" class="chat-form">
+                            <textarea
+                                id="assistant-input"
+                                class="chat-input"
+                                name="message"
+                                rows="2"
+                                placeholder="Ask Guardian for help with scans, tooling, or deployment strategy…"
+                                autocomplete="off"
+                                required
+                            ></textarea>
+                            <div class="chat-actions">
+                                <button type="button" class="holo-button secondary" id="assistant-clear">Clear</button>
+                                <button type="submit" class="holo-button" id="assistant-send">Send</button>
+                            </div>
+                        </form>
+                        <div
+                            id="assistant-context-panel"
+                            class="chat-context-panel"
+                            hidden
+                            role="region"
+                            aria-label="Assistant context preview"
+                        >
+                            <div class="chat-context-header">
+                                <div class="chat-context-title">Project context</div>
+                                <button type="button" class="holo-button ghost compact" id="assistant-context-close">Close</button>
+                            </div>
+                            <div class="chat-context-content" id="assistant-context-content"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Issues Card -->
                 <div class="neo-card" style="grid-column: 1 / -1;" id="issues-card">
                     <div class="card-header">
-                        <div class="card-title">⚠️ Issues</div>
+                        <div class="card-title-group">
+                            <div class="card-title">⚠️ Issues</div>
+                            <div class="card-meta" id="issues-updated">Awaiting sync…</div>
+                        </div>
                         <button class="holo-button" onclick="refreshScan()">Rescan</button>
                     </div>
                     <div class="card-body">
-                        <ul id="issues-list" class="issue-list loading">
-                            <div class="spinner"></div>
-                            <p>Loading issues...</p>
-                        </ul>
+                        <ul id="issues-list" class="issue-list" aria-live="polite"></ul>
                     </div>
                 </div>
 
@@ -614,12 +1566,142 @@
 
     </div>
 
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
     <script>
         // Parallax effect on mouse move (reduced intensity)
         const scene = document.getElementById('scene');
         const mouseXDisplay = document.getElementById('mouseX');
         const mouseYDisplay = document.getElementById('mouseY');
+        const networkStatusLabel = document.getElementById('network-status');
+        const motionStatusLabel = document.getElementById('motion-status');
+        const assistantCard = document.getElementById('assistant-card');
+        const assistantLog = document.getElementById('assistant-log');
+        const assistantForm = document.getElementById('assistant-form');
+        const assistantInput = document.getElementById('assistant-input');
+        const assistantSendButton = document.getElementById('assistant-send');
+        const assistantClearButton = document.getElementById('assistant-clear');
+        const assistantContextButton = document.getElementById('assistant-context');
+        const assistantContextStatus = document.getElementById('assistant-context-status');
+        const assistantContextPanel = document.getElementById('assistant-context-panel');
+        const assistantContextContent = document.getElementById('assistant-context-content');
+        const assistantContextClose = document.getElementById('assistant-context-close');
+        const assistantSuggestions = document.getElementById('assistant-suggestions');
+        const assistantBadge = document.getElementById('assistant-badge');
+        const assistantMeta = document.getElementById('assistant-updated');
+
+        const particleElements = [];
+        const prefersReducedMotion = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(prefers-reduced-motion: reduce)')
+            : { matches: false };
+        let parallaxEnabled = !prefersReducedMotion.matches;
         let isCardHovered = false;
+        let lastKnownOnline = navigator.onLine !== false;
+
+        function isOnline() {
+            return navigator.onLine !== false;
+        }
+
+        function showOfflineNotice(container, message) {
+            if (!container) {
+                return;
+            }
+
+            let notice = container.querySelector(':scope > .offline-notice');
+            if (!notice) {
+                notice = document.createElement('p');
+                notice.className = 'muted-text offline-notice';
+                container.appendChild(notice);
+            }
+
+            notice.textContent = message;
+        }
+
+        function removeOfflineNotice(container) {
+            if (!container) {
+                return;
+            }
+
+            const notice = container.querySelector(':scope > .offline-notice');
+            if (notice) {
+                notice.remove();
+            }
+        }
+
+        function updateMotionPreference() {
+            parallaxEnabled = !prefersReducedMotion.matches;
+
+            if (!parallaxEnabled && scene) {
+                scene.style.transform = '';
+            }
+
+            if (motionStatusLabel) {
+                motionStatusLabel.textContent = parallaxEnabled ? 'Active' : 'Reduced';
+                motionStatusLabel.classList.toggle('reduced', !parallaxEnabled);
+            }
+
+            if (!parallaxEnabled) {
+                mouseXDisplay.textContent = 0;
+                mouseYDisplay.textContent = 0;
+            }
+
+            document.body.classList.toggle('reduced-motion', !parallaxEnabled);
+
+            particleElements.forEach(particle => {
+                if (!particle) return;
+                particle.style.animationPlayState = parallaxEnabled ? 'running' : 'paused';
+            });
+        }
+
+        function updateNetworkStatus({ notify = false } = {}) {
+            const online = isOnline();
+
+            if (networkStatusLabel) {
+                networkStatusLabel.textContent = online ? 'Online' : 'Offline';
+                networkStatusLabel.classList.toggle('offline', !online);
+            }
+
+            document.body.classList.toggle('is-offline', !online);
+
+            if (notify && online !== lastKnownOnline) {
+                showToast(
+                    online
+                        ? 'Connection restored. Resuming live updates.'
+                        : 'You appear to be offline. Data may be stale.',
+                    online ? 'success' : 'warning'
+                );
+
+                if (online) {
+                    loadStatus();
+                    loadSecurity();
+                    loadTools();
+                    loadDeployments();
+                    loadGitHub();
+                    loadIssues();
+                } else {
+                    restoreCachedCards();
+                }
+            }
+
+            updateAssistantAvailability({ notifyOffline: notify && !online && online !== lastKnownOnline });
+            lastKnownOnline = online;
+            return online;
+        }
+
+        updateMotionPreference();
+        restoreCachedCards();
+        restoreAssistantHistory();
+        updateAssistantAvailability();
+        updateNetworkStatus();
+
+        if (typeof prefersReducedMotion.addEventListener === 'function') {
+            prefersReducedMotion.addEventListener('change', updateMotionPreference);
+        } else if (typeof prefersReducedMotion.addListener === 'function') {
+            prefersReducedMotion.addListener(updateMotionPreference);
+        }
+
+        window.addEventListener('online', () => updateNetworkStatus({ notify: true }));
+        window.addEventListener('offline', () => updateNetworkStatus({ notify: true }));
 
         // Track card hover state
         document.querySelectorAll('.neo-card').forEach(card => {
@@ -632,6 +1714,12 @@
         });
 
         document.addEventListener('mousemove', (e) => {
+            if (!parallaxEnabled) {
+                mouseXDisplay.textContent = 0;
+                mouseYDisplay.textContent = 0;
+                return;
+            }
+
             // Reduce parallax intensity from ±20 to ±8 degrees
             const x = (e.clientX / window.innerWidth - 0.5) * 8;
             const y = (e.clientY / window.innerHeight - 0.5) * 8;
@@ -654,126 +1742,3577 @@
             particle.style.top = Math.random() * 100 + '%';
             particle.style.animationDelay = Math.random() * 10 + 's';
             particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            particle.style.animationPlayState = parallaxEnabled ? 'running' : 'paused';
             particlesContainer.appendChild(particle);
+            particleElements.push(particle);
         }
 
-        // Mock data loading (replace with real API calls)
-        setTimeout(() => {
-            loadStatus();
+        const latestData = {
+            status: null,
+            scan: null,
+            tools: null,
+            git: null,
+            deployments: null,
+            github: null
+        };
+
+        const inflightRequests = new Map();
+        const refreshTimers = new Map();
+
+        const REFRESH_INTERVALS = {
+            status: 60_000,
+            tools: 120_000,
+            issues: 45_000,
+            deployments: 300_000,
+            github: 180_000
+        };
+
+        const DEFAULT_TIMEOUT = 20_000;
+        const CACHE_PREFIX = 'guardian-dashboard:';
+        const ASSISTANT_HISTORY_KEY = `${CACHE_PREFIX}assistant-history`;
+        const ASSISTANT_HISTORY_LIMIT = 24;
+        const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+        let assistantHistory = [];
+        let assistantBusy = false;
+        let assistantLastResponseAt = null;
+        let assistantContextCache = null;
+        let assistantContextDirty = true;
+        let assistantContextVisible = false;
+        const TIMESTAMP_FIELDS = [
+            'timestamp',
+            'updatedAt',
+            'generatedAt',
+            'scannedAt',
+            'completedAt',
+            'finishedAt',
+            'createdAt'
+        ];
+        const relativeTimeFormatter = typeof Intl !== 'undefined' && typeof Intl.RelativeTimeFormat === 'function'
+            ? new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+            : null;
+
+        async function fetchJSON(key, url, options = {}) {
+            if (!key) {
+                throw new Error('fetchJSON requires a request key');
+            }
+
+            if (inflightRequests.has(key)) {
+                inflightRequests.get(key).abort();
+            }
+
+            const controller = new AbortController();
+            inflightRequests.set(key, controller);
+
+            const { timeout = DEFAULT_TIMEOUT, ...requestOptions } = options;
+            let abortedByTimeout = false;
+            const timeoutId = timeout
+                ? setTimeout(() => {
+                    abortedByTimeout = true;
+                    controller.abort();
+                }, timeout)
+                : null;
+
+            try {
+                const response = await fetch(url, { ...requestOptions, signal: controller.signal });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                if (error.name === 'AbortError' && abortedByTimeout) {
+                    const timeoutError = new Error(`Request timed out after ${Math.round(timeout / 1000)}s`);
+                    timeoutError.name = 'TimeoutError';
+                    throw timeoutError;
+                }
+                throw error;
+            } finally {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+                if (inflightRequests.get(key) === controller) {
+                    inflightRequests.delete(key);
+                }
+            }
+        }
+
+        function saveCache(key, data) {
+            if (!key || typeof localStorage === 'undefined') {
+                return;
+            }
+
+            try {
+                const record = JSON.stringify({ timestamp: Date.now(), data });
+                localStorage.setItem(`${CACHE_PREFIX}${key}`, record);
+            } catch (error) {
+                console.warn(`Failed to cache ${key}`, error);
+            }
+        }
+
+        function readCache(key) {
+            if (!key || typeof localStorage === 'undefined') {
+                return null;
+            }
+
+            try {
+                const raw = localStorage.getItem(`${CACHE_PREFIX}${key}`);
+                if (!raw) {
+                    return null;
+                }
+
+                const record = JSON.parse(raw);
+                if (!record || typeof record !== 'object') {
+                    return null;
+                }
+
+                const timestamp = typeof record.timestamp === 'number' ? record.timestamp : null;
+                const expired = timestamp ? (Date.now() - timestamp) > CACHE_TTL : false;
+                return { data: record.data, timestamp, expired };
+            } catch (error) {
+                console.warn(`Failed to read cache for ${key}`, error);
+                return null;
+            }
+        }
+
+        function formatRelativeTime(date) {
+            if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+                return '';
+            }
+
+            const diffInSeconds = (date.getTime() - Date.now()) / 1000;
+            const divisions = [
+                { amount: 60, unit: 'second' },
+                { amount: 60, unit: 'minute' },
+                { amount: 24, unit: 'hour' },
+                { amount: 7, unit: 'day' },
+                { amount: 4.34524, unit: 'week' },
+                { amount: 12, unit: 'month' },
+                { amount: Number.POSITIVE_INFINITY, unit: 'year' }
+            ];
+
+            let duration = diffInSeconds;
+            let unit = 'second';
+
+            for (const division of divisions) {
+                if (Math.abs(duration) < division.amount) {
+                    unit = division.unit;
+                    break;
+                }
+                duration /= division.amount;
+            }
+
+            const rounded = Math.round(duration);
+            if (relativeTimeFormatter) {
+                return relativeTimeFormatter.format(rounded, unit);
+            }
+
+            const absolute = Math.abs(rounded);
+            const pluralizedUnit = absolute === 1 ? unit : `${unit}s`;
+            const suffix = rounded > 0 ? 'from now' : 'ago';
+            return `${absolute} ${pluralizedUnit} ${suffix}`;
+        }
+
+        function setUpdatedMeta(id, { timestamp = null, fromCache = false, message = '', expired = false, offline = false } = {}) {
+            const element = document.getElementById(id);
+            if (!element) {
+                return;
+            }
+
+            const source = offline ? 'offline' : fromCache ? 'cache' : 'live';
+            if (source) {
+                element.dataset.source = source;
+            } else {
+                delete element.dataset.source;
+            }
+
+            const applyState = (state) => {
+                if (state) {
+                    element.dataset.state = state;
+                } else {
+                    delete element.dataset.state;
+                }
+            };
+
+            if (message) {
+                element.textContent = message;
+                applyState(offline ? 'offline' : expired ? 'stale' : '');
+                element.removeAttribute('data-timestamp');
+                element.removeAttribute('title');
+                return;
+            }
+
+            let normalizedTimestamp = null;
+            if (timestamp instanceof Date) {
+                normalizedTimestamp = Number.isNaN(timestamp.getTime()) ? null : timestamp;
+            } else if (typeof timestamp === 'number') {
+                normalizedTimestamp = new Date(timestamp);
+            } else if (timestamp) {
+                normalizedTimestamp = parseDateLike(timestamp);
+            }
+
+            if (!normalizedTimestamp || Number.isNaN(normalizedTimestamp.getTime())) {
+                element.textContent = fromCache ? 'Cached update (time unknown)' : 'Awaiting update';
+                applyState(offline ? 'offline' : expired ? 'stale' : '');
+                element.removeAttribute('data-timestamp');
+                element.removeAttribute('title');
+                return;
+            }
+
+            const relative = formatRelativeTime(normalizedTimestamp) || 'recently';
+            const prefix = offline && fromCache
+                ? 'Offline cache'
+                : fromCache
+                    ? 'Cached'
+                    : 'Updated';
+            const suffix = expired ? ' • stale' : '';
+            element.textContent = `${prefix} ${relative}${suffix}`;
+            element.dataset.timestamp = normalizedTimestamp.toISOString();
+            element.title = normalizedTimestamp.toLocaleString();
+            applyState(offline ? 'offline' : expired ? 'stale' : '');
+        }
+
+        function extractTimestamp(record, fallback) {
+            const fallbackDate = fallback instanceof Date
+                ? fallback
+                : fallback
+                    ? parseDateLike(fallback)
+                    : null;
+            if (fallbackDate && !Number.isNaN(fallbackDate.getTime())) {
+                return fallbackDate;
+            }
+
+            if (!record || typeof record !== 'object') {
+                return null;
+            }
+
+            for (const key of TIMESTAMP_FIELDS) {
+                if (key in record) {
+                    const candidate = parseDateLike(record[key]);
+                    if (candidate) {
+                        return candidate;
+                    }
+                }
+            }
+
+            if (record.meta && typeof record.meta === 'object') {
+                const nested = extractTimestamp(record.meta);
+                if (nested) {
+                    return nested;
+                }
+            }
+
+            return null;
+        }
+
+        function showToast(message, variant = 'info', duration = 5000) {
+            const stack = document.getElementById('toast-stack');
+            if (!stack) {
+                console.warn('Toast stack missing, falling back to alert:', message);
+                if (typeof message === 'string') {
+                    alert(message);
+                }
+                return;
+            }
+
+            const normalizedVariant = ['success', 'info', 'warning', 'error'].includes((variant || '').toLowerCase())
+                ? variant.toLowerCase()
+                : 'info';
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${normalizedVariant}`;
+            toast.setAttribute('role', 'status');
+            toast.setAttribute('aria-live', 'polite');
+            toast.textContent = (message ?? '').toString();
+
+            stack.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.add('visible');
+            });
+
+            const hide = () => {
+                toast.classList.remove('visible');
+                setTimeout(() => {
+                    if (toast.parentElement === stack) {
+                        stack.removeChild(toast);
+                    }
+                }, 300);
+            };
+
+            const timeoutId = setTimeout(hide, Math.max(2000, duration || 0));
+
+            toast.addEventListener('click', () => {
+                clearTimeout(timeoutId);
+                hide();
+            });
+        }
+
+        async function copyTextToClipboard(text) {
+            if (typeof text !== 'string') {
+                text = text != null ? String(text) : '';
+            }
+
+            try {
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (error) {
+                console.warn('Async clipboard write failed', error);
+            }
+
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.top = '-9999px';
+            textarea.style.left = '-9999px';
+
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            let success = false;
+            try {
+                success = document.execCommand('copy');
+            } catch (error) {
+                console.warn('Fallback clipboard copy failed', error);
+                success = false;
+            }
+
+            document.body.removeChild(textarea);
+            return success;
+        }
+
+        function scheduleRefresh(key, callback, interval) {
+            if (!key || typeof callback !== 'function' || !interval) {
+                return;
+            }
+
+            if (refreshTimers.has(key)) {
+                clearInterval(refreshTimers.get(key));
+            }
+
+            const tick = () => {
+                if (document.hidden) {
+                    return;
+                }
+                callback();
+            };
+
+            tick();
+            const id = setInterval(tick, interval);
+            refreshTimers.set(key, id);
+        }
+
+        function stopAutoRefresh() {
+            refreshTimers.forEach(id => clearInterval(id));
+            refreshTimers.clear();
+        }
+
+        function startAutoRefresh() {
+            scheduleRefresh('status', loadStatus, REFRESH_INTERVALS.status);
+            scheduleRefresh('tools', loadTools, REFRESH_INTERVALS.tools);
+            scheduleRefresh('issues', loadIssues, REFRESH_INTERVALS.issues);
+            scheduleRefresh('deployments', loadDeployments, REFRESH_INTERVALS.deployments);
+            scheduleRefresh('github', loadGitHub, REFRESH_INTERVALS.github);
+        }
+
+        function setLoadingState(element, message = 'Loading...') {
+            if (!element) return;
+
+            element.classList.add('is-loading');
+            element.setAttribute('aria-busy', 'true');
+
+            if (getComputedStyle(element).position === 'static') {
+                element.dataset.positionWasStatic = 'true';
+                element.style.position = 'relative';
+            }
+
+            let overlay = element.querySelector(':scope > .loading-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'loading-overlay';
+                overlay.setAttribute('role', 'status');
+                overlay.setAttribute('aria-live', 'polite');
+
+                const spinner = document.createElement('div');
+                spinner.className = 'spinner';
+                spinner.setAttribute('aria-hidden', 'true');
+
+                const text = document.createElement('p');
+                text.className = 'loading-text';
+
+                overlay.append(spinner, text);
+                overlay.setAttribute('hidden', '');
+                element.appendChild(overlay);
+            }
+
+            const textNode = overlay.querySelector('.loading-text');
+            if (textNode) {
+                textNode.textContent = message;
+            }
+
+            overlay.removeAttribute('hidden');
+            requestAnimationFrame(() => overlay.classList.add('visible'));
+        }
+
+        function clearLoadingState(element) {
+            if (!element) return;
+
+            element.removeAttribute('aria-busy');
+            element.classList.remove('is-loading');
+
+            const overlay = element.querySelector(':scope > .loading-overlay');
+            if (overlay) {
+                overlay.classList.remove('visible');
+                overlay.setAttribute('hidden', '');
+            }
+
+            if (element.dataset.positionWasStatic) {
+                element.style.position = '';
+                delete element.dataset.positionWasStatic;
+            }
+        }
+
+        function setBadge(element, text, variant = 'status-good', options = {}) {
+            if (!element) return;
+            element.textContent = text;
+            element.className = `status-badge ${variant}`;
+
+            const { source, state } = options || {};
+            if (source) {
+                element.dataset.source = source;
+            } else {
+                delete element.dataset.source;
+            }
+
+            if (state) {
+                element.dataset.state = state;
+            } else {
+                delete element.dataset.state;
+            }
+        }
+
+        function renderMetrics(container, metrics) {
+            if (!container) return;
+            const fragment = document.createDocumentFragment();
+
+            metrics.forEach(metric => {
+                if (!metric) return;
+
+                const row = document.createElement('div');
+                row.className = 'metric';
+
+                const label = document.createElement('span');
+                label.className = 'metric-label';
+                label.textContent = metric.label;
+
+                const value = document.createElement('span');
+                value.className = 'metric-value';
+                value.textContent = metric.value;
+
+                row.append(label, value);
+                fragment.appendChild(row);
+            });
+
+            container.appendChild(fragment);
+        }
+
+        function titleCase(value = '') {
+            return value
+                .toString()
+                .split(/[_\-\s]+/)
+                .filter(Boolean)
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ');
+        }
+
+        function formatToolLabel(tool) {
+            if (!tool) return 'Tool';
+            const primary = tool.name || tool.provider || tool.command || tool.category || 'Tool';
+            const category = tool.category && !primary.toLowerCase().includes(tool.category.toLowerCase())
+                ? ` (${titleCase(tool.category)})`
+                : '';
+            return `${titleCase(primary)}${category}`;
+        }
+
+        function slugify(value = '') {
+            return value
+                .toString()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '')
+                || 'item';
+        }
+
+        function isLikelyShellCommand(value) {
+            if (typeof value !== 'string') return false;
+            const trimmed = value.trim();
+            if (!trimmed) return false;
+            return /^(npm|npx|yarn|pnpm|bun|pip3?|brew|apt(-get)?|go|cargo|dotnet|curl|bash|sh)\b/i.test(trimmed);
+        }
+
+        function resolveInstallCommand(tool) {
+            if (!tool || typeof tool !== 'object') {
+                return null;
+            }
+
+            const candidates = [
+                tool.install,
+                tool.installCommand,
+                tool.command,
+                tool.cliRequired?.install,
+                tool.cliRequired?.command
+            ];
+
+            for (const candidate of candidates) {
+                if (isLikelyShellCommand(candidate)) {
+                    return candidate.trim();
+                }
+            }
+
+            return null;
+        }
+
+        function resolveDocsLink(tool) {
+            if (!tool || typeof tool !== 'object') {
+                return null;
+            }
+
+            return tool.docs || tool.documentation || tool.cliRequired?.docs || null;
+        }
+
+        function parseDateLike(value) {
+            if (!value) return null;
+            if (value instanceof Date) {
+                return Number.isNaN(value.getTime()) ? null : value;
+            }
+
+            const asDate = new Date(value);
+            if (!Number.isNaN(asDate.getTime())) {
+                return asDate;
+            }
+
+            if (typeof value === 'number') {
+                const millis = value > 1e12 ? value : value * 1000;
+                const numericDate = new Date(millis);
+                return Number.isNaN(numericDate.getTime()) ? null : numericDate;
+            }
+
+            return null;
+        }
+
+        function formatRelativeTime(value) {
+            const date = parseDateLike(value);
+            if (!date) {
+                return null;
+            }
+
+            const diffMs = Date.now() - date.getTime();
+            const absolute = Math.abs(diffMs);
+            const tense = diffMs >= 0 ? 'ago' : 'from now';
+
+            const units = [
+                { limit: 60_000, divisor: 1000, unit: 'second' },
+                { limit: 3_600_000, divisor: 60_000, unit: 'minute' },
+                { limit: 86_400_000, divisor: 3_600_000, unit: 'hour' },
+                { limit: 604_800_000, divisor: 86_400_000, unit: 'day' },
+                { limit: 2_592_000_000, divisor: 604_800_000, unit: 'week' },
+                { limit: Infinity, divisor: 2_592_000_000, unit: 'month' }
+            ];
+
+            for (const { limit, divisor, unit } of units) {
+                if (absolute < limit) {
+                    const value = Math.max(1, Math.round(absolute / divisor));
+                    const plural = value === 1 ? unit : `${unit}s`;
+                    return `${value} ${plural} ${tense}`;
+                }
+            }
+
+            return date.toLocaleString();
+        }
+
+        function appendTimelineItem(list, titleText, metaText, url) {
+            if (!list || !titleText) {
+                return false;
+            }
+
+            const item = document.createElement('li');
+            item.className = 'timeline-item';
+
+            const title = document.createElement('div');
+            title.className = 'timeline-title';
+
+            if (url) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = titleText;
+                title.appendChild(link);
+            } else {
+                title.textContent = titleText;
+            }
+
+            item.appendChild(title);
+
+            if (metaText) {
+                const meta = document.createElement('div');
+                meta.className = 'timeline-meta';
+                meta.textContent = metaText;
+                item.appendChild(meta);
+            }
+
+            list.appendChild(item);
+            return true;
+        }
+
+        function renderDeploymentSection(container, entry = {}) {
+            if (!container) return;
+
+            const platform = titleCase(entry.platform || 'Provider');
+            const title = document.createElement('div');
+            title.className = 'metric-section-title';
+            title.textContent = `${platform} Deployments`;
+            container.appendChild(title);
+
+            const summary = document.createElement('div');
+            summary.className = 'metric';
+
+            const label = document.createElement('span');
+            label.className = 'metric-label';
+            label.textContent = 'Records';
+
+            const value = document.createElement('span');
+            value.className = 'metric-value';
+
+            let items = [];
+            if (Array.isArray(entry.projects)) {
+                items = entry.projects;
+            } else if (Array.isArray(entry.deployments)) {
+                items = entry.deployments;
+            }
+
+            value.textContent = items.length.toString();
+            summary.append(label, value);
+            container.appendChild(summary);
+
+            const timeline = document.createElement('ul');
+            timeline.className = 'timeline';
+            let hasItems = false;
+
+            if (Array.isArray(entry.projects)) {
+                entry.projects.forEach(project => {
+                    if (!project) return;
+                    const details = [];
+                    if (project.projectId) details.push(project.projectId);
+                    if (project.projectNumber) details.push(`#${project.projectNumber}`);
+                    if (project.resources?.defaultHostingSite) {
+                        details.push(`Hosting: ${project.resources.defaultHostingSite}`);
+                    }
+                    const displayName = project.displayName || project.projectId || 'Firebase project';
+                    const joined = details.join(' • ');
+                    hasItems = appendTimelineItem(timeline, displayName, joined) || hasItems;
+                });
+            } else if (Array.isArray(entry.deployments)) {
+                entry.deployments.slice(0, 6).forEach(deployment => {
+                    if (!deployment) return;
+                    const details = [];
+                    const state = deployment.state || deployment.readyState;
+                    if (state) details.push(titleCase(state));
+                    const relative = formatRelativeTime(deployment.createdAt || deployment.ready || deployment.updatedAt);
+                    if (relative) details.push(relative);
+                    const target = deployment.url || deployment.inspectUrl || deployment.target || null;
+                    const labelText = deployment.name || deployment.project || deployment.target || 'Deployment';
+                    const joined = details.join(' • ');
+                    hasItems = appendTimelineItem(timeline, labelText, joined, target) || hasItems;
+                });
+            }
+
+            if (hasItems) {
+                container.appendChild(timeline);
+            } else {
+                const empty = document.createElement('p');
+                empty.className = 'muted-text';
+                empty.textContent = 'No recent deployment activity detected.';
+                container.appendChild(empty);
+            }
+        }
+
+        function getSeverityCounts(issues) {
+            const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+            (issues || []).forEach(issue => {
+                const key = (issue.severity || '').toString().toUpperCase();
+                if (counts[key] !== undefined) {
+                    counts[key] += 1;
+                }
+            });
+            return counts;
+        }
+
+        function getSecurityBadge(counts, warningCount) {
+            if (counts.CRITICAL > 0) {
+                return { text: `${counts.CRITICAL} critical`, variant: 'status-error' };
+            }
+            if (counts.HIGH > 0) {
+                return { text: `${counts.HIGH} high`, variant: 'status-warning' };
+            }
+            if (counts.MEDIUM > 0 || warningCount > 0) {
+                return { text: 'Attention', variant: 'status-warning' };
+            }
+            return { text: 'Secure', variant: 'status-good' };
+        }
+
+        function computeSecureScore(counts, warningCount) {
+            const penalty = (counts.CRITICAL * 35) + (counts.HIGH * 20) + (counts.MEDIUM * 10) + (warningCount * 5);
+            return Math.max(0, 100 - penalty);
+        }
+
+        function createProgressBar(score) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'progress-bar';
+
+            const fill = document.createElement('div');
+            fill.className = 'progress-fill';
+            fill.style.width = `${Math.max(0, Math.min(100, Math.round(score)))}%`;
+
+            const text = document.createElement('div');
+            text.className = 'progress-text';
+            text.textContent = `${Math.round(Math.max(0, Math.min(100, score)))}% Secure`;
+
+            wrapper.append(fill, text);
+            return wrapper;
+        }
+
+        function severityToClass(severity = 'INFO') {
+            const map = {
+                CRITICAL: 'critical',
+                HIGH: 'high',
+                MEDIUM: 'medium',
+                LOW: 'low',
+                INFO: 'info',
+                SUCCESS: 'success'
+            };
+            return map[severity] || 'info';
+        }
+
+        function severityIcon(severity = 'INFO') {
+            const map = {
+                CRITICAL: '🔴',
+                HIGH: '🟠',
+                MEDIUM: '🟡',
+                LOW: '🔵',
+                INFO: '⚪',
+                SUCCESS: '🟢'
+            };
+            return map[severity] || '⚪';
+        }
+
+        function gitStatusSeverity(code = '') {
+            const trimmed = code.trim();
+            if (!trimmed) return 'INFO';
+            if (trimmed.includes('U') || trimmed.includes('D')) return 'HIGH';
+            if (trimmed.includes('M') || trimmed.includes('A')) return 'MEDIUM';
+            if (trimmed === '??') return 'LOW';
+            return 'INFO';
+        }
+
+        function createInfoItem(iconSymbol, title, details, severity = 'INFO') {
+            const item = document.createElement('li');
+            item.className = `issue-item ${severityToClass(severity.toString().toUpperCase())}`;
+
+            const icon = document.createElement('span');
+            icon.className = 'issue-icon';
+            icon.textContent = iconSymbol || severityIcon(severity);
+
+            const text = document.createElement('div');
+            text.className = 'issue-text';
+            text.textContent = title;
+
+            if (details) {
+                const detailEl = document.createElement('span');
+                detailEl.className = 'issue-details';
+                detailEl.textContent = details;
+                text.appendChild(detailEl);
+            }
+
+            item.append(icon, text);
+            return item;
+        }
+
+        function createIssueItem(issue, type = 'issue') {
+            const severity = (issue?.severity || (type === 'warning' ? 'LOW' : 'INFO')).toString().toUpperCase();
+            const item = document.createElement('li');
+            item.className = `issue-item ${severityToClass(severity)}`;
+
+            const icon = document.createElement('span');
+            icon.className = 'issue-icon';
+            icon.textContent = severityIcon(severity);
+
+            const text = document.createElement('div');
+            text.className = 'issue-text';
+            text.textContent = issue.message || 'Issue detected';
+
+            if (issue.file) {
+                const fileDetail = document.createElement('span');
+                fileDetail.className = 'issue-details';
+                fileDetail.textContent = issue.file;
+                text.appendChild(fileDetail);
+            }
+
+            if (Array.isArray(issue.details) && issue.details.length) {
+                const details = document.createElement('span');
+                details.className = 'issue-details';
+                details.textContent = issue.details.join(' • ');
+                text.appendChild(details);
+            } else if (issue.details && typeof issue.details === 'string') {
+                const details = document.createElement('span');
+                details.className = 'issue-details';
+                details.textContent = issue.details;
+                text.appendChild(details);
+            }
+
+            item.append(icon, text);
+
+            if (issue.autoFixable && issue.id) {
+                const button = document.createElement('button');
+                button.className = 'holo-button';
+                button.type = 'button';
+                button.textContent = 'Auto-fix';
+                button.dataset.issueId = issue.id;
+                button.dataset.issueLabel = issue.message || issue.id;
+                button.addEventListener('click', handleAutoFix);
+                item.appendChild(button);
+            }
+
+            return item;
+        }
+
+        function createGitIssueItem(entry) {
+            const severity = gitStatusSeverity(entry.status || '');
+            const item = document.createElement('li');
+            item.className = `issue-item ${severityToClass(severity)}`;
+
+            const icon = document.createElement('span');
+            icon.className = 'issue-icon';
+            icon.textContent = severityIcon(severity);
+
+            const text = document.createElement('div');
+            text.className = 'issue-text';
+            const label = (entry.status || '').trim() || '??';
+            text.textContent = `${label} ${entry.file || ''}`.trim();
+
+            item.append(icon, text);
+            return item;
+        }
+
+        function renderIssuesList() {
+            const list = document.getElementById('issues-list');
+            if (!list) return;
+
+            if (!latestData.scan && !latestData.git) {
+                const isFirstLoad = !list.dataset.loaded;
+                setLoadingState(list, isFirstLoad ? 'Preparing issue data...' : 'Refreshing issue data...');
+                return;
+            }
+
+            Array.from(list.children).forEach(child => {
+                if (!child.classList.contains('loading-overlay')) {
+                    list.removeChild(child);
+                }
+            });
+
+            const fragment = document.createDocumentFragment();
+            let hasItems = false;
+
+            if (latestData.scan) {
+                const issues = Array.isArray(latestData.scan.issues) ? latestData.scan.issues : [];
+                const warnings = Array.isArray(latestData.scan.warnings) ? latestData.scan.warnings : [];
+
+                issues.forEach(issue => {
+                    fragment.appendChild(createIssueItem(issue));
+                    hasItems = true;
+                });
+
+                warnings.forEach(warning => {
+                    fragment.appendChild(createIssueItem(warning, 'warning'));
+                    hasItems = true;
+                });
+
+                if (!issues.length && !warnings.length) {
+                    fragment.appendChild(createInfoItem('🟢', 'No security issues detected', null, 'SUCCESS'));
+                    hasItems = true;
+                }
+            }
+
+            if (latestData.git) {
+                if (latestData.git.error) {
+                    fragment.appendChild(createInfoItem('⚠️', 'Git status unavailable', latestData.git.error, 'INFO'));
+                    hasItems = true;
+                } else {
+                    if (latestData.git.branch) {
+                        fragment.appendChild(createInfoItem('🛰️', `On branch ${latestData.git.branch}`, null, 'LOW'));
+                        hasItems = true;
+                    }
+
+                    if (Array.isArray(latestData.git.status) && latestData.git.status.length) {
+                        latestData.git.status.forEach(entry => {
+                            fragment.appendChild(createGitIssueItem(entry));
+                            hasItems = true;
+                        });
+                    }
+
+                    if (Array.isArray(latestData.git.commits) && latestData.git.commits.length) {
+                        const recent = latestData.git.commits.slice(0, 3).map(commit => `${commit.hash} ${commit.message}`);
+                        fragment.appendChild(createInfoItem('🌀', 'Recent commits', recent.join(' • '), 'INFO'));
+                        hasItems = true;
+                    }
+                }
+            } else if (inflightRequests.has('issues')) {
+                fragment.appendChild(createInfoItem('⌛', 'Repository status syncing', 'Git details will appear once the status call completes.', 'INFO'));
+                hasItems = true;
+            }
+
+            if (!hasItems) {
+                fragment.appendChild(createInfoItem('✨', 'Awaiting scan data', 'Trigger a scan to populate issues.', 'INFO'));
+            }
+
+            list.appendChild(fragment);
+        }
+
+        function renderInlineContent(text = '') {
+            const fragment = document.createDocumentFragment();
+
+            if (typeof text !== 'string' || !text.length) {
+                if (text) {
+                    fragment.appendChild(document.createTextNode(String(text)));
+                }
+                return fragment;
+            }
+
+            const pattern = /(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|https?:\/\/[^\s]+)/g;
+            let lastIndex = 0;
+            let match;
+
+            while ((match = pattern.exec(text)) !== null) {
+                if (match.index > lastIndex) {
+                    fragment.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+                }
+
+                const token = match[0];
+                let node = null;
+
+                if (token.startsWith('`') && token.endsWith('`')) {
+                    node = document.createElement('code');
+                    node.textContent = token.slice(1, -1);
+                } else if ((token.startsWith('**') && token.endsWith('**')) || (token.startsWith('__') && token.endsWith('__'))) {
+                    node = document.createElement('strong');
+                    node.appendChild(renderInlineContent(token.slice(2, -2)));
+                } else if ((token.startsWith('*') && token.endsWith('*')) || (token.startsWith('_') && token.endsWith('_'))) {
+                    node = document.createElement('em');
+                    node.appendChild(renderInlineContent(token.slice(1, -1)));
+                } else if (/^https?:\/\//i.test(token)) {
+                    node = document.createElement('a');
+                    node.href = token;
+                    node.target = '_blank';
+                    node.rel = 'noopener noreferrer';
+                    node.textContent = token;
+                }
+
+                if (node) {
+                    fragment.appendChild(node);
+                }
+
+                lastIndex = pattern.lastIndex;
+            }
+
+            if (lastIndex < text.length) {
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+            }
+
+            return fragment;
+        }
+
+        function renderRichContent(text = '') {
+            const fragment = document.createDocumentFragment();
+
+            if (typeof text !== 'string') {
+                if (text !== null && text !== undefined) {
+                    fragment.appendChild(document.createTextNode(String(text)));
+                }
+                return fragment;
+            }
+
+            const normalized = text.replace(/\r\n/g, '\n');
+            const blocks = normalized.split(/\n{2,}/);
+
+            blocks.forEach(block => {
+                const trimmed = block.trim();
+                if (!trimmed) {
+                    return;
+                }
+
+                if (/^```/.test(trimmed) && trimmed.endsWith('```')) {
+                    const lines = trimmed.split('\n');
+                    const firstLine = lines.shift();
+                    if (lines.length && lines[lines.length - 1].trim() === '```') {
+                        lines.pop();
+                    }
+                    const pre = document.createElement('pre');
+                    if (firstLine) {
+                        const language = firstLine.replace(/^```/, '').trim();
+                        if (language) {
+                            pre.dataset.language = language;
+                        }
+                    }
+                    const code = document.createElement('code');
+                    code.textContent = lines.join('\n');
+                    pre.appendChild(code);
+                    fragment.appendChild(pre);
+                    return;
+                }
+
+                const lineItems = block.split('\n').filter(line => line.trim().length > 0);
+                if (!lineItems.length) {
+                    return;
+                }
+
+                const isBulletList = lineItems.every(line => /^[-*+]\s+/.test(line.trim()));
+                const isOrderedList = lineItems.every(line => /^\d+\.\s+/.test(line.trim()));
+                const isBlockquote = lineItems.every(line => /^>\s?/.test(line.trim()));
+
+                if (isBulletList || isOrderedList) {
+                    const list = document.createElement(isOrderedList ? 'ol' : 'ul');
+                    lineItems.forEach(item => {
+                        const li = document.createElement('li');
+                        const value = item.replace(isOrderedList ? /^\d+\.\s+/ : /^[-*+]\s+/, '');
+                        li.appendChild(renderInlineContent(value));
+                        list.appendChild(li);
+                    });
+                    fragment.appendChild(list);
+                    return;
+                }
+
+                if (isBlockquote) {
+                    const quote = document.createElement('blockquote');
+                    lineItems.forEach((line, index) => {
+                        const value = line.replace(/^>\s?/, '');
+                        quote.appendChild(renderInlineContent(value));
+                        if (index < lineItems.length - 1) {
+                            quote.appendChild(document.createElement('br'));
+                        }
+                    });
+                    fragment.appendChild(quote);
+                    return;
+                }
+
+                const paragraph = document.createElement('p');
+                lineItems.forEach((line, index) => {
+                    paragraph.appendChild(renderInlineContent(line));
+                    if (index < lineItems.length - 1) {
+                        paragraph.appendChild(document.createElement('br'));
+                    }
+                });
+                fragment.appendChild(paragraph);
+            });
+
+            if (!fragment.childNodes.length && text) {
+                const paragraph = document.createElement('p');
+                paragraph.appendChild(document.createTextNode(text));
+                fragment.appendChild(paragraph);
+            }
+
+            return fragment;
+        }
+
+        function appendAssistantMessage(role, content, { timestamp = Date.now(), pending = false, tone, meta, classes = [], ephemeral = false } = {}) {
+            if (!assistantLog) {
+                return null;
+            }
+
+            const normalizedRole = ['user', 'assistant', 'system'].includes(role) ? role : 'assistant';
+            const message = document.createElement('div');
+            message.className = `chat-message chat-${normalizedRole}`;
+            if (pending) {
+                message.classList.add('pending');
+            }
+            if (tone === 'error') {
+                message.classList.add('error');
+            }
+            classes.forEach(cls => message.classList.add(cls));
+
+            if (ephemeral) {
+                message.dataset.ephemeral = 'true';
+            }
+
+            const resolvedTimestamp = parseDateLike(timestamp) || new Date();
+            if (resolvedTimestamp && !Number.isNaN(resolvedTimestamp.getTime())) {
+                message.dataset.timestamp = resolvedTimestamp.toISOString();
+            }
+
+            const text = document.createElement('div');
+            text.className = 'chat-message-text';
+            text.appendChild(renderRichContent(content));
+            message.appendChild(text);
+
+            if (meta) {
+                const metaEl = document.createElement('div');
+                metaEl.className = 'chat-message-meta';
+                metaEl.textContent = meta;
+                message.appendChild(metaEl);
+            }
+
+            if (normalizedRole === 'assistant' && !pending) {
+                const actions = document.createElement('div');
+                actions.className = 'chat-message-actions';
+
+                const copyButton = document.createElement('button');
+                copyButton.type = 'button';
+                copyButton.className = 'holo-icon-button';
+                copyButton.textContent = 'Copy';
+                copyButton.setAttribute('aria-label', 'Copy assistant reply');
+                copyButton.addEventListener('click', async () => {
+                    const content = text.innerText || text.textContent || '';
+                    if (!content) {
+                        showToast('Nothing to copy from this reply yet.', 'warning', 3000);
+                        return;
+                    }
+
+                    const copied = await copyTextToClipboard(content);
+                    if (copied) {
+                        showToast('Assistant reply copied to clipboard.', 'success', 2500);
+                    } else {
+                        showToast('Unable to copy reply automatically. Please copy manually.', 'warning', 4000);
+                    }
+                });
+
+                actions.appendChild(copyButton);
+                message.appendChild(actions);
+            }
+
+            assistantLog.appendChild(message);
+            assistantLog.scrollTop = assistantLog.scrollHeight;
+            return message;
+        }
+
+        function appendAssistantIntro() {
+            if (!assistantLog || assistantLog.dataset.introShown === 'true') {
+                return;
+            }
+
+            assistantLog.dataset.introShown = 'true';
+            appendAssistantMessage('assistant', 'Hi! I\'m Guardian. I can explain scan results, recommend tools, or plan your next deployment.', {
+                meta: 'Ready',
+                classes: ['intro'],
+                ephemeral: true
+            });
+        }
+
+        function readAssistantHistory() {
+            if (typeof localStorage === 'undefined') {
+                return [];
+            }
+
+            try {
+                const raw = localStorage.getItem(ASSISTANT_HISTORY_KEY);
+                if (!raw) {
+                    return [];
+                }
+
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) {
+                    return [];
+                }
+
+                return parsed
+                    .filter(entry => entry && typeof entry.role === 'string' && typeof entry.content === 'string')
+                    .map(entry => ({
+                        role: ['user', 'assistant'].includes(entry.role) ? entry.role : 'assistant',
+                        content: entry.content,
+                        timestamp: entry.timestamp || Date.now(),
+                        provider: entry.provider || null
+                    }));
+            } catch (error) {
+                console.warn('Failed to read assistant history', error);
+                return [];
+            }
+        }
+
+        function persistAssistantHistory() {
+            if (typeof localStorage === 'undefined') {
+                return;
+            }
+
+            try {
+                assistantHistory = assistantHistory.slice(-ASSISTANT_HISTORY_LIMIT);
+                const serializable = assistantHistory.map(entry => ({
+                    role: entry.role,
+                    content: entry.content,
+                    timestamp: entry.timestamp,
+                    provider: entry.provider || null
+                }));
+                localStorage.setItem(ASSISTANT_HISTORY_KEY, JSON.stringify(serializable));
+            } catch (error) {
+                console.warn('Failed to persist assistant history', error);
+            }
+        }
+
+        function markAssistantContextDirty() {
+            assistantContextDirty = true;
+        }
+
+        function getAssistantContext({ force = false } = {}) {
+            if (force) {
+                assistantContextDirty = true;
+            }
+
+            if (assistantContextDirty || !assistantContextCache) {
+                assistantContextCache = computeAssistantContext();
+                assistantContextDirty = false;
+            }
+
+            return assistantContextCache;
+        }
+
+        function computeAssistantSuggestions() {
+            const suggestions = [];
+            const seen = new Set();
+            const add = (value) => {
+                if (!value || typeof value !== 'string') {
+                    return;
+                }
+                const trimmed = value.trim();
+                if (!trimmed || seen.has(trimmed)) {
+                    return;
+                }
+                seen.add(trimmed);
+                suggestions.push(trimmed);
+            };
+
+            const context = getAssistantContext();
+            const info = context?.projectInfo || {};
+            const security = info.security || {};
+            const issues = security.issues || {};
+            const totalIssues = Object.values(issues).reduce((sum, count) => (
+                typeof count === 'number' ? sum + count : sum
+            ), 0);
+
+            if (totalIssues > 0) {
+                add('What are the top security vulnerabilities we should fix first?');
+            } else if (typeof security.warnings === 'number' && security.warnings > 0) {
+                add('Explain the warnings from the latest security scan.');
+            } else if (security && Object.keys(security).length) {
+                add('Confirm our current security posture and any remaining risks.');
+            }
+
+            if (info.tooling?.missing && info.tooling.missing.length) {
+                add('How do I install or configure the missing tools Guardian detected?');
+            }
+
+            if (
+                (info.repository?.status && info.repository.status.length) ||
+                (typeof info.uncommittedChanges === 'number' && info.uncommittedChanges > 0)
+            ) {
+                add('Walk me through cleaning up the repository changes and pending work.');
+            }
+
+            if (Array.isArray(info.deployments) && info.deployments.length) {
+                add('Summarize the most recent deployment results and next steps.');
+            }
+
+            if (info.github && (info.github.name || info.github.owner)) {
+                add('Review the GitHub repository insights and highlight anything actionable.');
+            }
+
+            if (assistantHistory.some(entry => entry.role === 'assistant')) {
+                add('Summarize the key points from our last conversation.');
+            }
+
+            if (!suggestions.length) {
+                add('Give me an overview of the project status right now.');
+            }
+
+            if (suggestions.length < 5) {
+                add('What should I prioritize next to improve this project?');
+            }
+
+            return suggestions.slice(0, 6);
+        }
+
+        function handleAssistantSuggestion(message, { submit = false } = {}) {
+            if (!assistantInput) {
+                return;
+            }
+
+            assistantInput.value = message;
+            handleAssistantInputResize();
+
+            try {
+                assistantInput.focus({ preventScroll: true });
+            } catch (error) {
+                assistantInput.focus();
+            }
+
+            if (submit && assistantForm && !assistantBusy && isOnline()) {
+                assistantForm.requestSubmit();
+            }
+        }
+
+        function updateAssistantSuggestions() {
+            if (!assistantSuggestions) {
+                return;
+            }
+
+            const items = computeAssistantSuggestions();
+            assistantSuggestions.innerHTML = '';
+
+            if (!items.length) {
+                assistantSuggestions.hidden = true;
+                assistantSuggestions.classList.add('is-empty');
+                assistantSuggestions.dataset.hasSuggestions = 'false';
+                return;
+            }
+
+            assistantSuggestions.hidden = false;
+            assistantSuggestions.classList.remove('is-empty');
+            assistantSuggestions.dataset.hasSuggestions = 'true';
+
+            const disabled = assistantBusy || !isOnline();
+
+            items.forEach((suggestion) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'chat-suggestion';
+                button.textContent = suggestion;
+                button.disabled = disabled;
+                button.title = disabled
+                    ? 'Reconnect to use this prompt.'
+                    : 'Click to insert this prompt. Ctrl/Cmd+Click to send immediately.';
+                button.addEventListener('click', (event) => {
+                    if (button.disabled) {
+                        return;
+                    }
+
+                    const submit = event.metaKey || event.ctrlKey;
+                    handleAssistantSuggestion(suggestion, { submit });
+                });
+
+                assistantSuggestions.appendChild(button);
+            });
+        }
+
+        function toggleAssistantOfflineNotice(online) {
+            if (!assistantLog) {
+                return;
+            }
+
+            const existing = assistantLog.querySelector('.chat-message.offline-notice');
+            if (!online) {
+                if (!existing) {
+                    appendAssistantMessage('system', 'Offline — Guardian will respond once reconnected.', {
+                        classes: ['offline-notice'],
+                        ephemeral: true,
+                        meta: null
+                    });
+                }
+            } else if (existing) {
+                existing.remove();
+            }
+        }
+
+        function updateAssistantControls(online = isOnline()) {
+            if (assistantSendButton) {
+                assistantSendButton.disabled = assistantBusy || !online;
+                assistantSendButton.classList.toggle('is-busy', assistantBusy);
+            }
+
+            if (assistantInput) {
+                assistantInput.disabled = assistantBusy;
+                assistantInput.placeholder = online
+                    ? 'Ask Guardian for help with scans, tooling, or deployment strategy…'
+                    : 'Reconnect to ask Guardian new questions…';
+            }
+
+            if (assistantClearButton) {
+                assistantClearButton.disabled = assistantBusy || assistantHistory.length === 0;
+            }
+
+            if (assistantCard) {
+                assistantCard.classList.toggle('offline', !online);
+            }
+        }
+
+        function updateAssistantAvailability(options = {}) {
+            const online = isOnline();
+            const { notifyOffline = false } = options;
+
+            toggleAssistantOfflineNotice(online);
+
+            if (!assistantBadge || !assistantMeta) {
+                updateAssistantControls(online);
+                updateAssistantContextStatus();
+                return;
+            }
+
+            if (!online) {
+                setBadge(assistantBadge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                setUpdatedMeta('assistant-updated', {
+                    message: 'Offline – assistant paused',
+                    offline: true,
+                    fromCache: true
+                });
+                if (notifyOffline) {
+                    showToast('Guardian assistant is offline. Replies will resume when you reconnect.', 'warning');
+                }
+            } else if (assistantBusy) {
+                setBadge(assistantBadge, 'Thinking…', 'status-warning', { source: 'live' });
+                setUpdatedMeta('assistant-updated', { message: 'Generating guidance…' });
+            } else {
+                const lastAssistantEntry = assistantHistory.slice().reverse().find(entry => entry.role === 'assistant');
+                if (lastAssistantEntry) {
+                    const ts = parseDateLike(lastAssistantEntry.timestamp) || new Date();
+                    assistantLastResponseAt = ts;
+                    setUpdatedMeta('assistant-updated', { timestamp: ts, fromCache: false });
+                } else {
+                    setUpdatedMeta('assistant-updated', { message: 'Ask anything about your project' });
+                }
+                setBadge(assistantBadge, 'Ready', 'status-good', { source: 'live' });
+            }
+
+            updateAssistantControls(online);
+            updateAssistantContextStatus();
+            updateAssistantSuggestions();
+        }
+
+        function restoreAssistantHistory() {
+            if (!assistantLog) {
+                return;
+            }
+
+            assistantLog.innerHTML = '';
+            delete assistantLog.dataset.introShown;
+
+            assistantHistory = readAssistantHistory();
+            assistantLastResponseAt = null;
+
+            if (assistantHistory.length) {
+                assistantHistory.forEach(entry => {
+                    const meta = entry.provider ? `via ${titleCase(entry.provider)}` : null;
+                    appendAssistantMessage(entry.role, entry.content, {
+                        timestamp: entry.timestamp,
+                        meta
+                    });
+
+                    if (entry.role === 'assistant') {
+                        const ts = parseDateLike(entry.timestamp);
+                        if (ts && (!assistantLastResponseAt || ts > assistantLastResponseAt)) {
+                            assistantLastResponseAt = ts;
+                        }
+                    }
+                });
+            } else {
+                appendAssistantIntro();
+            }
+
+            updateAssistantAvailability();
+            handleAssistantInputResize();
+            updateAssistantSuggestions();
+        }
+
+        function computeAssistantContext() {
+            const context = {};
+            const projectInfo = {};
+
+            const statusRecord = latestData.status || readCache('status')?.data || null;
+            if (statusRecord) {
+                projectInfo.name = statusRecord.projectName || statusRecord.package?.name || 'Guardian Project';
+                if (statusRecord.package?.version) {
+                    projectInfo.version = statusRecord.package.version;
+                }
+                if (typeof statusRecord.git?.uncommitted === 'number') {
+                    projectInfo.uncommittedChanges = statusRecord.git.uncommitted;
+                }
+                if (statusRecord.git?.branch) {
+                    projectInfo.branch = statusRecord.git.branch;
+                }
+                if (statusRecord.experienceLevel) {
+                    projectInfo.experienceLevel = statusRecord.experienceLevel;
+                }
+                if (statusRecord.package) {
+                    projectInfo.dependencies = {
+                        runtime: statusRecord.package.dependencies ?? 0,
+                        dev: statusRecord.package.devDependencies ?? 0
+                    };
+                }
+            }
+
+            const scanRecord = latestData.scan || readCache('security')?.data || null;
+            if (scanRecord) {
+                const counts = getSeverityCounts(scanRecord.issues);
+                projectInfo.security = {
+                    issues: counts,
+                    warnings: Array.isArray(scanRecord.warnings) ? scanRecord.warnings.length : 0,
+                    lastScan: (() => {
+                        const ts = extractTimestamp(scanRecord);
+                        return ts ? ts.toISOString() : null;
+                    })()
+                };
+            }
+
+            const toolsRecord = latestData.tools || readCache('tools')?.data || null;
+            if (toolsRecord) {
+                projectInfo.tooling = {
+                    detected: Array.isArray(toolsRecord.detected)
+                        ? toolsRecord.detected.map(formatToolLabel).slice(0, 10)
+                        : [],
+                    missing: Array.isArray(toolsRecord.missing)
+                        ? toolsRecord.missing.map(formatToolLabel).slice(0, 10)
+                        : []
+                };
+            }
+
+            const gitRecord = latestData.git || readCache('git')?.data || null;
+            if (gitRecord) {
+                projectInfo.repository = {
+                    branch: gitRecord.branch || null,
+                    status: Array.isArray(gitRecord.status) ? gitRecord.status.slice(0, 6) : [],
+                    recentCommits: Array.isArray(gitRecord.commits) ? gitRecord.commits.slice(0, 3) : []
+                };
+            }
+
+            const deploymentsRecord = (latestData.deployments && latestData.deployments.length)
+                ? latestData.deployments
+                : (readCache('deployments')?.data || []);
+            if (Array.isArray(deploymentsRecord) && deploymentsRecord.length) {
+                projectInfo.deployments = deploymentsRecord.slice(0, 3).map(entry => ({
+                    platform: entry.platform || entry.provider || null,
+                    recent: Array.isArray(entry.deployments)
+                        ? entry.deployments.slice(0, 2).map(dep => {
+                            const ts = extractTimestamp(dep);
+                            return {
+                                name: dep.name || dep.project || dep.target || 'Deployment',
+                                state: dep.state || dep.readyState || null,
+                                createdAt: ts ? ts.toISOString() : null
+                            };
+                        })
+                        : []
+                }));
+            }
+
+            const githubRecord = latestData.github || readCache('github')?.data || null;
+            if (githubRecord && !githubRecord.error) {
+                projectInfo.github = {
+                    name: githubRecord.name || githubRecord.repo || null,
+                    owner: githubRecord.owner || githubRecord.organization || null,
+                    stars: githubRecord.stargazerCount,
+                    visibility: githubRecord.isPrivate === undefined ? null : (githubRecord.isPrivate ? 'private' : 'public')
+                };
+            }
+
+            if (Object.keys(projectInfo).length) {
+                context.projectInfo = projectInfo;
+            }
+
+            return context;
+        }
+
+        function renderAssistantContext(context = getAssistantContext()) {
+            if (!assistantContextContent) {
+                return;
+            }
+
+            assistantContextContent.innerHTML = '';
+
+            const info = context?.projectInfo;
+
+            const createSection = (title, nodes = []) => {
+                if (!nodes.length) {
+                    return null;
+                }
+
+                const section = document.createElement('section');
+                section.className = 'chat-context-section';
+                const heading = document.createElement('h4');
+                heading.textContent = title;
+                section.appendChild(heading);
+                nodes.forEach(node => section.appendChild(node));
+                return section;
+            };
+
+            const createPair = (label, value) => {
+                if (value === null || value === undefined || value === '') {
+                    return null;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'chat-context-pair';
+                const labelEl = document.createElement('span');
+                labelEl.textContent = label;
+                const valueEl = document.createElement('span');
+                valueEl.textContent = value;
+                row.append(labelEl, valueEl);
+                return row;
+            };
+
+            const createList = (items = []) => {
+                if (!items.length) {
+                    return null;
+                }
+
+                const list = document.createElement('ul');
+                list.className = 'chat-context-list';
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item;
+                    list.appendChild(li);
+                });
+                return list;
+            };
+
+            if (info && Object.keys(info).length) {
+                const overviewPairs = [];
+                overviewPairs.push(createPair('Project', info.name));
+                overviewPairs.push(createPair('Version', info.version));
+                overviewPairs.push(createPair('Branch', info.branch));
+                if (typeof info.uncommittedChanges === 'number') {
+                    overviewPairs.push(createPair('Uncommitted', `${info.uncommittedChanges}`));
+                }
+                if (info.dependencies && (info.dependencies.runtime !== undefined || info.dependencies.dev !== undefined)) {
+                    const runtime = info.dependencies.runtime ?? 0;
+                    const dev = info.dependencies.dev ?? 0;
+                    overviewPairs.push(createPair('Dependencies', `${runtime} runtime / ${dev} dev`));
+                }
+                overviewPairs.push(createPair('Experience', info.experienceLevel ? titleCase(info.experienceLevel) : null));
+                const overviewNodes = overviewPairs.filter(Boolean);
+                const overviewSection = createSection('Overview', overviewNodes);
+                if (overviewSection) {
+                    assistantContextContent.appendChild(overviewSection);
+                }
+
+                if (info.security) {
+                    const severityEntries = Object.entries(info.security.issues || {})
+                        .filter(([, count]) => typeof count === 'number' && count > 0)
+                        .map(([key, count]) => `${titleCase(key.toLowerCase())}: ${count}`);
+                    const list = createList(severityEntries);
+                    const securityPairs = [];
+                    if (typeof info.security.warnings === 'number' && info.security.warnings > 0) {
+                        securityPairs.push(createPair('Warnings', `${info.security.warnings}`));
+                    }
+                    if (info.security.lastScan) {
+                        const ts = parseDateLike(info.security.lastScan);
+                        const relative = ts ? formatRelativeTime(ts) : null;
+                        const display = relative || new Date(info.security.lastScan).toLocaleString();
+                        securityPairs.push(createPair('Last scan', display));
+                    }
+                    const nodes = [...securityPairs.filter(Boolean)];
+                    if (list) {
+                        nodes.push(list);
+                    }
+                    const securitySection = createSection('Security', nodes);
+                    if (securitySection) {
+                        assistantContextContent.appendChild(securitySection);
+                    }
+                }
+
+                if (info.tooling && (Array.isArray(info.tooling.detected) || Array.isArray(info.tooling.missing))) {
+                    const detected = (info.tooling.detected || []).slice(0, 8);
+                    const missing = (info.tooling.missing || []).slice(0, 8);
+                    const nodes = [];
+                    if (detected.length) {
+                        const list = createList(detected.map(item => `Detected: ${item}`));
+                        if (list) {
+                            nodes.push(list);
+                        }
+                    }
+                    if (missing.length) {
+                        const list = createList(missing.map(item => `Missing: ${item}`));
+                        if (list) {
+                            nodes.push(list);
+                        }
+                    }
+                    const toolingSection = createSection('Tooling', nodes);
+                    if (toolingSection) {
+                        assistantContextContent.appendChild(toolingSection);
+                    }
+                }
+
+                if (info.repository) {
+                    const repoNodes = [];
+                    repoNodes.push(createPair('Branch', info.repository.branch));
+                    if (Array.isArray(info.repository.status) && info.repository.status.length) {
+                        const list = createList(info.repository.status.slice(0, 6));
+                        if (list) {
+                            repoNodes.push(list);
+                        }
+                    }
+                    if (Array.isArray(info.repository.recentCommits) && info.repository.recentCommits.length) {
+                        const commits = info.repository.recentCommits.slice(0, 3).map(commit => {
+                            if (typeof commit === 'string') {
+                                return commit;
+                            }
+                            const hash = commit.hash ? commit.hash.substring(0, 7) : '';
+                            const message = commit.message || commit.description || 'Commit';
+                            return hash ? `${hash} — ${message}` : message;
+                        });
+                        const list = createList(commits);
+                        if (list) {
+                            repoNodes.push(list);
+                        }
+                    }
+                    const repoSection = createSection('Repository', repoNodes.filter(Boolean));
+                    if (repoSection) {
+                        assistantContextContent.appendChild(repoSection);
+                    }
+                }
+
+                if (Array.isArray(info.deployments) && info.deployments.length) {
+                    const items = info.deployments.slice(0, 3).map(entry => {
+                        const platform = entry.platform ? titleCase(entry.platform) : 'Deployment';
+                        const recent = Array.isArray(entry.recent) ? entry.recent[0] : null;
+                        if (!recent) {
+                            return platform;
+                        }
+                        const ts = recent.createdAt ? parseDateLike(recent.createdAt) : null;
+                        const relative = ts ? formatRelativeTime(ts) : null;
+                        const state = recent.state ? titleCase(recent.state) : null;
+                        const detailParts = [state, relative].filter(Boolean);
+                        return detailParts.length ? `${platform}: ${detailParts.join(' • ')}` : platform;
+                    });
+                    const deploymentsSection = createSection('Deployments', [createList(items.filter(Boolean))].filter(Boolean));
+                    if (deploymentsSection) {
+                        assistantContextContent.appendChild(deploymentsSection);
+                    }
+                }
+
+                if (info.github) {
+                    const githubNodes = [];
+                    const repoName = info.github.owner && info.github.name
+                        ? `${info.github.owner}/${info.github.name}`
+                        : info.github.name;
+                    githubNodes.push(createPair('Repository', repoName));
+                    if (info.github.visibility) {
+                        githubNodes.push(createPair('Visibility', titleCase(info.github.visibility)));
+                    }
+                    if (info.github.stars !== undefined && info.github.stars !== null) {
+                        githubNodes.push(createPair('Stars', `${info.github.stars}`));
+                    }
+                    const githubSection = createSection('GitHub', githubNodes.filter(Boolean));
+                    if (githubSection) {
+                        assistantContextContent.appendChild(githubSection);
+                    }
+                }
+            }
+
+            if (!assistantContextContent.childElementCount) {
+                const empty = document.createElement('div');
+                empty.className = 'chat-context-empty';
+                empty.textContent = 'Project context will appear once status, scans, or tooling data has loaded.';
+                assistantContextContent.appendChild(empty);
+            }
+
+            if (!isOnline()) {
+                const notice = document.createElement('div');
+                notice.className = 'chat-context-empty';
+                notice.textContent = 'Offline — showing cached project context when available.';
+                assistantContextContent.appendChild(notice);
+            }
+        }
+
+        function updateAssistantContextStatus() {
+            const context = getAssistantContext();
+            const info = context?.projectInfo;
+            const segments = new Set();
+
+            if (info) {
+                if (info.name || info.version || info.branch || typeof info.uncommittedChanges === 'number') {
+                    segments.add('Status');
+                }
+                if (info.security) {
+                    segments.add('Security');
+                }
+                if (info.tooling && ((info.tooling.detected && info.tooling.detected.length) || (info.tooling.missing && info.tooling.missing.length))) {
+                    segments.add('Tooling');
+                }
+                if (info.repository && (
+                    (info.repository.branch) ||
+                    (Array.isArray(info.repository.status) && info.repository.status.length) ||
+                    (Array.isArray(info.repository.recentCommits) && info.repository.recentCommits.length)
+                )) {
+                    segments.add('Git');
+                }
+                if (Array.isArray(info.deployments) && info.deployments.length) {
+                    segments.add('Deployments');
+                }
+                if (info.github && (info.github.name || info.github.owner)) {
+                    segments.add('GitHub');
+                }
+            }
+
+            const hasContext = segments.size > 0;
+
+            if (assistantContextStatus) {
+                let summary = hasContext
+                    ? `Context: ${Array.from(segments).join(' • ')}`
+                    : 'Context: awaiting data';
+                if (hasContext && !isOnline()) {
+                    summary += ' (cached)';
+                }
+                assistantContextStatus.textContent = summary;
+                assistantContextStatus.classList.toggle('is-empty', !hasContext);
+            }
+
+            if (assistantContextButton) {
+                assistantContextButton.dataset.hasContext = hasContext ? 'true' : 'false';
+                const baseLabel = hasContext ? 'View context' : 'Context pending';
+                assistantContextButton.textContent = assistantContextVisible ? 'Hide context' : baseLabel;
+                assistantContextButton.setAttribute('aria-expanded', assistantContextVisible ? 'true' : 'false');
+                assistantContextButton.classList.toggle('is-empty', !hasContext);
+                assistantContextButton.disabled = false;
+            }
+
+            if (assistantContextPanel && !assistantContextPanel.hidden) {
+                renderAssistantContext(context);
+            }
+
+            updateAssistantSuggestions();
+        }
+
+        function toggleAssistantContextPanel(force) {
+            if (!assistantContextPanel || !assistantContextButton) {
+                return;
+            }
+
+            const shouldShow = typeof force === 'boolean' ? force : assistantContextPanel.hidden;
+            assistantContextPanel.hidden = !shouldShow;
+            assistantContextVisible = shouldShow && !assistantContextPanel.hidden;
+
+            if (!assistantContextPanel.hidden) {
+                renderAssistantContext(getAssistantContext());
+                assistantContextPanel.scrollTop = 0;
+            }
+
+            assistantContextVisible = !assistantContextPanel.hidden;
+            assistantContextButton.setAttribute('aria-expanded', assistantContextVisible ? 'true' : 'false');
+            updateAssistantContextStatus();
+        }
+
+        function clearAssistantConversation() {
+            assistantHistory = [];
+            assistantLastResponseAt = null;
+            persistAssistantHistory();
+
+            if (assistantLog) {
+                assistantLog.innerHTML = '';
+                delete assistantLog.dataset.introShown;
+            }
+
+            appendAssistantIntro();
+            showToast('Assistant history cleared.', 'info');
+            updateAssistantAvailability();
+            handleAssistantInputResize();
+            updateAssistantSuggestions();
+        }
+
+        function handleAssistantInputResize() {
+            if (!assistantInput) {
+                return;
+            }
+
+            assistantInput.style.height = 'auto';
+            const computed = window.getComputedStyle(assistantInput);
+            const maxHeight = parseFloat(computed.maxHeight) || 200;
+            const newHeight = Math.min(maxHeight, assistantInput.scrollHeight + 2);
+            assistantInput.style.height = `${newHeight}px`;
+        }
+
+        async function handleAssistantSubmit(event) {
+            event.preventDefault();
+
+            if (!assistantInput || assistantBusy) {
+                return;
+            }
+
+            const question = assistantInput.value.trim();
+            if (!question) {
+                return;
+            }
+
+            if (!isOnline()) {
+                showToast('You are offline. Reconnect to ask Guardian for help.', 'warning');
+                updateAssistantAvailability();
+                return;
+            }
+
+            assistantBusy = true;
+            updateAssistantAvailability();
+
+            if (assistantLog) {
+                assistantLog.querySelectorAll('.chat-message.intro').forEach(node => node.remove());
+            }
+
+            toggleAssistantOfflineNotice(true);
+
+            const timestamp = Date.now();
+            appendAssistantMessage('user', question, { timestamp });
+            assistantHistory.push({ role: 'user', content: question, timestamp });
+            persistAssistantHistory();
+
+            assistantInput.value = '';
+            handleAssistantInputResize();
+
+            const pending = appendAssistantMessage('assistant', 'Guardian is thinking…', { pending: true });
+
+            try {
+                const payload = { message: question };
+                const context = getAssistantContext({ force: true });
+                if (context && Object.keys(context).length) {
+                    payload.context = context;
+                }
+
+                const result = await fetchJSON('chat', '/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    timeout: 60_000
+                });
+
+                const reply = result?.response || result?.message;
+                if (!reply) {
+                    throw new Error('Assistant returned an empty response.');
+                }
+
+                if (pending && pending.parentElement === assistantLog) {
+                    pending.remove();
+                }
+
+                const providerName = result?.provider ? titleCase(result.provider) : null;
+                const responseTimestamp = Date.now();
+
+                appendAssistantMessage('assistant', reply, {
+                    timestamp: responseTimestamp,
+                    meta: providerName ? `via ${providerName}` : null
+                });
+
+                assistantHistory.push({
+                    role: 'assistant',
+                    content: reply,
+                    timestamp: responseTimestamp,
+                    provider: result?.provider || null
+                });
+                persistAssistantHistory();
+
+                assistantLastResponseAt = new Date(responseTimestamp);
+                setUpdatedMeta('assistant-updated', { timestamp: assistantLastResponseAt });
+                showToast('Guardian assistant replied.', 'success');
+            } catch (error) {
+                if (pending && pending.parentElement === assistantLog) {
+                    pending.remove();
+                }
+
+                appendAssistantMessage('assistant', `Unable to respond: ${error.message}`, { tone: 'error' });
+                const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                showToast(`Assistant error: ${error.message}`, variant);
+            } finally {
+                assistantBusy = false;
+                updateAssistantAvailability();
+            }
+        }
+
+        function populateStatus(data, { fromCache = false, timestamp, expired = false, offline = false } = {}) {
+            const content = document.getElementById('status-content');
+            const badge = document.getElementById('status-badge');
+            if (!content) {
+                return;
+            }
+
+            latestData.status = data || null;
+            markAssistantContextDirty();
+            updateAssistantContextStatus();
+
+            clearLoadingState(content);
+            removeOfflineNotice(content);
+            content.innerHTML = '';
+
+            const projectNameLabel = document.getElementById('project-name');
+
+            if (!data) {
+                if (projectNameLabel && !projectNameLabel.textContent) {
+                    projectNameLabel.textContent = 'Guardian Project';
+                }
+
+                const message = document.createElement('p');
+                message.className = 'muted-text';
+                message.textContent = offline
+                    ? 'Offline — reconnect to refresh project status.'
+                    : fromCache
+                        ? 'Cached project status unavailable.'
+                        : 'No project status available yet.';
+                content.appendChild(message);
+
+                setBadge(badge, offline ? 'Offline' : 'Pending', 'status-warning', {
+                    source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                    state: offline ? 'offline' : expired ? 'stale' : ''
+                });
+
+                setUpdatedMeta('status-updated', {
+                    message: offline
+                        ? 'Offline – awaiting status data'
+                        : 'Awaiting project status',
+                    fromCache,
+                    offline,
+                    expired
+                });
+
+                content.dataset.loaded = 'true';
+                if (badge) {
+                    badge.dataset.loaded = 'true';
+                }
+                return;
+            }
+
+            if (projectNameLabel) {
+                projectNameLabel.textContent = data.projectName || data.package?.name || 'Guardian Project';
+            }
+
+            const uncommitted = data.git?.uncommitted ?? 0;
+            const dependencies = data.package
+                ? (data.package.dependencies ?? 0) + (data.package.devDependencies ?? 0)
+                : null;
+            const experience = data.experienceLevel ? titleCase(data.experienceLevel) : 'Unknown';
+            const badgeVariant = uncommitted > 0 ? 'status-warning' : 'status-good';
+            const badgeText = uncommitted > 0 ? `${uncommitted} pending` : 'Healthy';
+
+            renderMetrics(content, [
+                { label: 'Experience Level', value: experience },
+                data.package ? { label: 'Package Version', value: data.package.version || '—' } : null,
+                { label: 'Dependencies', value: dependencies !== null ? dependencies : 'N/A' },
+                { label: 'Branch', value: data.git?.branch || 'Unknown' },
+                { label: 'Uncommitted Changes', value: uncommitted }
+            ]);
+
+            const derivedTimestamp = extractTimestamp(data, timestamp);
+            if (derivedTimestamp) {
+                const detail = document.createElement('p');
+                detail.className = 'muted-text';
+                detail.textContent = `Synced ${derivedTimestamp.toLocaleString()}`;
+                content.appendChild(detail);
+            }
+
+            if (fromCache || offline || expired) {
+                const note = document.createElement('p');
+                note.className = 'muted-text';
+                note.textContent = offline
+                    ? 'Offline — displaying last known project status.'
+                    : expired
+                        ? 'Cached project status may be stale.'
+                        : 'Showing cached project status.';
+                content.appendChild(note);
+            }
+
+            setBadge(badge, badgeText, badgeVariant, {
+                source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                state: offline ? 'offline' : expired ? 'stale' : ''
+            });
+
+            setUpdatedMeta('status-updated', {
+                timestamp: derivedTimestamp || timestamp || Date.now(),
+                fromCache,
+                expired,
+                offline
+            });
+
+            content.dataset.loaded = 'true';
+            if (badge) {
+                badge.dataset.loaded = 'true';
+            }
+        }
+
+        function populateSecurity(data, { fromCache = false, timestamp, expired = false, offline = false } = {}) {
+            const content = document.getElementById('security-content');
+            const badge = document.getElementById('security-badge');
+            if (!content) {
+                return;
+            }
+
+            clearLoadingState(content);
+            removeOfflineNotice(content);
+            content.innerHTML = '';
+
+            latestData.scan = data || null;
+            markAssistantContextDirty();
+            updateAssistantContextStatus();
+
+            if (!data) {
+                const message = document.createElement('p');
+                message.className = 'muted-text';
+                message.textContent = offline
+                    ? 'Offline — no cached security scan available.'
+                    : 'Security scan has not run yet.';
+                content.appendChild(message);
+
+                setBadge(badge, offline ? 'Offline' : 'Pending', 'status-warning', {
+                    source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                    state: offline ? 'offline' : expired ? 'stale' : ''
+                });
+
+                setUpdatedMeta('security-updated', {
+                    message: offline
+                        ? 'Offline – scan unavailable'
+                        : 'Scan not run yet',
+                    fromCache,
+                    offline,
+                    expired
+                });
+
+                content.dataset.loaded = 'true';
+                if (badge) {
+                    badge.dataset.loaded = 'true';
+                }
+
+                renderIssuesList();
+                return;
+            }
+
+            const counts = getSeverityCounts(data.issues);
+            const warningCount = Array.isArray(data.warnings) ? data.warnings.length : 0;
+            const badgeInfo = getSecurityBadge(counts, warningCount);
+
+            renderMetrics(content, [
+                { label: '🔴 Critical', value: counts.CRITICAL },
+                { label: '🟠 High', value: counts.HIGH },
+                { label: '🟡 Medium', value: counts.MEDIUM },
+                { label: '⚪ Warnings', value: warningCount }
+            ]);
+
+            const secureScore = computeSecureScore(counts, warningCount);
+            content.appendChild(createProgressBar(secureScore));
+
+            if (fromCache || offline || expired) {
+                const note = document.createElement('p');
+                note.className = 'muted-text';
+                note.textContent = offline
+                    ? 'Offline — displaying last security scan.'
+                    : expired
+                        ? 'Cached scan results may be stale.'
+                        : 'Showing cached scan results.';
+                content.appendChild(note);
+            }
+
+            setBadge(badge, badgeInfo.text, badgeInfo.variant, {
+                source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                state: offline ? 'offline' : expired ? 'stale' : ''
+            });
+
+            const derivedTimestamp = extractTimestamp(data, timestamp);
+            setUpdatedMeta('security-updated', {
+                timestamp: derivedTimestamp || timestamp || Date.now(),
+                fromCache,
+                expired,
+                offline
+            });
+
+            content.dataset.loaded = 'true';
+            if (badge) {
+                badge.dataset.loaded = 'true';
+            }
+
+            renderIssuesList();
+        }
+
+        function populateTools(data, { fromCache = false, timestamp, expired = false, offline = false } = {}) {
+            const content = document.getElementById('tools-content');
+            const badge = document.getElementById('tools-badge');
+            if (!content) {
+                return;
+            }
+
+            latestData.tools = data || null;
+            markAssistantContextDirty();
+            updateAssistantContextStatus();
+
+            clearLoadingState(content);
+            removeOfflineNotice(content);
+            content.innerHTML = '';
+
+            if (!data) {
+                const message = document.createElement('p');
+                message.className = 'muted-text';
+                message.textContent = offline
+                    ? 'Offline — no cached tooling insights available.'
+                    : 'Tool detection has not run yet.';
+                content.appendChild(message);
+
+                setBadge(badge, offline ? 'Offline' : 'Pending', 'status-warning', {
+                    source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                    state: offline ? 'offline' : expired ? 'stale' : ''
+                });
+
+                setUpdatedMeta('tools-updated', {
+                    message: offline
+                        ? 'Offline – awaiting tool signals'
+                        : 'Awaiting tool signals',
+                    fromCache,
+                    offline,
+                    expired
+                });
+
+                content.dataset.loaded = 'true';
+                if (badge) {
+                    badge.dataset.loaded = 'true';
+                }
+                return;
+            }
+
+            const detected = Array.isArray(data.detected) ? data.detected : [];
+            const missing = Array.isArray(data.missing) ? data.missing : [];
+            const recommendations = Array.isArray(data.recommendations) ? data.recommendations : [];
+
+            const badgeVariant = missing.length ? 'status-warning' : 'status-good';
+            const badgeText = missing.length
+                ? `${detected.length} detected • ${missing.length} missing`
+                : `${detected.length} detected`;
+
+            if (!detected.length && !missing.length && !recommendations.length) {
+                const empty = document.createElement('p');
+                empty.className = 'muted-text';
+                empty.textContent = offline
+                    ? 'Offline — tooling insights will resume when reconnected.'
+                    : fromCache
+                        ? 'No cached tooling insights available.'
+                        : 'No tooling signals detected yet.';
+                content.appendChild(empty);
+            } else {
+                if (detected.length) {
+                    const title = document.createElement('div');
+                    title.className = 'metric-section-title';
+                    title.textContent = 'Detected';
+                    content.appendChild(title);
+
+                    renderMetrics(content, detected.map(tool => ({
+                        label: formatToolLabel(tool),
+                        value: tool.cliRequired?.command || tool.command || tool.version || tool.package || 'Available'
+                    })));
+                }
+
+                if (missing.length) {
+                    const title = document.createElement('div');
+                    title.className = 'metric-section-title';
+                    title.textContent = 'Missing';
+                    content.appendChild(title);
+
+                    missing.forEach(tool => {
+                        const row = document.createElement('div');
+                        row.className = 'metric metric-actionable';
+
+                        const label = document.createElement('span');
+                        label.className = 'metric-label';
+                        label.textContent = formatToolLabel(tool);
+
+                        const installCommand = resolveInstallCommand(tool);
+                        const docsLink = resolveDocsLink(tool);
+                        let action;
+
+                        if (installCommand) {
+                            action = document.createElement('button');
+                            action.type = 'button';
+                            action.className = 'holo-button compact';
+                            action.textContent = 'Install';
+                            action.dataset.command = installCommand;
+                            action.dataset.tool = formatToolLabel(tool);
+                            action.addEventListener('click', handleInstallTool);
+                        } else if (docsLink) {
+                            action = document.createElement('a');
+                            action.className = 'holo-button compact';
+                            action.textContent = 'Docs';
+                            action.href = docsLink;
+                            action.target = '_blank';
+                            action.rel = 'noopener noreferrer';
+                        } else {
+                            action = document.createElement('button');
+                            action.type = 'button';
+                            action.className = 'holo-button compact';
+                            action.textContent = 'Manual';
+                            action.disabled = true;
+                            action.title = 'Review details below to install manually.';
+                        }
+
+                        row.append(label, action);
+                        content.appendChild(row);
+
+                        const detailParts = [];
+                        if (tool.reason) detailParts.push(tool.reason);
+                        if (!installCommand && tool.install && !tool.installCommand) {
+                            detailParts.push(`Install hint: ${tool.install}`);
+                        } else if (installCommand) {
+                            detailParts.push(`Command: ${installCommand}`);
+                        }
+
+                        if (detailParts.length) {
+                            const detailEl = document.createElement('div');
+                            detailEl.className = 'metric-details';
+                            detailEl.textContent = detailParts.join(' • ');
+                            content.appendChild(detailEl);
+                        }
+
+                        if (docsLink && installCommand) {
+                            const docsAnchor = document.createElement('a');
+                            docsAnchor.className = 'metric-link';
+                            docsAnchor.href = docsLink;
+                            docsAnchor.target = '_blank';
+                            docsAnchor.rel = 'noopener noreferrer';
+                            docsAnchor.textContent = 'View documentation';
+                            content.appendChild(docsAnchor);
+                        }
+                    });
+                }
+
+                if (recommendations.length) {
+                    const title = document.createElement('div');
+                    title.className = 'metric-section-title';
+                    title.textContent = 'Recommendations';
+                    content.appendChild(title);
+
+                    recommendations.forEach(rec => {
+                        const row = document.createElement('div');
+                        row.className = 'metric';
+
+                        const label = document.createElement('span');
+                        label.className = 'metric-label';
+                        label.textContent = rec.reason || titleCase(rec.category);
+
+                        const value = document.createElement('span');
+                        value.className = 'metric-value';
+                        value.textContent = rec.suggestion || 'Review';
+
+                        row.append(label, value);
+                        content.appendChild(row);
+
+                        if (Array.isArray(rec.options) && rec.options.length) {
+                            const detailEl = document.createElement('div');
+                            detailEl.className = 'metric-details';
+                            detailEl.textContent = rec.options.map(option => option.name).join(' • ');
+                            content.appendChild(detailEl);
+                        }
+                    });
+                }
+            }
+
+            if (fromCache || offline || expired) {
+                const note = document.createElement('p');
+                note.className = 'muted-text';
+                note.textContent = offline
+                    ? 'Offline — showing cached tool inventory.'
+                    : expired
+                        ? 'Cached tooling snapshot may be stale.'
+                        : 'Showing cached tooling snapshot.';
+                content.appendChild(note);
+            }
+
+            setBadge(badge, badgeText, badgeVariant, {
+                source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                state: offline ? 'offline' : expired ? 'stale' : ''
+            });
+
+            setUpdatedMeta('tools-updated', {
+                timestamp: extractTimestamp(data, timestamp) || timestamp || Date.now(),
+                fromCache,
+                expired,
+                offline
+            });
+
+            content.dataset.loaded = 'true';
+            if (badge) {
+                badge.dataset.loaded = 'true';
+            }
+        }
+
+        function populateDeployments(data, { fromCache = false, timestamp, expired = false, offline = false } = {}) {
+            const content = document.getElementById('deployments-content');
+            const badge = document.getElementById('deployments-badge');
+            if (!content) {
+                return;
+            }
+
+            clearLoadingState(content);
+            removeOfflineNotice(content);
+            content.innerHTML = '';
+
+            const entries = Array.isArray(data) ? data : [];
+            latestData.deployments = entries;
+            markAssistantContextDirty();
+            updateAssistantContextStatus();
+
+            let derivedTimestamp = null;
+            entries.forEach(entry => {
+                const candidate = extractTimestamp(entry);
+                if (candidate && (!derivedTimestamp || candidate > derivedTimestamp)) {
+                    derivedTimestamp = candidate;
+                }
+            });
+
+            if (!entries.length) {
+                const message = document.createElement('p');
+                message.className = 'muted-text';
+                message.textContent = offline
+                    ? 'Offline — deployment history will resume when reconnected.'
+                    : fromCache
+                        ? 'No cached deployment providers detected.'
+                        : 'No deployment providers detected yet.';
+                content.appendChild(message);
+
+                setBadge(badge, 'No data', 'status-warning', {
+                    source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                    state: offline ? 'offline' : expired ? 'stale' : ''
+                });
+            } else {
+                const providers = entries.length;
+                setBadge(badge, `${providers} provider${providers === 1 ? '' : 's'}`, 'status-good', {
+                    source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                    state: offline ? 'offline' : expired ? 'stale' : ''
+                });
+
+                entries.forEach(entry => renderDeploymentSection(content, entry));
+
+                if (fromCache || offline || expired) {
+                    const note = document.createElement('p');
+                    note.className = 'muted-text';
+                    note.textContent = offline
+                        ? 'Offline — showing cached deployment history.'
+                        : expired
+                            ? 'Cached deployment history may be stale.'
+                            : 'Showing cached deployment history.';
+                    content.appendChild(note);
+                }
+            }
+
+            setUpdatedMeta('deployments-updated', {
+                timestamp: derivedTimestamp || timestamp || Date.now(),
+                fromCache,
+                expired,
+                offline
+            });
+
+            content.dataset.loaded = 'true';
+            if (badge) {
+                badge.dataset.loaded = 'true';
+            }
+        }
+
+        function populateGitHub(data, { fromCache = false, timestamp, expired = false, offline = false } = {}) {
+            const content = document.getElementById('github-content');
+            const badge = document.getElementById('github-badge');
+            if (!content) {
+                return;
+            }
+
+            clearLoadingState(content);
+            removeOfflineNotice(content);
+            content.innerHTML = '';
+
+            latestData.github = data || null;
+            markAssistantContextDirty();
+            updateAssistantContextStatus();
+
+            if (!data || data.error) {
+                const note = document.createElement('p');
+                note.className = 'muted-text';
+                note.textContent = data?.error
+                    ? data.error
+                    : offline
+                        ? 'Offline — repository insights unavailable.'
+                        : fromCache
+                            ? 'Cached repository insights unavailable.'
+                            : 'Repository information unavailable.';
+                content.appendChild(note);
+
+                setBadge(badge, data?.error ? 'Unavailable' : offline ? 'Offline' : 'Pending', 'status-warning', {
+                    source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                    state: offline ? 'offline' : expired ? 'stale' : ''
+                });
+
+                setUpdatedMeta('github-updated', {
+                    message: offline
+                        ? 'Offline – repository insights unavailable'
+                        : 'Awaiting repository insights',
+                    fromCache,
+                    offline,
+                    expired
+                });
+
+                content.dataset.loaded = 'true';
+                if (badge) {
+                    badge.dataset.loaded = 'true';
+                }
+                return;
+            }
+
+            const repoName = data.name || data.repo || 'Repository';
+            const owner = data.owner || data.organization || '';
+            const fullName = owner ? `${owner}/${repoName}` : repoName;
+
+            const header = document.createElement('div');
+            header.className = 'metric-section-title';
+            header.textContent = 'Overview';
+            content.appendChild(header);
+
+            const nameRow = document.createElement('div');
+            nameRow.className = 'metric';
+            const nameLabel = document.createElement('span');
+            nameLabel.className = 'metric-label';
+            nameLabel.textContent = 'Repository';
+            const nameValue = document.createElement('span');
+            nameValue.className = 'metric-value';
+            nameValue.textContent = fullName;
+            nameRow.append(nameLabel, nameValue);
+            content.appendChild(nameRow);
+
+            if (data.description) {
+                const description = document.createElement('div');
+                description.className = 'metric-details';
+                description.textContent = data.description;
+                content.appendChild(description);
+            }
+
+            const metrics = [
+                data.stargazerCount !== undefined ? { label: 'Stars', value: data.stargazerCount } : null,
+                data.isPrivate !== undefined ? { label: 'Visibility', value: data.isPrivate ? 'Private' : 'Public' } : null
+            ].filter(Boolean);
+
+            if (metrics.length) {
+                renderMetrics(content, metrics);
+            }
+
+            if (data.url) {
+                const link = document.createElement('a');
+                link.href = data.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.className = 'metric-link';
+                link.textContent = 'Open on GitHub';
+                content.appendChild(link);
+            }
+
+            if (fromCache || offline || expired) {
+                const note = document.createElement('p');
+                note.className = 'muted-text';
+                note.textContent = offline
+                    ? 'Offline — showing cached repository insights.'
+                    : expired
+                        ? 'Cached repository insights may be stale.'
+                        : 'Showing cached repository insights.';
+                content.appendChild(note);
+            }
+
+            const badgeVariant = data.isPrivate ? 'status-warning' : 'status-good';
+            const badgeText = data.stargazerCount !== undefined
+                ? `${data.stargazerCount} ⭐`
+                : data.isPrivate ? 'Private' : 'Linked';
+
+            setBadge(badge, badgeText, badgeVariant, {
+                source: offline ? 'offline' : fromCache ? 'cache' : 'live',
+                state: offline ? 'offline' : expired ? 'stale' : ''
+            });
+
+            setUpdatedMeta('github-updated', {
+                timestamp: extractTimestamp(data, timestamp) || timestamp || Date.now(),
+                fromCache,
+                expired,
+                offline
+            });
+
+            content.dataset.loaded = 'true';
+            if (badge) {
+                badge.dataset.loaded = 'true';
+            }
+        }
+
+        async function loadStatus() {
+            const content = document.getElementById('status-content');
+            const badge = document.getElementById('status-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const cached = readCache('status');
+
+            if (!isOnline()) {
+                latestData.status = cached?.data || null;
+                markAssistantContextDirty();
+                updateAssistantContextStatus();
+                if (cached?.data) {
+                    populateStatus(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired,
+                        offline: true
+                    });
+                } else {
+                    clearLoadingState(content);
+                    content.innerHTML = '';
+                    showOfflineNotice(content, 'Reconnect to update project status.');
+                    setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                    setUpdatedMeta('status-updated', {
+                        message: 'Offline – no cached status data',
+                        fromCache: true,
+                        offline: true
+                    });
+                    latestData.status = null;
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                }
+                return;
+            }
+
+            removeOfflineNotice(content);
+            const isFirstLoad = !content.dataset.loaded && !cached?.data;
+            setLoadingState(content, isFirstLoad ? 'Analyzing project...' : 'Refreshing status...');
+            setBadge(badge, isFirstLoad ? 'Loading...' : 'Refreshing...', 'status-warning', { source: 'live' });
+
+            try {
+                const data = await fetchJSON('status', '/api/status', { cache: 'no-store' });
+                saveCache('status', data);
+                const derivedTimestamp = extractTimestamp(data) || Date.now();
+                populateStatus(data, { timestamp: derivedTimestamp });
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                if (!isOnline()) {
+                    if (cached?.data) {
+                        populateStatus(cached.data, {
+                            fromCache: true,
+                            timestamp: cached.timestamp,
+                            expired: cached.expired,
+                            offline: true
+                        });
+                    } else {
+                        clearLoadingState(content);
+                        content.innerHTML = '';
+                        showOfflineNotice(content, 'Reconnect to update project status.');
+                        setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                        setUpdatedMeta('status-updated', {
+                            message: 'Offline – no cached status data',
+                            fromCache: true,
+                            offline: true
+                        });
+                    }
+                    return;
+                }
+
+                console.error('Failed to load status', error);
+                if (cached?.data) {
+                    populateStatus(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Project status request timed out. Showing cached data.'
+                        : `Unable to load project status. Showing cached data. (${error.message})`;
+                    showToast(message, variant);
+                } else {
+                    clearLoadingState(content);
+                    setBadge(badge, 'Error', 'status-error', { source: 'error' });
+                    content.innerHTML = `<p class="error-text">Unable to load project status.<br><small>${error.message}</small></p>`;
+                    setUpdatedMeta('status-updated', {
+                        message: 'Last project status update failed',
+                        fromCache: false
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Project status request timed out. Retrying shortly.'
+                        : `Unable to load project status: ${error.message}`;
+                    showToast(message, variant);
+                }
+            }
+        }
+
+        async function loadSecurity() {
+            const content = document.getElementById('security-content');
+            const badge = document.getElementById('security-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const cached = readCache('security');
+
+            if (!isOnline()) {
+                if (cached?.data) {
+                    populateSecurity(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired,
+                        offline: true
+                    });
+                } else {
+                    clearLoadingState(content);
+                    content.innerHTML = '';
+                    showOfflineNotice(content, 'Reconnect to run security scans.');
+                    setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                    setUpdatedMeta('security-updated', {
+                        message: 'Offline – scan unavailable',
+                        fromCache: true,
+                        offline: true
+                    });
+                    latestData.scan = null;
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                    renderIssuesList();
+                }
+                return;
+            }
+
+            removeOfflineNotice(content);
+            const isFirstLoad = !content.dataset.loaded && !cached?.data;
+            setLoadingState(content, isFirstLoad ? 'Scanning for threats...' : 'Refreshing scan results...');
+            setBadge(badge, isFirstLoad ? 'Scanning...' : 'Refreshing...', 'status-warning', { source: 'live' });
+
+            try {
+                const data = await fetchJSON('security', '/api/scan', {
+                    method: 'POST',
+                    timeout: 60_000,
+                    cache: 'no-store'
+                });
+                saveCache('security', data);
+                const derivedTimestamp = extractTimestamp(data) || Date.now();
+                populateSecurity(data, { timestamp: derivedTimestamp });
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                if (!isOnline()) {
+                    if (cached?.data) {
+                        populateSecurity(cached.data, {
+                            fromCache: true,
+                            timestamp: cached.timestamp,
+                            expired: cached.expired,
+                            offline: true
+                        });
+                    } else {
+                        clearLoadingState(content);
+                        content.innerHTML = '';
+                        showOfflineNotice(content, 'Reconnect to run security scans.');
+                        setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                        setUpdatedMeta('security-updated', {
+                            message: 'Offline – scan unavailable',
+                            fromCache: true,
+                            offline: true
+                        });
+                        latestData.scan = null;
+                        markAssistantContextDirty();
+                        updateAssistantContextStatus();
+                        renderIssuesList();
+                    }
+                    return;
+                }
+
+                console.error('Failed to load security scan', error);
+                if (cached?.data) {
+                    populateSecurity(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Security scan timed out. Showing cached results.'
+                        : `Security scan failed. Showing cached results. (${error.message})`;
+                    showToast(message, variant);
+                } else {
+                    clearLoadingState(content);
+                    setBadge(badge, 'Error', 'status-error', { source: 'error' });
+                    content.innerHTML = `<p class="error-text">Security scan failed.<br><small>${error.message}</small></p>`;
+                    setUpdatedMeta('security-updated', {
+                        message: 'Security scan failed',
+                        fromCache: false
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Security scan timed out. Please try again.'
+                        : `Security scan failed: ${error.message}`;
+                    showToast(message, variant);
+                }
+            }
+        }
+
+        async function loadTools() {
+            const content = document.getElementById('tools-content');
+            const badge = document.getElementById('tools-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const cached = readCache('tools');
+
+            if (!isOnline()) {
+                latestData.tools = cached?.data || null;
+                markAssistantContextDirty();
+                updateAssistantContextStatus();
+                if (cached?.data) {
+                    populateTools(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired,
+                        offline: true
+                    });
+                } else {
+                    clearLoadingState(content);
+                    content.innerHTML = '';
+                    showOfflineNotice(content, 'Reconnect to detect tooling and recommendations.');
+                    setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                    setUpdatedMeta('tools-updated', {
+                        message: 'Offline – no cached tooling data',
+                        fromCache: true,
+                        offline: true
+                    });
+                    latestData.tools = null;
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                }
+                return;
+            }
+
+            removeOfflineNotice(content);
+            const isFirstLoad = !content.dataset.loaded && !cached?.data;
+            setLoadingState(content, isFirstLoad ? 'Detecting tools...' : 'Refreshing tooling insights...');
+            setBadge(badge, isFirstLoad ? 'Detecting...' : 'Refreshing...', 'status-warning', { source: 'live' });
+
+            try {
+                const data = await fetchJSON('tools', '/api/tools', { cache: 'no-store' });
+                saveCache('tools', data);
+                const derivedTimestamp = extractTimestamp(data) || Date.now();
+                populateTools(data, { timestamp: derivedTimestamp });
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                if (!isOnline()) {
+                    if (cached?.data) {
+                        populateTools(cached.data, {
+                            fromCache: true,
+                            timestamp: cached.timestamp,
+                            expired: cached.expired,
+                            offline: true
+                        });
+                    } else {
+                        clearLoadingState(content);
+                        content.innerHTML = '';
+                        showOfflineNotice(content, 'Reconnect to detect tooling and recommendations.');
+                        setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                        setUpdatedMeta('tools-updated', {
+                            message: 'Offline – no cached tooling data',
+                            fromCache: true,
+                            offline: true
+                        });
+                    }
+                    return;
+                }
+
+                console.error('Failed to load tools', error);
+                if (cached?.data) {
+                    populateTools(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Tool detection request timed out. Showing cached insights.'
+                        : `Tool detection failed. Showing cached insights. (${error.message})`;
+                    showToast(message, variant);
+                } else {
+                    clearLoadingState(content);
+                    setBadge(badge, 'Error', 'status-error', { source: 'error' });
+                    content.innerHTML = `<p class="error-text">Tool detection failed.<br><small>${error.message}</small></p>`;
+                    setUpdatedMeta('tools-updated', {
+                        message: 'Tool detection failed',
+                        fromCache: false
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Tool detection request timed out. Retrying shortly.'
+                        : `Tool detection failed: ${error.message}`;
+                    showToast(message, variant);
+                }
+            }
+        }
+
+        async function loadDeployments() {
+            const content = document.getElementById('deployments-content');
+            const badge = document.getElementById('deployments-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const cached = readCache('deployments');
+
+            if (!isOnline()) {
+                if (cached?.data) {
+                    populateDeployments(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired,
+                        offline: true
+                    });
+                } else {
+                    clearLoadingState(content);
+                    content.innerHTML = '';
+                    showOfflineNotice(content, 'Reconnect to fetch deployment history.');
+                    setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                    setUpdatedMeta('deployments-updated', {
+                        message: 'Offline – no cached deployment history',
+                        fromCache: true,
+                        offline: true
+                    });
+                    latestData.deployments = [];
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                }
+                return;
+            }
+
+            removeOfflineNotice(content);
+            const isFirstLoad = !content.dataset.loaded && !cached?.data;
+            setLoadingState(content, isFirstLoad ? 'Discovering deployment targets...' : 'Refreshing deployment history...');
+            setBadge(badge, isFirstLoad ? 'Loading...' : 'Refreshing...', 'status-warning', { source: 'live' });
+
+            try {
+                const data = await fetchJSON('deployments', '/api/deployments', { cache: 'no-store', timeout: 45_000 });
+                saveCache('deployments', data);
+                populateDeployments(data, { timestamp: Date.now() });
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                if (!isOnline()) {
+                    if (cached?.data) {
+                        populateDeployments(cached.data, {
+                            fromCache: true,
+                            timestamp: cached.timestamp,
+                            expired: cached.expired,
+                            offline: true
+                        });
+                    } else {
+                        clearLoadingState(content);
+                        content.innerHTML = '';
+                        showOfflineNotice(content, 'Reconnect to fetch deployment history.');
+                        setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                        setUpdatedMeta('deployments-updated', {
+                            message: 'Offline – no cached deployment history',
+                            fromCache: true,
+                            offline: true
+                        });
+                    }
+                    return;
+                }
+
+                console.error('Failed to load deployments', error);
+                if (cached?.data) {
+                    populateDeployments(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Deployment providers request timed out. Showing cached history.'
+                        : `Unable to load deployments. Showing cached history. (${error.message})`;
+                    showToast(message, variant);
+                } else {
+                    clearLoadingState(content);
+                    setBadge(badge, 'Error', 'status-error', { source: 'error' });
+                    content.innerHTML = `<p class="error-text">Unable to load deployments.<br><small>${error.message}</small></p>`;
+                    setUpdatedMeta('deployments-updated', {
+                        message: 'Deployment fetch failed',
+                        fromCache: false
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Deployment providers request timed out.'
+                        : `Unable to load deployments: ${error.message}`;
+                    showToast(message, variant);
+                }
+            }
+        }
+
+        async function loadGitHub() {
+            const content = document.getElementById('github-content');
+            const badge = document.getElementById('github-badge');
+
+            if (!content) {
+                return;
+            }
+
+            const cached = readCache('github');
+
+            if (!isOnline()) {
+                if (cached?.data) {
+                    populateGitHub(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired,
+                        offline: true
+                    });
+                } else {
+                    clearLoadingState(content);
+                    content.innerHTML = '';
+                    showOfflineNotice(content, 'Reconnect to refresh repository insights.');
+                    setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                    setUpdatedMeta('github-updated', {
+                        message: 'Offline – no cached repository insights',
+                        fromCache: true,
+                        offline: true
+                    });
+                    latestData.github = null;
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                }
+                return;
+            }
+
+            removeOfflineNotice(content);
+            const isFirstLoad = !content.dataset.loaded && !cached?.data;
+            setLoadingState(content, isFirstLoad ? 'Gathering repository insights...' : 'Refreshing repository info...');
+            setBadge(badge, isFirstLoad ? 'Loading...' : 'Refreshing...', 'status-warning', { source: 'live' });
+
+            try {
+                const data = await fetchJSON('github', '/api/github', { cache: 'no-store', timeout: 30_000 });
+                saveCache('github', data);
+                const derivedTimestamp = extractTimestamp(data) || Date.now();
+                populateGitHub(data, { timestamp: derivedTimestamp });
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                if (!isOnline()) {
+                    if (cached?.data) {
+                        populateGitHub(cached.data, {
+                            fromCache: true,
+                            timestamp: cached.timestamp,
+                            expired: cached.expired,
+                            offline: true
+                        });
+                    } else {
+                        clearLoadingState(content);
+                        content.innerHTML = '';
+                        showOfflineNotice(content, 'Reconnect to refresh repository insights.');
+                        setBadge(badge, 'Offline', 'status-warning', { source: 'offline', state: 'offline' });
+                        setUpdatedMeta('github-updated', {
+                            message: 'Offline – no cached repository insights',
+                            fromCache: true,
+                            offline: true
+                        });
+                        latestData.github = null;
+                        markAssistantContextDirty();
+                        updateAssistantContextStatus();
+                    }
+                    return;
+                }
+
+                console.error('Failed to load repository details', error);
+                if (cached?.data) {
+                    populateGitHub(cached.data, {
+                        fromCache: true,
+                        timestamp: cached.timestamp,
+                        expired: cached.expired
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Repository info request timed out. Showing cached data.'
+                        : `Unable to load repository info. Showing cached data. (${error.message})`;
+                    showToast(message, variant);
+                } else {
+                    clearLoadingState(content);
+                    setBadge(badge, 'Error', 'status-error', { source: 'error' });
+                    content.innerHTML = `<p class="error-text">Unable to load repository info.<br><small>${error.message}</small></p>`;
+                    setUpdatedMeta('github-updated', {
+                        message: 'Repository fetch failed',
+                        fromCache: false
+                    });
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Repository info request timed out.'
+                        : `Unable to load repository info: ${error.message}`;
+                    showToast(message, variant);
+                }
+            }
+        }
+
+        async function loadIssues() {
+            const list = document.getElementById('issues-list');
+            if (!list) {
+                return;
+            }
+
+            const cached = readCache('git');
+
+            const applyOfflineCache = () => {
+                list.querySelectorAll('.offline-notice').forEach(node => node.remove());
+                if (cached?.data) {
+                    latestData.git = cached.data;
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                    clearLoadingState(list);
+                    list.dataset.loaded = 'true';
+                    renderIssuesList();
+
+                    const notice = createInfoItem('📡', 'Offline mode', 'Showing cached repository status.', 'INFO');
+                    notice.classList.add('offline-notice');
+                    list.insertBefore(notice, list.firstChild || null);
+
+                    setUpdatedMeta('issues-updated', {
+                        timestamp: cached.timestamp || Date.now(),
+                        fromCache: true,
+                        expired: cached.expired,
+                        offline: true
+                    });
+                } else {
+                    clearLoadingState(list);
+                    const notice = createInfoItem('📡', 'Offline mode', 'Reconnect to sync repository status.', 'INFO');
+                    notice.classList.add('offline-notice');
+                    list.insertBefore(notice, list.firstChild || null);
+                    setUpdatedMeta('issues-updated', {
+                        message: 'Offline – no cached repository status',
+                        fromCache: true,
+                        offline: true
+                    });
+                    latestData.git = null;
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                }
+            };
+
+            if (!isOnline()) {
+                applyOfflineCache();
+                return;
+            }
+
+            list.querySelectorAll('.offline-notice').forEach(node => node.remove());
+
+            const isFirstLoad = !list.dataset.loaded && !cached?.data;
+            setLoadingState(list, isFirstLoad ? 'Gathering repository status...' : 'Refreshing repository status...');
+
+            try {
+                const data = await fetchJSON('issues', '/api/git-status', { cache: 'no-store' });
+                latestData.git = data;
+                markAssistantContextDirty();
+                updateAssistantContextStatus();
+                saveCache('git', data);
+                clearLoadingState(list);
+                list.dataset.loaded = 'true';
+                renderIssuesList();
+                setUpdatedMeta('issues-updated', {
+                    timestamp: extractTimestamp(data) || Date.now(),
+                    fromCache: false
+                });
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+
+                if (!isOnline()) {
+                    applyOfflineCache();
+                    return;
+                }
+
+                console.error('Failed to load repository status', error);
+                clearLoadingState(list);
+
+                if (cached?.data) {
+                    latestData.git = cached.data;
+                    markAssistantContextDirty();
+                    updateAssistantContextStatus();
+                    list.dataset.loaded = 'true';
+                    renderIssuesList();
+                    setUpdatedMeta('issues-updated', {
+                        timestamp: cached.timestamp || Date.now(),
+                        fromCache: true,
+                        expired: cached.expired
+                    });
+
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Repository status request timed out. Showing cached status.'
+                        : `Unable to load repository status. Showing cached status. (${error.message})`;
+                    showToast(message, variant);
+                } else {
+                    list.querySelectorAll('.temporary-error').forEach(node => node.remove());
+
+                    const notice = createInfoItem('⚠️', 'Unable to load repository status', error.message, 'INFO');
+                    notice.classList.add('temporary-error');
+                    list.insertBefore(notice, list.firstChild || null);
+                    setTimeout(() => {
+                        if (notice.parentElement === list) {
+                            notice.remove();
+                        }
+                    }, 8000);
+
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? 'Repository status request timed out. Will retry automatically.'
+                        : `Unable to load repository status: ${error.message}`;
+                    showToast(message, variant);
+
+                    setUpdatedMeta('issues-updated', {
+                        message: 'Repository status failed',
+                        fromCache: false
+                    });
+                }
+            }
+        }
+
+        function restoreCachedCards() {
+            const offline = !isOnline();
+
+            const statusCache = readCache('status');
+            if (statusCache?.data) {
+                populateStatus(statusCache.data, {
+                    fromCache: true,
+                    timestamp: statusCache.timestamp,
+                    expired: statusCache.expired,
+                    offline
+                });
+            }
+
+            const securityCache = readCache('security');
+            if (securityCache?.data) {
+                populateSecurity(securityCache.data, {
+                    fromCache: true,
+                    timestamp: securityCache.timestamp,
+                    expired: securityCache.expired,
+                    offline
+                });
+            }
+
+            const toolsCache = readCache('tools');
+            if (toolsCache?.data) {
+                populateTools(toolsCache.data, {
+                    fromCache: true,
+                    timestamp: toolsCache.timestamp,
+                    expired: toolsCache.expired,
+                    offline
+                });
+            }
+
+            const deploymentsCache = readCache('deployments');
+            if (deploymentsCache?.data) {
+                populateDeployments(deploymentsCache.data, {
+                    fromCache: true,
+                    timestamp: deploymentsCache.timestamp,
+                    expired: deploymentsCache.expired,
+                    offline
+                });
+            }
+
+            const githubCache = readCache('github');
+            if (githubCache?.data) {
+                populateGitHub(githubCache.data, {
+                    fromCache: true,
+                    timestamp: githubCache.timestamp,
+                    expired: githubCache.expired,
+                    offline
+                });
+            }
+
+            const gitCache = readCache('git');
+            if (gitCache?.data) {
+                latestData.git = gitCache.data;
+                markAssistantContextDirty();
+                updateAssistantContextStatus();
+                const list = document.getElementById('issues-list');
+                if (list) {
+                    clearLoadingState(list);
+                    list.dataset.loaded = 'true';
+                    renderIssuesList();
+
+                    if (offline) {
+                        list.querySelectorAll('.offline-notice').forEach(node => node.remove());
+                        const notice = createInfoItem('📡', 'Offline mode', 'Showing cached repository status.', 'INFO');
+                        notice.classList.add('offline-notice');
+                        list.insertBefore(notice, list.firstChild || null);
+                    }
+                }
+
+                setUpdatedMeta('issues-updated', {
+                    timestamp: gitCache.timestamp || Date.now(),
+                    fromCache: true,
+                    expired: gitCache.expired,
+                    offline
+                });
+            }
+
+            updateAssistantContextStatus();
+        }
+
+        async function refreshScan() {
+            if (!isOnline()) {
+                showToast('Cannot rescan while offline. Reconnect to run security checks.', 'warning');
+                return;
+            }
+
+            const card = document.getElementById('issues-card');
+            if (card) {
+                card.classList.add('active');
+            }
+
+            try {
+                await Promise.all([loadSecurity(), loadIssues()]);
+            } finally {
+                setTimeout(() => {
+                    if (card) {
+                        card.classList.remove('active');
+                    }
+                }, 600);
+            }
+        }
+
+        async function handleInstallTool(event) {
+            event.stopPropagation();
+
+            const button = event.currentTarget;
+            if (!button || button.dataset.state === 'busy') {
+                return;
+            }
+
+            const command = button.dataset.command;
+            const toolName = button.dataset.tool || 'Tool';
+
+            if (!command) {
+                showToast(`No automated install available for ${toolName}.`, 'warning');
+                return;
+            }
+
+            if (!isOnline()) {
+                showToast(`Cannot install ${toolName} while offline.`, 'warning');
+                return;
+            }
+
+            const originalText = button.textContent;
+            button.dataset.state = 'busy';
+            button.dataset.originalText = originalText;
+            button.textContent = 'Installing...';
+            button.disabled = true;
+            button.classList.add('is-busy');
+            button.setAttribute('aria-busy', 'true');
+
+            let succeeded = false;
+            let aborted = false;
+
+            try {
+                const key = `install-${slugify(toolName)}`;
+                const result = await fetchJSON(key, '/api/install-tool', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tool: toolName, command }),
+                    timeout: 120_000
+                });
+
+                if (result?.success) {
+                    succeeded = true;
+                    showToast(`${toolName} installed successfully.`, 'success');
+                    try {
+                        await loadTools();
+                    } catch (refreshError) {
+                        console.error('Tool installed but refresh failed', refreshError);
+                        showToast('Tool installed, but refreshing tool insights failed.', 'warning');
+                    }
+                } else {
+                    const reason = result?.message || 'Installation failed.';
+                    throw new Error(reason);
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    aborted = true;
+                } else {
+                    console.error(`Failed to install ${toolName}`, error);
+                    const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                    const message = error.name === 'TimeoutError'
+                        ? `Installing ${toolName} timed out.`
+                        : `Unable to install ${toolName}: ${error.message}`;
+                    showToast(message, variant);
+                }
+            } finally {
+                if (!button.isConnected) {
+                    return;
+                }
+
+                button.removeAttribute('aria-busy');
+                button.classList.remove('is-busy');
+
+                if (succeeded) {
+                    button.textContent = 'Installed';
+                    button.disabled = true;
+                    button.dataset.state = 'done';
+                } else {
+                    const storedOriginal = button.dataset.originalText;
+                    button.textContent = storedOriginal || originalText;
+                    button.disabled = false;
+                    delete button.dataset.state;
+                }
+
+                delete button.dataset.originalText;
+
+                if (!succeeded && aborted) {
+                    // No toast for aborts; just reset state quietly
+                    return;
+                }
+            }
+        }
+
+        async function handleAutoFix(event) {
+            event.stopPropagation();
+
+            const button = event.currentTarget;
+            if (!button || button.dataset.state === 'busy') {
+                return;
+            }
+
+            const issueId = button.dataset.issueId;
+            if (!issueId) {
+                showToast('Unable to determine which issue to auto-fix.', 'error');
+                return;
+            }
+
+            const issueLabel = button.dataset.issueLabel || issueId;
+            const originalText = button.textContent;
+
+            if (!isOnline()) {
+                showToast(`Cannot auto-fix ${issueLabel} while offline.`, 'warning');
+                return;
+            }
+
+            button.dataset.state = 'busy';
+            button.dataset.originalText = originalText;
+            button.textContent = 'Fixing...';
+            button.disabled = true;
+            button.classList.add('is-busy');
+            button.setAttribute('aria-busy', 'true');
+
+            let succeeded = false;
+
+            try {
+                const result = await fetchJSON(`fix-${issueId}`, '/api/fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ issueId }),
+                    timeout: 60_000
+                });
+
+                if (result?.success) {
+                    succeeded = true;
+                    const detail = result.message ? `: ${result.message}` : '';
+                    showToast(`Auto-fix applied to ${issueLabel}${detail}`, 'success');
+                    try {
+                        await refreshScan();
+                    } catch (refreshError) {
+                        console.error('Auto-fix applied but refresh failed', refreshError);
+                        showToast('Auto-fix applied, but refreshing data failed. Please rescan manually.', 'warning');
+                    }
+                } else {
+                    const reason = result?.message || 'No auto-fix available for this issue.';
+                    throw new Error(reason);
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error(`Auto-fix failed for ${issueId}`, error);
+                const variant = error.name === 'TimeoutError' ? 'warning' : 'error';
+                const message = error.name === 'TimeoutError'
+                    ? `Auto-fix timed out for ${issueLabel}.`
+                    : `Auto-fix failed for ${issueLabel}: ${error.message}`;
+                showToast(message, variant);
+            } finally {
+                if (!button.isConnected) {
+                    return;
+                }
+
+                button.removeAttribute('aria-busy');
+                button.classList.remove('is-busy');
+                delete button.dataset.state;
+
+                const storedOriginal = button.dataset.originalText;
+                delete button.dataset.originalText;
+
+                if (succeeded) {
+                    button.textContent = 'Fixed';
+                    button.disabled = true;
+                } else {
+                    button.textContent = storedOriginal || originalText;
+                    button.disabled = false;
+                }
+            }
+        }
+
+        if (assistantForm) {
+            assistantForm.addEventListener('submit', handleAssistantSubmit);
+        }
+
+        if (assistantClearButton) {
+            assistantClearButton.addEventListener('click', clearAssistantConversation);
+        }
+
+        if (assistantContextButton) {
+            assistantContextButton.addEventListener('click', () => toggleAssistantContextPanel());
+        }
+
+        if (assistantContextClose) {
+            assistantContextClose.addEventListener('click', () => toggleAssistantContextPanel(false));
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && assistantContextVisible && assistantContextPanel && !assistantContextPanel.hidden) {
+                toggleAssistantContextPanel(false);
+            }
+        });
+
+        if (assistantInput) {
+            handleAssistantInputResize();
+            assistantInput.addEventListener('input', handleAssistantInputResize);
+            assistantInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.metaKey) {
+                    const trimmed = assistantInput.value.trim();
+                    if (!trimmed) {
+                        return;
+                    }
+                    event.preventDefault();
+                    if (assistantForm) {
+                        if (typeof assistantForm.requestSubmit === 'function') {
+                            assistantForm.requestSubmit();
+                        } else {
+                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                            assistantForm.dispatchEvent(submitEvent);
+                        }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                loadStatus();
+                loadIssues();
+                loadTools();
+                loadDeployments();
+                loadGitHub();
+            }
+        });
+
+        window.addEventListener('beforeunload', stopAutoRefresh);
+
+        requestAnimationFrame(() => {
             loadSecurity();
-            loadTools();
-            loadIssues();
-        }, 1000);
-
-        function loadStatus() {
-            document.getElementById('project-name').textContent = 'intelligent-cloud-guardian';
-            document.getElementById('status-badge').textContent = 'Healthy';
-            document.getElementById('status-badge').className = 'status-badge status-good';
-
-            document.getElementById('status-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">Experience Level</span>
-                    <span class="metric-value">Advanced</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Dependencies</span>
-                    <span class="metric-value">12</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Branch</span>
-                    <span class="metric-value">main</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Uncommitted</span>
-                    <span class="metric-value">4,510</span>
-                </div>
-            `;
-        }
-
-        function loadSecurity() {
-            document.getElementById('security-badge').textContent = 'Issues Found';
-            document.getElementById('security-badge').className = 'status-badge status-warning';
-
-            document.getElementById('security-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">🔴 Critical</span>
-                    <span class="metric-value">0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟠 High</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟡 Medium</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">⚪ Warnings</span>
-                    <span class="metric-value">3</span>
-                </div>
-                <div style="margin-top: 20px;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 85%"></div>
-                        <div class="progress-text">85% Secure</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function loadTools() {
-            document.getElementById('tools-badge').textContent = '5/5 Found';
-            document.getElementById('tools-badge').className = 'status-badge status-good';
-
-            document.getElementById('tools-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">✓ Git</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Node.js</span>
-                    <span class="metric-value">v18.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ npm</span>
-                    <span class="metric-value">v9.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Docker</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ GitHub CLI</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-            `;
-        }
-
-        function loadIssues() {
-            document.getElementById('issues-list').innerHTML = `
-                <li class="issue-item high">
-                    <span class="issue-icon">🟠</span>
-                    <span class="issue-text">.gitignore missing critical patterns</span>
-                    <button class="holo-button" onclick="fixIssue('gitignore')">Fix</button>
-                </li>
-                <li class="issue-item medium">
-                    <span class="issue-icon">🟡</span>
-                    <span class="issue-text">Missing .env.example for team reference</span>
-                    <button class="holo-button" onclick="fixIssue('env-example')">Fix</button>
-                </li>
-            `;
-        }
-
-        function fixIssue(issueId) {
-            alert(`Fixing issue: ${issueId}\n\nIn production, this would call the Guardian API to auto-fix the issue.`);
-        }
-
-        function refreshScan() {
-            document.getElementById('issues-card').classList.add('active');
-            setTimeout(() => {
-                document.getElementById('issues-card').classList.remove('active');
-                alert('Scan complete! No new issues found.');
-            }, 1000);
-        }
+            startAutoRefresh();
+        });
 
         // Card click effects
         document.querySelectorAll('.neo-card').forEach(card => {

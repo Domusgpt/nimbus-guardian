@@ -11,6 +11,9 @@ const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
 const boxen = require('boxen');
+const { saveConfig, getConfigPaths } = require('./lib/config-service');
+
+const CLI_NAME = 'nimbus';
 
 async function setup() {
     console.clear();
@@ -103,15 +106,14 @@ async function setup() {
     // Create configuration
     const config = {
         projectName: answers.projectName,
-        experience: answers.experience,
+        experienceLevel: answers.experience,
         cloudProvider: answers.cloudProvider,
         aiProvider: answers.aiProvider,
         setupDate: new Date().toISOString()
     };
 
-    const configDir = path.join(process.cwd(), '.guardian');
-    await fs.ensureDir(configDir);
-    await fs.writeJson(path.join(configDir, 'config.json'), config, { spaces: 2 });
+    const { configDir, envPath } = getConfigPaths(process.cwd());
+    await saveConfig(process.cwd(), config);
 
     // Create .env file
     const envContent = `# Intelligent Cloud Guardian Configuration
@@ -125,7 +127,7 @@ PROJECT_NAME=${answers.projectName}
 EXPERIENCE_LEVEL=${answers.experience}
 `;
 
-    await fs.writeFile(path.join(configDir, '.env'), envContent);
+    await fs.writeFile(envPath, envContent);
 
     // Update .gitignore
     const gitignorePath = path.join(process.cwd(), '.gitignore');
@@ -141,17 +143,17 @@ EXPERIENCE_LEVEL=${answers.experience}
     }
 
     // Create welcome guide
-    const welcomeGuide = generateWelcomeGuide(answers);
+    const welcomeGuide = generateWelcomeGuide(answers, CLI_NAME);
     await fs.writeFile(path.join(configDir, 'WELCOME.md'), welcomeGuide);
 
     console.log('\n' + boxen(
         chalk.green.bold('✅ Setup Complete!\n\n') +
         chalk.white('Your Cloud Guardian is ready to help.\n\n') +
         chalk.cyan('Try these commands:\n') +
-        chalk.gray('  guardian scan     - Check your project\n') +
-        chalk.gray('  guardian chat     - Talk to your AI assistant\n') +
-        chalk.gray('  guardian fix      - Auto-fix issues\n') +
-        chalk.gray('  guardian learn    - Get tutorials\n'),
+        chalk.gray(`  ${CLI_NAME} scan     - Check your project\n`) +
+        chalk.gray(`  ${CLI_NAME} chat     - Talk to your AI assistant\n`) +
+        chalk.gray(`  ${CLI_NAME} fix      - Auto-fix issues\n`) +
+        chalk.gray(`  ${CLI_NAME} learn    - Get tutorials\n`),
         {
             padding: 1,
             margin: 1,
@@ -161,7 +163,7 @@ EXPERIENCE_LEVEL=${answers.experience}
     ));
 
     if (answers.experience === 'beginner') {
-        console.log(chalk.yellow('\n💡 First time? Try: ') + chalk.cyan.bold('guardian learn basics\n'));
+        console.log(chalk.yellow('\n💡 First time? Try: ') + chalk.cyan.bold(`${CLI_NAME} learn basics\n`));
     }
 }
 
@@ -187,7 +189,9 @@ function showApiKeyHelp() {
     ));
 }
 
-function generateWelcomeGuide(answers) {
+function generateWelcomeGuide(answers, cliName = CLI_NAME) {
+    const command = (cmd) => `${cliName} ${cmd}`.trim();
+
     const experienceGuides = {
         beginner: `# 🌱 Welcome, New Developer!
 
@@ -204,14 +208,14 @@ Think of it as your personal coding mentor. It:
 
 ## Your First Steps
 
-1. **Check your project**: Run \`guardian scan\`
+1. **Check your project**: Run \`${command('scan')}\`
    - This looks at your code and tells you what needs attention
 
-2. **Chat with your AI assistant**: Run \`guardian chat\`
+2. **Chat with your AI assistant**: Run \`${command('chat')}\`
    - Ask questions like "What does this error mean?"
    - Get explanations about anything confusing
 
-3. **Learn the basics**: Run \`guardian learn\`
+3. **Learn the basics**: Run \`${command('learn')}\`
    - Interactive tutorials
    - Learn by doing
 
@@ -224,11 +228,11 @@ A: It's like a password that lets Cloud Guardian talk to AI assistants
 A: Only if you tell it to! It always asks first.
 
 **Q: What if I break something?**
-A: Guardian checks for problems before they happen!
+A: Cloud Guardian checks for problems before they happen!
 
 ## Need Help?
 
-Just ask! Type \`guardian chat\` and say:
+Just ask! Type \`${command('chat')}\` and say:
 - "I don't understand this error"
 - "How do I deploy my app?"
 - "What should I do first?"
@@ -250,27 +254,27 @@ Cloud Guardian helps you level up your deployment and cloud skills.
 ## Quick Start
 
 \`\`\`bash
-guardian scan          # Audit your project
-guardian fix           # Auto-fix safe issues
-guardian chat          # AI-powered help
-guardian deploy        # Guided deployment
+${command('scan')}          # Audit your project
+${command('fix')}           # Auto-fix safe issues
+${command('chat')}          # AI-powered help
+${command('deploy')}        # Guided deployment
 \`\`\`
 
 ## Common Use Cases
 
 **Before Deployment:**
 \`\`\`bash
-guardian pre-deploy    # Pre-flight checklist
+${command('pre-deploy')}    # Pre-flight checklist
 \`\`\`
 
 **Debugging:**
 \`\`\`bash
-guardian debug         # AI-powered debugging help
+${command('debug')}         # AI-powered debugging help
 \`\`\`
 
 **Learning:**
 \`\`\`bash
-guardian explain <topic>   # Deep dive explanations
+${command('explain <topic>')}   # Deep dive explanations
 \`\`\``,
 
         advanced: `# 🌳 Welcome, Experienced Developer!
@@ -288,11 +292,11 @@ Cloud Guardian provides enterprise-grade deployment intelligence.
 ## CLI Commands
 
 \`\`\`bash
-guardian scan --deep             # Comprehensive audit
-guardian analyze performance     # Performance profiling
-guardian analyze security        # Security audit
-guardian analyze costs           # Cost optimization
-guardian explain <complex-topic> # AI-powered deep dives
+${command('scan --deep')}             # Comprehensive audit
+${command('analyze performance')}     # Performance profiling
+${command('analyze security')}        # Security audit
+${command('analyze costs')}           # Cost optimization
+${command('explain <complex-topic>')} # AI-powered deep dives
 \`\`\`
 
 ## Integration
@@ -300,7 +304,7 @@ guardian explain <complex-topic> # AI-powered deep dives
 Add to your CI/CD pipeline:
 \`\`\`yaml
 - name: Cloud Guardian Scan
-  run: guardian scan --ci --fail-on high
+  run: ${command('scan --ci --fail-on high')}
 \`\`\`
 
 ## AI Assistance

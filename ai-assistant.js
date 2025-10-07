@@ -179,7 +179,7 @@ Be precise, comprehensive, and assume strong technical foundation.`
             console.error('Claude API error:', error);
 
             if (error.status === 401) {
-                throw new Error('Invalid Claude API key. Run "guardian setup" to update your keys.');
+                throw new Error('Invalid Claude API key. Run "nimbus setup" to update your keys.');
             }
 
             throw new Error(`Claude API error: ${error.message}`);
@@ -215,7 +215,7 @@ Be precise, comprehensive, and assume strong technical foundation.`
             console.error('Gemini API error:', error);
 
             if (error.message.includes('API key')) {
-                throw new Error('Invalid Gemini API key. Run "guardian setup" to update your keys.');
+                throw new Error('Invalid Gemini API key. Run "nimbus setup" to update your keys.');
             }
 
             throw new Error(`Gemini API error: ${error.message}`);

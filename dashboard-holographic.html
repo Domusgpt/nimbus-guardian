@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="__CSRF_TOKEN__">
+    <meta name="csp-nonce" content="__CSP_NONCE__">
     <title>Guardian Dashboard - Holographic Interface</title>
+    <script nonce="__CSP_NONCE__">
+        window.__CSRF_TOKEN__ = '__CSRF_TOKEN__';
+        window.__CSP_NONCE__ = '__CSP_NONCE__';
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-    <style>
+    <style nonce="__CSP_NONCE__">
         * {
             margin: 0;
             padding: 0;
@@ -109,6 +115,37 @@
             color: var(--holo-cyan);
             text-shadow: 0 0 15px var(--holo-cyan);
             letter-spacing: 2px;
+        }
+
+        .config-warning-banner {
+            margin: 20px auto 0 auto;
+            max-width: 640px;
+            padding: 14px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 196, 0, 0.6);
+            background: rgba(255, 196, 0, 0.15);
+            color: #ffe59a;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            text-align: left;
+            box-shadow: 0 0 30px rgba(255, 196, 0, 0.25);
+        }
+
+        .config-warning-banner.hidden {
+            display: none;
+        }
+
+        .config-warning-banner strong {
+            display: block;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #fff6c2;
+        }
+
+        .config-warning-banner ul {
+            margin: 8px 0 0 20px;
+            padding: 0;
         }
 
         @keyframes pulse {
@@ -271,6 +308,14 @@
             font-weight: 700;
             color: var(--holo-cyan);
             text-shadow: 0 0 10px var(--holo-cyan);
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+            margin: 12px 0 6px 4px;
         }
 
         /* HOLOGRAPHIC PROGRESS BAR */
@@ -539,6 +584,7 @@
             <div class="guardian-header">
                 <div class="guardian-logo">🛡️ GUARDIAN</div>
                 <div class="project-name" id="project-name">Loading...</div>
+                <div class="config-warning-banner hidden" id="config-warnings"></div>
             </div>
         </div>
 
@@ -599,7 +645,7 @@
                 <div class="neo-card" style="grid-column: 1 / -1;" id="issues-card">
                     <div class="card-header">
                         <div class="card-title">⚠️ Issues</div>
-                        <button class="holo-button" onclick="refreshScan()">Rescan</button>
+                        <button class="holo-button" type="button" data-action="refresh-scan">Rescan</button>
                     </div>
                     <div class="card-body">
                         <ul id="issues-list" class="issue-list loading">
@@ -614,7 +660,7 @@
 
     </div>
 
-    <script>
+    <script nonce="__CSP_NONCE__">
         // Parallax effect on mouse move (reduced intensity)
         const scene = document.getElementById('scene');
         const mouseXDisplay = document.getElementById('mouseX');
@@ -657,123 +703,520 @@
             particlesContainer.appendChild(particle);
         }
 
-        // Mock data loading (replace with real API calls)
-        setTimeout(() => {
-            loadStatus();
-            loadSecurity();
-            loadTools();
-            loadIssues();
-        }, 1000);
+        const projectNameEl = document.getElementById('project-name');
+        const configWarningsEl = document.getElementById('config-warnings');
+        const statusBadgeEl = document.getElementById('status-badge');
+        const statusContentEl = document.getElementById('status-content');
+        const securityBadgeEl = document.getElementById('security-badge');
+        const securityContentEl = document.getElementById('security-content');
+        const toolsBadgeEl = document.getElementById('tools-badge');
+        const toolsContentEl = document.getElementById('tools-content');
+        const issuesListEl = document.getElementById('issues-list');
+        const rescanButtons = document.querySelectorAll('[data-action="refresh-scan"]');
 
-        function loadStatus() {
-            document.getElementById('project-name').textContent = 'intelligent-cloud-guardian';
-            document.getElementById('status-badge').textContent = 'Healthy';
-            document.getElementById('status-badge').className = 'status-badge status-good';
+        rescanButtons.forEach(button => {
+            button.addEventListener('click', refreshScan);
+        });
 
-            document.getElementById('status-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">Experience Level</span>
-                    <span class="metric-value">Advanced</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Dependencies</span>
-                    <span class="metric-value">12</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Branch</span>
-                    <span class="metric-value">main</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">Uncommitted</span>
-                    <span class="metric-value">4,510</span>
-                </div>
-            `;
+        function renderConfigWarnings(warnings) {
+            if (!configWarningsEl) return;
+
+            const entries = Array.isArray(warnings) ? warnings.filter(Boolean) : [];
+            if (!entries.length) {
+                configWarningsEl.classList.add('hidden');
+                configWarningsEl.replaceChildren();
+                return;
+            }
+
+            configWarningsEl.classList.remove('hidden');
+            const title = document.createElement('strong');
+            title.textContent = entries.length > 1
+                ? 'Configuration warnings detected:'
+                : 'Configuration warning detected:';
+
+            const list = document.createElement('ul');
+            entries.forEach(entry => {
+                const item = document.createElement('li');
+                item.textContent = entry;
+                list.appendChild(item);
+            });
+
+            configWarningsEl.replaceChildren(title, list);
         }
 
-        function loadSecurity() {
-            document.getElementById('security-badge').textContent = 'Issues Found';
-            document.getElementById('security-badge').className = 'status-badge status-warning';
-
-            document.getElementById('security-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">🔴 Critical</span>
-                    <span class="metric-value">0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟠 High</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">🟡 Medium</span>
-                    <span class="metric-value">1</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">⚪ Warnings</span>
-                    <span class="metric-value">3</span>
-                </div>
-                <div style="margin-top: 20px;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: 85%"></div>
-                        <div class="progress-text">85% Secure</div>
-                    </div>
-                </div>
-            `;
+        function updateBadge(element, state) {
+            if (!element) return;
+            const type = state?.type ? ` status-${state.type}` : '';
+            element.className = `status-badge${type}`;
+            element.textContent = state?.text || '—';
         }
 
-        function loadTools() {
-            document.getElementById('tools-badge').textContent = '5/5 Found';
-            document.getElementById('tools-badge').className = 'status-badge status-good';
+        function createMetricElement({ label, value, detail, nodes = [] }) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'metric';
 
-            document.getElementById('tools-content').innerHTML = `
-                <div class="metric">
-                    <span class="metric-label">✓ Git</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Node.js</span>
-                    <span class="metric-value">v18.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ npm</span>
-                    <span class="metric-value">v9.0.0</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ Docker</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-                <div class="metric">
-                    <span class="metric-label">✓ GitHub CLI</span>
-                    <span class="metric-value">Installed</span>
-                </div>
-            `;
+            const labelContainer = document.createElement('div');
+            labelContainer.className = 'metric-label';
+            labelContainer.textContent = label ?? '—';
+
+            if (detail) {
+                const detailEl = document.createElement('small');
+                detailEl.textContent = detail;
+                detailEl.style.display = 'block';
+                detailEl.style.opacity = '0.7';
+                labelContainer.appendChild(detailEl);
+            }
+
+            wrapper.appendChild(labelContainer);
+
+            if (value !== undefined) {
+                const valueEl = document.createElement('span');
+                valueEl.className = 'metric-value';
+                valueEl.textContent = value === undefined || value === null ? '—' : String(value);
+                wrapper.appendChild(valueEl);
+            }
+
+            nodes.forEach(node => {
+                if (node) {
+                    wrapper.appendChild(node);
+                }
+            });
+
+            return wrapper;
         }
 
-        function loadIssues() {
-            document.getElementById('issues-list').innerHTML = `
-                <li class="issue-item high">
-                    <span class="issue-icon">🟠</span>
-                    <span class="issue-text">.gitignore missing critical patterns</span>
-                    <button class="holo-button" onclick="fixIssue('gitignore')">Fix</button>
-                </li>
-                <li class="issue-item medium">
-                    <span class="issue-icon">🟡</span>
-                    <span class="issue-text">Missing .env.example for team reference</span>
-                    <button class="holo-button" onclick="fixIssue('env-example')">Fix</button>
-                </li>
-            `;
+        function renderMetrics(container, metrics, emptyMessage) {
+            if (!container) return;
+
+            container.classList.remove('loading');
+            if (!Array.isArray(metrics) || metrics.length === 0) {
+                const message = document.createElement('p');
+                message.textContent = emptyMessage || 'No data available.';
+                container.replaceChildren(message);
+                return;
+            }
+
+            const elements = metrics.map(metric => createMetricElement(metric));
+            container.replaceChildren(...elements);
         }
 
-        function fixIssue(issueId) {
-            alert(`Fixing issue: ${issueId}\n\nIn production, this would call the Guardian API to auto-fix the issue.`);
+        function createSectionLabel(text) {
+            const label = document.createElement('div');
+            label.className = 'section-label';
+            label.textContent = text;
+            return label;
         }
 
-        function refreshScan() {
-            document.getElementById('issues-card').classList.add('active');
-            setTimeout(() => {
-                document.getElementById('issues-card').classList.remove('active');
-                alert('Scan complete! No new issues found.');
-            }, 1000);
+        function summarizeSecurity(report) {
+            if (report?.security) {
+                const { critical = 0, high = 0, medium = 0, warnings = 0 } = report.security;
+                return { critical, high, medium, warnings };
+            }
+
+            const issues = Array.isArray(report?.issues) ? report.issues : [];
+            const warnings = Array.isArray(report?.warnings) ? report.warnings.length : 0;
+
+            if (!issues.length && warnings === 0) {
+                return null;
+            }
+
+            const summary = { critical: 0, high: 0, medium: 0, warnings };
+            issues.forEach(issue => {
+                const severity = String(issue?.severity || '').toUpperCase();
+                if (severity === 'CRITICAL') summary.critical += 1;
+                else if (severity === 'HIGH') summary.high += 1;
+                else if (severity === 'MEDIUM') summary.medium += 1;
+                else summary.warnings += 1;
+            });
+
+            return summary;
         }
+
+        function severityIcon(level) {
+            const map = {
+                critical: '🔴',
+                high: '🟠',
+                medium: '🟡',
+                low: '⚪'
+            };
+            const normalized = String(level || '').toLowerCase();
+            return map[normalized] || '⚠️';
+        }
+
+        function severityClass(level) {
+            const normalized = String(level || '').toLowerCase();
+            return ['critical', 'high', 'medium'].includes(normalized) ? normalized : '';
+        }
+
+        function applyStatus(status) {
+            renderConfigWarnings(status?.configWarnings);
+
+            if (!status) {
+                if (projectNameEl) {
+                    projectNameEl.textContent = 'Nimbus';
+                }
+                updateBadge(statusBadgeEl, { type: 'warning', text: 'Status Unknown' });
+                renderMetrics(statusContentEl, [], 'Project status unavailable.');
+                return;
+            }
+
+            if (projectNameEl) {
+                projectNameEl.textContent = status.projectName || status.package?.name || 'Nimbus';
+            }
+
+            const metrics = [
+                { label: 'Experience Level', value: status.experienceLevel || '—' },
+                { label: 'Dependencies', value: status.package?.dependencies ?? '—' },
+                { label: 'Dev Dependencies', value: status.package?.devDependencies ?? '—' },
+                { label: 'Branch', value: status.git?.branch || '—' }
+            ];
+
+            renderMetrics(statusContentEl, metrics, 'No status metrics available.');
+
+            const hasWarnings = Array.isArray(status.configWarnings) && status.configWarnings.length > 0;
+            updateBadge(statusBadgeEl, {
+                type: hasWarnings ? 'warning' : 'good',
+                text: hasWarnings ? 'Check Config' : 'Healthy'
+            });
+        }
+
+        function applySecurity(report) {
+            const summary = summarizeSecurity(report);
+
+            if (!summary) {
+                updateBadge(securityBadgeEl, { type: 'warning', text: 'Scan Pending' });
+                renderMetrics(securityContentEl, [], 'Run “nimbus scan” to populate security insights.');
+                return;
+            }
+
+            const badgeState = summary.critical > 0
+                ? { type: 'error', text: 'Critical Issues' }
+                : (summary.high > 0 || summary.medium > 0)
+                    ? { type: 'warning', text: 'Issues Detected' }
+                    : { type: 'good', text: 'Secure' };
+
+            updateBadge(securityBadgeEl, badgeState);
+
+            const metrics = [
+                { label: '🔴 Critical', value: summary.critical },
+                { label: '🟠 High', value: summary.high },
+                { label: '🟡 Medium', value: summary.medium },
+                { label: '⚪ Warnings', value: summary.warnings }
+            ];
+
+            renderMetrics(securityContentEl, metrics, 'Security metrics unavailable.');
+        }
+
+        function renderTools(data) {
+            if (!toolsContentEl) return;
+
+            toolsContentEl.classList.remove('loading');
+            const detected = Array.isArray(data?.detected) ? data.detected : [];
+            const missing = Array.isArray(data?.missing) ? data.missing : [];
+
+            if (!detected.length && !missing.length) {
+                updateBadge(toolsBadgeEl, { type: 'warning', text: 'Awaiting Scan' });
+                const message = document.createElement('p');
+                message.textContent = 'Run “nimbus scan” to detect installed tooling.';
+                toolsContentEl.replaceChildren(message);
+                return;
+            }
+
+            const nodes = [];
+
+            if (detected.length) {
+                nodes.push(createSectionLabel('Detected'));
+                detected.slice(0, 8).forEach(tool => {
+                    const name = tool.displayName || tool.name || tool.provider || tool.id || 'Detected Tool';
+                    const detail = tool.category
+                        ? `${tool.category} toolkit`
+                        : tool.version
+                            ? `Version: ${tool.version}`
+                            : '';
+                    nodes.push(createMetricElement({ label: name, value: 'Installed', detail }));
+                });
+            }
+
+            if (missing.length) {
+                nodes.push(createSectionLabel('Missing'));
+                missing.slice(0, 8).forEach(tool => {
+                    const name = tool.displayName || tool.name || tool.provider || tool.id || 'Missing Tool';
+                    const detail = tool.installerDescription || tool.install || tool.reason || 'Installation required.';
+                    const nodesForRow = [];
+                    if (tool.safeInstallerId) {
+                        const button = document.createElement('button');
+                        button.className = 'holo-button';
+                        button.type = 'button';
+                        button.textContent = 'Install';
+                        button.addEventListener('click', () => installTool(tool.safeInstallerId, name));
+                        nodesForRow.push(button);
+                    }
+                    nodes.push(createMetricElement({ label: name, value: 'Missing', detail, nodes: nodesForRow }));
+                });
+            }
+
+            const total = detected.length + missing.length;
+            updateBadge(toolsBadgeEl, missing.length
+                ? { type: 'warning', text: `${detected.length}/${total} Ready` }
+                : { type: 'good', text: 'All Ready' });
+
+            toolsContentEl.replaceChildren(...nodes);
+        }
+
+        function renderIssues(report) {
+            if (!issuesListEl) return;
+
+            issuesListEl.classList.remove('loading');
+
+            const issues = Array.isArray(report?.issues) ? report.issues : [];
+            const recommendations = Array.isArray(report?.recommendations) ? report.recommendations : [];
+
+            if (!issues.length && !recommendations.length) {
+                const item = document.createElement('li');
+                item.className = 'issue-item';
+                const text = document.createElement('span');
+                text.className = 'issue-text';
+                text.textContent = 'No issues detected. Run “nimbus scan” to keep your baseline fresh.';
+                item.appendChild(text);
+                issuesListEl.replaceChildren(item);
+                return;
+            }
+
+            const elements = [];
+
+            issues.slice(0, 10).forEach(issue => {
+                const li = document.createElement('li');
+                li.className = 'issue-item';
+
+                const severityCls = severityClass(issue.severity);
+                if (severityCls) {
+                    li.classList.add(severityCls);
+                }
+
+                const icon = document.createElement('span');
+                icon.className = 'issue-icon';
+                icon.textContent = severityIcon(issue.severity);
+
+                const text = document.createElement('span');
+                text.className = 'issue-text';
+                text.textContent = issue.message || 'Issue detected';
+
+                const detailLines = [];
+                if (issue.file) {
+                    detailLines.push(`File: ${issue.file}`);
+                }
+                if (Array.isArray(issue.details) && issue.details.length) {
+                    detailLines.push(issue.details.join(', '));
+                }
+                if (issue.category) {
+                    detailLines.push(`Category: ${issue.category}`);
+                }
+
+                if (detailLines.length) {
+                    const detail = document.createElement('small');
+                    detail.textContent = detailLines.join(' • ');
+                    text.appendChild(detail);
+                }
+
+                li.append(icon, text);
+
+                if (issue.autoFixable && issue.id) {
+                    const button = document.createElement('button');
+                    button.className = 'holo-button';
+                    button.type = 'button';
+                    button.textContent = 'Auto-fix';
+                    button.addEventListener('click', () => autoFixIssue(issue.id, issue.message || 'Issue'));
+                    li.appendChild(button);
+                }
+
+                elements.push(li);
+            });
+
+            recommendations.slice(0, 4).forEach(rec => {
+                const li = document.createElement('li');
+                li.className = 'issue-item';
+
+                const icon = document.createElement('span');
+                icon.className = 'issue-icon';
+                icon.textContent = '💡';
+
+                const text = document.createElement('span');
+                text.className = 'issue-text';
+                text.textContent = rec.suggestion || rec.reason || 'Recommendation';
+
+                const details = [];
+                if (rec.reason) {
+                    details.push(rec.reason);
+                }
+                if (Array.isArray(rec.options) && rec.options.length) {
+                    const options = rec.options.map(option => option.name).filter(Boolean);
+                    if (options.length) {
+                        details.push(`Options: ${options.join(', ')}`);
+                    }
+                }
+
+                if (details.length) {
+                    const detail = document.createElement('small');
+                    detail.textContent = details.join(' • ');
+                    text.appendChild(detail);
+                }
+
+                li.append(icon, text);
+                elements.push(li);
+            });
+
+            issuesListEl.replaceChildren(...elements);
+        }
+
+        async function fetchJSON(url) {
+            try {
+                const response = await fetch(url, {
+                    headers: { Accept: 'application/json' },
+                    cache: 'no-store'
+                });
+
+                if (!response.ok) {
+                    if (response.status !== 404) {
+                        console.warn(`[dashboard] Failed to load ${url}: ${response.status}`);
+                    }
+                    return null;
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.warn(`[dashboard] Error loading ${url}:`, error);
+                return null;
+            }
+        }
+
+        async function hydrate() {
+            const [status, tools, report] = await Promise.all([
+                fetchJSON('/api/status'),
+                fetchJSON('/api/tools'),
+                fetchJSON(`/guardian-test-report.json?ts=${Date.now()}`)
+            ]);
+
+            applyStatus(status || null);
+
+            if (report) {
+                applySecurity(report);
+                renderIssues(report);
+            } else {
+                applySecurity(null);
+                renderIssues(null);
+            }
+
+            if (tools) {
+                renderTools(tools);
+            } else if (report?.tools) {
+                renderTools(report.tools);
+            } else {
+                renderTools(null);
+            }
+        }
+
+        async function installTool(toolId, toolName) {
+            if (!toolId) {
+                alert('Manual installation required for this tool.');
+                return;
+            }
+
+            const label = toolName || 'tool';
+            if (!confirm(`Install ${label}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/install-tool', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.__CSRF_TOKEN__
+                    },
+                    body: JSON.stringify({ toolId })
+                });
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || !result.success) {
+                    const message = result?.error || result?.message || 'Installation failed.';
+                    throw new Error(message);
+                }
+
+                alert(result.message || `${label} installed successfully.`);
+                await hydrate();
+            } catch (error) {
+                alert(`Failed to install ${label}: ${error.message}`);
+            }
+        }
+
+        async function autoFixIssue(issueId, label) {
+            if (!issueId) return;
+
+            const issueLabel = label || 'issue';
+            if (!confirm(`Attempt auto-fix for ${issueLabel}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/fix', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.__CSRF_TOKEN__
+                    },
+                    body: JSON.stringify({ issueId })
+                });
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || result?.error) {
+                    const message = result?.error || result?.message || 'Auto-fix failed.';
+                    throw new Error(message);
+                }
+
+                alert(result.message || 'Issue auto-fixed.');
+                await hydrate();
+            } catch (error) {
+                alert(`Auto-fix failed: ${error.message}`);
+            }
+        }
+
+        async function refreshScan() {
+            const issuesCard = document.getElementById('issues-card');
+            issuesCard?.classList.add('active');
+
+            try {
+                const response = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': window.__CSRF_TOKEN__
+                    }
+                });
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    const message = result?.error || 'Scan failed.';
+                    throw new Error(message);
+                }
+
+                applySecurity(result);
+                renderIssues(result);
+                if (result.tools) {
+                    renderTools(result.tools);
+                }
+
+                alert('Scan complete! Dashboard updated with latest results.');
+            } catch (error) {
+                alert(`Scan failed: ${error.message}`);
+            } finally {
+                issuesCard?.classList.remove('active');
+            }
+        }
+
+        hydrate();
 
         // Card click effects
         document.querySelectorAll('.neo-card').forEach(card => {

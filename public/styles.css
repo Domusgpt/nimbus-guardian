@@ -654,6 +654,33 @@ section {
     text-shadow: 0 0 10px var(--glow-purple);
 }
 
+/* Utility Elements */
+.hidden-gradient-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.timeline-heading {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.timeline-heading--cyan {
+    color: var(--accent-cyan);
+}
+
+.timeline-heading--purple {
+    color: var(--accent-purple);
+    margin-top: 40px;
+}
+
+.footer-note {
+    text-align: center;
+    margin-top: 30px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
 /* Footer */
 .footer {
     background: rgba(0, 0, 0, 0.3);

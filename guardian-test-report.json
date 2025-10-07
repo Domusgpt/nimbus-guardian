@@ -1,43 +1,26 @@
 {
-  "timestamp": "2025-09-30T13:09:57.848Z",
+  "timestamp": "2025-10-07T19:29:39.297Z",
   "project": "intelligent-cloud-guardian",
   "security": {
     "critical": 0,
-    "high": 1,
-    "medium": 1,
+    "high": 0,
+    "medium": 0,
     "warnings": 3,
-    "issues": [
-      {
-        "id": "gitignore-missing",
-        "severity": "HIGH",
-        "category": "Security",
-        "message": ".gitignore missing critical patterns",
-        "details": [
-          ".env.*",
-          "*.env",
-          "dist/",
-          "build/",
-          "logs/",
-          "serviceAccountKey.json",
-          "*credentials*.json",
-          "*.pem",
-          "*.key"
-        ],
-        "autoFixable": true,
-        "needsExplanation": false
-      },
-      {
-        "id": "no-env-example",
-        "severity": "MEDIUM",
-        "category": "Documentation",
-        "message": "Missing .env.example for team reference",
-        "autoFixable": true,
-        "needsExplanation": false
-      }
-    ]
+    "issues": []
   },
   "tools": {
     "detected": [
+      {
+        "category": "cloud",
+        "provider": "firebase",
+        "file": "firebase.json",
+        "cliRequired": {
+          "name": "firebase-tools",
+          "command": "firebase",
+          "install": "npm install -g firebase-tools",
+          "docs": "https://firebase.google.com/docs/cli"
+        }
+      },
       {
         "category": "vcs",
         "name": "git",
@@ -52,27 +35,47 @@
         "category": "package-manager",
         "name": "npm",
         "installed": true
-      },
-      {
-        "category": "containerization",
-        "name": "docker",
-        "installed": true
-      },
-      {
-        "category": "github-cli",
-        "name": "gh",
-        "installed": true
       }
     ],
-    "missing": [],
+    "missing": [
+      {
+        "id": "firebase-tools",
+        "category": "cli",
+        "provider": "firebase",
+        "cli": "firebase-tools",
+        "name": "firebase-tools",
+        "command": "firebase",
+        "install": "npm install -g firebase-tools",
+        "docs": "https://firebase.google.com/docs/cli",
+        "reason": "firebase detected but CLI not installed"
+      },
+      {
+        "id": "docker",
+        "category": "containerization",
+        "name": "docker",
+        "reason": "docker is required but not installed"
+      }
+    ],
     "recommendations": [
       {
         "category": "testing",
-        "type": "setup",
-        "priority": "high",
-        "reason": "No testing setup detected",
-        "suggestion": "Add testing to ensure code quality",
-        "autoSetup": true
+        "type": "framework",
+        "reason": "Found test directory but no testing framework",
+        "suggestion": "Install a testing framework",
+        "options": [
+          {
+            "name": "jest",
+            "install": "npm install --save-dev jest"
+          },
+          {
+            "name": "vitest",
+            "install": "npm install --save-dev vitest"
+          },
+          {
+            "name": "mocha",
+            "install": "npm install --save-dev mocha chai"
+          }
+        ]
       },
       {
         "category": "cicd",

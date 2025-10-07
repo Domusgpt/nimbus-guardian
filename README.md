@@ -148,6 +148,17 @@ Opens at http://localhost:3333 with:
 - Issue tracking
 - AI-powered insights
 
+#### Allow additional dashboard origins
+
+The dashboard APIs only trust the local loopback origins by default. If you embed the UI inside another trusted site (for example, an internal developer portal served from `https://portal.example.com`), set the `GUARDIAN_DASHBOARD_ALLOWED_ORIGINS` environment variable before running `nimbus dashboard`.
+
+```bash
+export GUARDIAN_DASHBOARD_ALLOWED_ORIGINS="https://portal.example.com"
+nimbus dashboard
+```
+
+You can provide multiple comma- or newline-separated origins, but every entry must be an `http://` or `https://` origin. Unrecognized values are ignored for safety.
+
 ---
 
 ## Getting API Keys

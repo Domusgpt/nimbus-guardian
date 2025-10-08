@@ -18,6 +18,7 @@ require('dotenv').config({ path: path.join(process.cwd(), '.guardian', '.env') }
 const GuardianEngine = require('./guardian-engine');
 const AIAssistant = require('./ai-assistant');
 const setup = require('./setup');
+const { readConfig } = require('./lib/config-utils');
 
 program
     .name('nimbus')
@@ -598,13 +599,7 @@ program
 // Helper functions
 
 async function loadConfig() {
-    const configPath = path.join(process.cwd(), '.guardian', 'config.json');
-
-    try {
-        return await fs.readJson(configPath);
-    } catch {
-        return null;
-    }
+    return await readConfig(process.cwd());
 }
 
 function displayResults(results, experienceLevel) {

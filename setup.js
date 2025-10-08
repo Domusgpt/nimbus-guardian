@@ -11,6 +11,27 @@ const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
 const boxen = require('boxen');
+const { derivePlatform } = require('./lib/platform-utils');
+
+function createConfigFromAnswers(answers) {
+    const platform = derivePlatform(answers.cloudProvider);
+
+    const config = {
+        projectName: answers.projectName,
+        experienceLevel: answers.experience,
+        preferredProvider: answers.aiProvider,
+        platform: platform.slug,
+        platformLabel: platform.label,
+        setupDate: new Date().toISOString()
+    };
+
+    // Legacy fields for backward compatibility with older versions
+    config.experience = config.experienceLevel;
+    config.aiProvider = config.preferredProvider;
+    config.cloudProvider = platform.label;
+
+    return config;
+}
 
 async function setup() {
     console.clear();
@@ -101,13 +122,7 @@ async function setup() {
     }
 
     // Create configuration
-    const config = {
-        projectName: answers.projectName,
-        experience: answers.experience,
-        cloudProvider: answers.cloudProvider,
-        aiProvider: answers.aiProvider,
-        setupDate: new Date().toISOString()
-    };
+    const config = createConfigFromAnswers(answers);
 
     const configDir = path.join(process.cwd(), '.guardian');
     await fs.ensureDir(configDir);
@@ -123,6 +138,12 @@ ${answers.geminiApiKey ? `GEMINI_API_KEY=${answers.geminiApiKey}` : '# GEMINI_AP
 # Project Configuration
 PROJECT_NAME=${answers.projectName}
 EXPERIENCE_LEVEL=${answers.experience}
+PREFERRED_PROVIDER=${answers.aiProvider}
+PLATFORM=${config.platform || ''}
+
+# Legacy compatibility
+AI_PROVIDER=${answers.aiProvider}
+CLOUD_PROVIDER=${config.cloudProvider || ''}
 `;
 
     await fs.writeFile(path.join(configDir, '.env'), envContent);
@@ -320,3 +341,4 @@ if (require.main === module) {
 }
 
 module.exports = setup;
+module.exports.createConfigFromAnswers = createConfigFromAnswers;

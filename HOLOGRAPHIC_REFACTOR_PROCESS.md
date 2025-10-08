@@ -1,0 +1,54 @@
+# Holographic Dashboard Refactor Process Log
+
+This log tracks the staged refactor of the holographic dashboard frontend. Each entry captures the intent for a working session, the major changes that landed, and any follow-up items that rolled forward.
+
+## Guiding Objectives
+- Keep the cinematic UI experience intact while making the codebase maintainable and testable.
+- Consolidate shared behaviors into importable modules so future dashboards can reuse them.
+- Add automated coverage for networking, assistant, and UI edge cases as the code becomes more modular.
+- Document API expectations and architectural decisions alongside the code so backend teams can integrate with confidence.
+
+## Session Timeline
+### Session 1 — API contracts documentation (Completed)
+- Authored `DASHBOARD_API_CONTRACTS.md` detailing the response shapes, cache semantics, and error expectations for each card.
+- Outcome: Backend implementers now have a canonical contract reference, unblocking server work.
+
+### Session 2 — Script modularization (Completed)
+- Extracted the monolithic inline `<script>` into dedicated motion, networking, and assistant modules.
+- Wired a module-based orchestrator from the HTML shell to preserve behavior without inline handlers.
+- Outcome: Frontend logic is now split by concern, making targeted changes and testing feasible.
+
+### Session 3 — Shared loaders and tests (Completed)
+- Introduced shared card fallback helpers so status, tools, deployments, and GitHub loaders react to offline/cache states consistently.
+- Added Vitest with jsdom plus unit coverage for assistant actions and networking behaviors, exposing an `npm test` workflow.
+- Outcome: Core loaders share a single source of truth for fallback UX, and new regressions surface through automated tests.
+
+### Session 4 — UI utilities & process hygiene (Completed)
+- Extracted toast, loading overlay, badge, and timestamp meta helpers into `public/js/holographic/ui.js`, rewiring the orchestrator to import them instead of redefining inline utilities.
+- Stubbed noisy console errors inside Vitest assistant specs to keep the test run output readable.
+- Established this process log so each follow-up session captures goals, shipped changes, and rolled-over ideas.
+
+### Session 5 — Assistant lazy-loading & loader utilities (Completed)
+- Introduced `public/js/holographic/assistant-loader.js` to dynamically import assistant logic, cache the actions, and expose preload/invocation helpers.
+- Updated `dashboard-main.js` to lazily load assistant features, wrap auto-fix/install handlers with error toasts, and idle-preload the module after initial paint.
+- Added Vitest coverage around the assistant loader to ensure caching, error surfacing, and idle preloads behave as expected.
+
+### Session 6 — Deferred heavy card refreshes (Completed)
+- Extracted a dedicated `createRefreshScheduler` utility to coordinate interval timers, idle deferrals, and visibility-aware execution for dashboard refresh cycles.
+- Updated `dashboard-main.js` to defer GitHub and deployment refreshes until the main thread is idle, reducing contention with the initial status scan.
+- Added Vitest coverage for the scheduler to prove idle fallback timing, document visibility guards, and cancellation behaviors work as intended.
+
+### Session 7 — Shared utilities & UI coverage (Completed)
+- Promoted toast notifications and timestamp parsing/formatting into `public/js/shared` modules so future dashboards can consume them without duplicating holographic-specific code.
+- Rewired the networking layer to depend on the shared time helpers, keeping exports stable while enabling reuse.
+- Added Vitest coverage for the shared time utilities and UI helpers to document the DOM behaviors and prevent regressions.
+
+### Session 8 — Clipboard helpers & fallback coverage (Completed)
+- Added a shared `copyText` utility with navigator and execCommand fallbacks so dashboards can offer reliable clipboard affordances even in restricted browsers.
+- Wired the tooling card to surface a "Copy command" ghost button next to install actions, reusing the new helper and toast notifications for success/error feedback.
+- Expanded Vitest coverage to exercise the clipboard helper and the card fallback renderer to keep regressions from sneaking in as modules evolve.
+
+## Upcoming Focus Candidates
+- Extend Vitest coverage to card rendering helpers and motion behaviors, including offline timelines.
+- Evaluate bundling strategy (Vite/ESBuild) for production readiness once module boundaries stabilize.
+- Monitor deferred refresh timings across devices and tune idle timeouts or progressive loading for remaining cards.

@@ -9,7 +9,41 @@ const GuardianEngine = require('./guardian-engine');
 const setup = require('./setup');
 const { readConfig } = require('./lib/config-utils');
 
+const ENV_KEYS = [
+    'PROJECT_NAME',
+    'EXPERIENCE_LEVEL',
+    'PREFERRED_PROVIDER',
+    'AI_PROVIDER',
+    'PLATFORM',
+    'CLOUD_PROVIDER',
+    'CLAUDE_API_KEY',
+    'GEMINI_API_KEY'
+];
+
+function snapshotEnv(keys) {
+    return keys.reduce((acc, key) => {
+        if (Object.prototype.hasOwnProperty.call(process.env, key)) {
+            acc[key] = process.env[key];
+        } else {
+            acc[key] = undefined;
+        }
+        return acc;
+    }, {});
+}
+
+function restoreEnv(snapshot) {
+    for (const [key, value] of Object.entries(snapshot)) {
+        if (value === undefined) {
+            delete process.env[key];
+        } else {
+            process.env[key] = value;
+        }
+    }
+}
+
 async function run() {
+    const originalEnv = snapshotEnv(ENV_KEYS);
+
     const answers = {
         projectName: 'regression-project',
         experience: 'advanced',
@@ -17,49 +51,83 @@ async function run() {
         aiProvider: 'claude'
     };
 
-    // Case 1: Fresh config produced by setup helper
-    const freshDir = await fs.mkdtemp(path.join(os.tmpdir(), 'guardian-config-fresh-'));
-    const freshConfigDir = path.join(freshDir, '.guardian');
-    await fs.ensureDir(freshConfigDir);
+    try {
+        // Case 1: Fresh config produced by setup helper
+        const freshDir = await fs.mkdtemp(path.join(os.tmpdir(), 'guardian-config-fresh-'));
+        const freshConfigDir = path.join(freshDir, '.guardian');
+        await fs.ensureDir(freshConfigDir);
 
-    const freshConfig = setup.createConfigFromAnswers(answers);
-    await fs.writeJson(path.join(freshConfigDir, 'config.json'), freshConfig, { spaces: 2 });
+        const freshConfig = setup.createConfigFromAnswers(answers);
+        await fs.writeJson(path.join(freshConfigDir, 'config.json'), freshConfig, { spaces: 2 });
 
-    const normalizedFresh = await readConfig(freshDir);
-    assert.ok(normalizedFresh, 'Fresh config should load');
-    assert.strictEqual(normalizedFresh.experienceLevel, answers.experience, 'experienceLevel should match wizard answer');
-    assert.strictEqual(normalizedFresh.preferredProvider, answers.aiProvider, 'preferredProvider should match wizard answer');
-    assert.strictEqual(normalizedFresh.platform, answers.cloudProvider, 'platform should match wizard answer');
+        const normalizedFresh = await readConfig(freshDir);
+        assert.ok(normalizedFresh, 'Fresh config should load');
+        assert.strictEqual(normalizedFresh.experienceLevel, answers.experience, 'experienceLevel should match wizard answer');
+        assert.strictEqual(normalizedFresh.preferredProvider, answers.aiProvider, 'preferredProvider should match wizard answer');
+        assert.strictEqual(normalizedFresh.platform, answers.cloudProvider, 'platform should match wizard answer');
 
-    const engineFromFresh = new GuardianEngine(freshDir, normalizedFresh);
-    assert.strictEqual(engineFromFresh.config.experienceLevel, answers.experience, 'GuardianEngine config should include experienceLevel');
-    assert.strictEqual(engineFromFresh.ai.config.preferredProvider, answers.aiProvider, 'GuardianEngine AI should honor preferred provider');
+        const engineFromFresh = new GuardianEngine(freshDir, normalizedFresh);
+        assert.strictEqual(engineFromFresh.config.experienceLevel, answers.experience, 'GuardianEngine config should include experienceLevel');
+        assert.strictEqual(engineFromFresh.ai.config.preferredProvider, answers.aiProvider, 'GuardianEngine AI should honor preferred provider');
 
-    // Case 2: Legacy config missing the new keys
-    const legacyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'guardian-config-legacy-'));
-    const legacyConfigDir = path.join(legacyDir, '.guardian');
-    await fs.ensureDir(legacyConfigDir);
+        // Case 2: Legacy config missing the new keys
+        const legacyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'guardian-config-legacy-'));
+        const legacyConfigDir = path.join(legacyDir, '.guardian');
+        await fs.ensureDir(legacyConfigDir);
 
-    const legacyConfig = { ...freshConfig };
-    delete legacyConfig.experienceLevel;
-    delete legacyConfig.preferredProvider;
-    delete legacyConfig.platform;
-    await fs.writeJson(path.join(legacyConfigDir, 'config.json'), legacyConfig, { spaces: 2 });
+        const legacyConfig = { ...freshConfig };
+        delete legacyConfig.experienceLevel;
+        delete legacyConfig.preferredProvider;
+        delete legacyConfig.platform;
+        await fs.writeJson(path.join(legacyConfigDir, 'config.json'), legacyConfig, { spaces: 2 });
 
-    const normalizedLegacy = await readConfig(legacyDir);
-    assert.ok(normalizedLegacy, 'Legacy config should load');
-    assert.strictEqual(normalizedLegacy.experienceLevel, answers.experience, 'Legacy config should normalize experienceLevel');
-    assert.strictEqual(normalizedLegacy.preferredProvider, answers.aiProvider, 'Legacy config should normalize preferredProvider');
-    assert.strictEqual(normalizedLegacy.platform, answers.cloudProvider, 'Legacy config should normalize platform');
+        const normalizedLegacy = await readConfig(legacyDir);
+        assert.ok(normalizedLegacy, 'Legacy config should load');
+        assert.strictEqual(normalizedLegacy.experienceLevel, answers.experience, 'Legacy config should normalize experienceLevel');
+        assert.strictEqual(normalizedLegacy.preferredProvider, answers.aiProvider, 'Legacy config should normalize preferredProvider');
+        assert.strictEqual(normalizedLegacy.platform, answers.cloudProvider, 'Legacy config should normalize platform');
 
-    const engineFromLegacy = new GuardianEngine(legacyDir, normalizedLegacy);
-    assert.strictEqual(engineFromLegacy.config.experienceLevel, answers.experience, 'GuardianEngine should normalize legacy experience');
-    assert.strictEqual(engineFromLegacy.ai.config.preferredProvider, answers.aiProvider, 'GuardianEngine should normalize legacy preferred provider');
+        const engineFromLegacy = new GuardianEngine(legacyDir, normalizedLegacy);
+        assert.strictEqual(engineFromLegacy.config.experienceLevel, answers.experience, 'GuardianEngine should normalize legacy experience');
+        assert.strictEqual(engineFromLegacy.ai.config.preferredProvider, answers.aiProvider, 'GuardianEngine should normalize legacy preferred provider');
 
-    await fs.remove(freshDir);
-    await fs.remove(legacyDir);
+        // Case 3: Environment fallback for missing config fields
+        restoreEnv(originalEnv);
 
-    console.log('✅ GuardianEngine respects config from setup and legacy files');
+        const envDir = await fs.mkdtemp(path.join(os.tmpdir(), 'guardian-config-env-'));
+        const envConfigDir = path.join(envDir, '.guardian');
+        await fs.ensureDir(envConfigDir);
+
+        await fs.writeJson(path.join(envConfigDir, 'config.json'), { projectName: answers.projectName }, { spaces: 2 });
+
+        const envFile = `PROJECT_NAME=${answers.projectName}
+EXPERIENCE_LEVEL=${answers.experience}
+PREFERRED_PROVIDER=${answers.aiProvider}
+PLATFORM=${answers.cloudProvider}
+
+AI_PROVIDER=${answers.aiProvider}
+CLOUD_PROVIDER=${answers.cloudProvider}
+`;
+        await fs.writeFile(path.join(envConfigDir, '.env'), envFile);
+
+        const normalizedEnv = await readConfig(envDir);
+        assert.ok(normalizedEnv, 'Environment-backed config should load');
+        assert.strictEqual(normalizedEnv.projectName, answers.projectName, 'Environment should provide projectName');
+        assert.strictEqual(normalizedEnv.experienceLevel, answers.experience, 'Environment should provide experienceLevel');
+        assert.strictEqual(normalizedEnv.preferredProvider, answers.aiProvider, 'Environment should provide preferredProvider');
+        assert.strictEqual(normalizedEnv.platform, answers.cloudProvider, 'Environment should provide platform');
+
+        const engineFromEnv = new GuardianEngine(envDir, normalizedEnv);
+        assert.strictEqual(engineFromEnv.ai.config.preferredProvider, answers.aiProvider, 'GuardianEngine should honor provider from environment');
+
+        await fs.remove(freshDir);
+        await fs.remove(legacyDir);
+        await fs.remove(envDir);
+
+        console.log('✅ GuardianEngine respects config from setup, legacy files, and environment fallbacks');
+    } finally {
+        restoreEnv(originalEnv);
+    }
 }
 
 run().catch(error => {

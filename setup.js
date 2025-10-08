@@ -136,6 +136,10 @@ PROJECT_NAME=${answers.projectName}
 EXPERIENCE_LEVEL=${answers.experience}
 PREFERRED_PROVIDER=${answers.aiProvider}
 PLATFORM=${answers.cloudProvider}
+
+# Legacy compatibility
+AI_PROVIDER=${answers.aiProvider}
+CLOUD_PROVIDER=${answers.cloudProvider}
 `;
 
     await fs.writeFile(path.join(configDir, '.env'), envContent);

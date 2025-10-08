@@ -6,6 +6,8 @@
  * Paul@clearseassolutions.com
  */
 
+import { copyTextToClipboard } from './js/shared/clipboard.js';
+
 // Particle System
 function initParticles() {
     const container = document.getElementById('particles-container');
@@ -159,7 +161,7 @@ function initCodeCopy() {
         button.addEventListener('click', async () => {
             const code = codeBlock.textContent;
             try {
-                await navigator.clipboard.writeText(code);
+                await copyTextToClipboard(code, { documentRef: document, windowRef: window });
                 button.textContent = '✓ Copied!';
                 button.style.background = 'rgba(34, 211, 238, 0.4)';
 
@@ -168,6 +170,7 @@ function initCodeCopy() {
                     button.style.background = 'rgba(34, 211, 238, 0.2)';
                 }, 2000);
             } catch (err) {
+                console.error('Failed to copy code example', err);
                 button.textContent = '✗ Failed';
                 setTimeout(() => {
                     button.textContent = 'Copy';

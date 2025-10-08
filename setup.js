@@ -11,20 +11,24 @@ const fs = require('fs-extra');
 const path = require('path');
 const chalk = require('chalk');
 const boxen = require('boxen');
+const { derivePlatform } = require('./lib/platform-utils');
 
 function createConfigFromAnswers(answers) {
+    const platform = derivePlatform(answers.cloudProvider);
+
     const config = {
         projectName: answers.projectName,
         experienceLevel: answers.experience,
         preferredProvider: answers.aiProvider,
-        platform: answers.cloudProvider,
+        platform: platform.slug,
+        platformLabel: platform.label,
         setupDate: new Date().toISOString()
     };
 
     // Legacy fields for backward compatibility with older versions
     config.experience = config.experienceLevel;
     config.aiProvider = config.preferredProvider;
-    config.cloudProvider = config.platform;
+    config.cloudProvider = platform.label;
 
     return config;
 }
@@ -135,11 +139,11 @@ ${answers.geminiApiKey ? `GEMINI_API_KEY=${answers.geminiApiKey}` : '# GEMINI_AP
 PROJECT_NAME=${answers.projectName}
 EXPERIENCE_LEVEL=${answers.experience}
 PREFERRED_PROVIDER=${answers.aiProvider}
-PLATFORM=${answers.cloudProvider}
+PLATFORM=${config.platform || ''}
 
 # Legacy compatibility
 AI_PROVIDER=${answers.aiProvider}
-CLOUD_PROVIDER=${answers.cloudProvider}
+CLOUD_PROVIDER=${config.cloudProvider || ''}
 `;
 
     await fs.writeFile(path.join(configDir, '.env'), envContent);

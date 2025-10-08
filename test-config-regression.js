@@ -50,6 +50,7 @@ async function run() {
         cloudProvider: 'Google Cloud (Firebase)',
         aiProvider: 'claude'
     };
+    const expectedPlatformSlug = 'firebase';
 
     try {
         // Case 1: Fresh config produced by setup helper
@@ -58,13 +59,16 @@ async function run() {
         await fs.ensureDir(freshConfigDir);
 
         const freshConfig = setup.createConfigFromAnswers(answers);
+        assert.strictEqual(freshConfig.platform, expectedPlatformSlug, 'setup should store normalized platform slug');
+        assert.strictEqual(freshConfig.cloudProvider, answers.cloudProvider, 'setup should keep legacy cloudProvider label');
         await fs.writeJson(path.join(freshConfigDir, 'config.json'), freshConfig, { spaces: 2 });
 
         const normalizedFresh = await readConfig(freshDir);
         assert.ok(normalizedFresh, 'Fresh config should load');
         assert.strictEqual(normalizedFresh.experienceLevel, answers.experience, 'experienceLevel should match wizard answer');
         assert.strictEqual(normalizedFresh.preferredProvider, answers.aiProvider, 'preferredProvider should match wizard answer');
-        assert.strictEqual(normalizedFresh.platform, answers.cloudProvider, 'platform should match wizard answer');
+        assert.strictEqual(normalizedFresh.platform, expectedPlatformSlug, 'platform should be normalized to slug');
+        assert.strictEqual(normalizedFresh.cloudProvider, answers.cloudProvider, 'cloudProvider should retain human label');
 
         const engineFromFresh = new GuardianEngine(freshDir, normalizedFresh);
         assert.strictEqual(engineFromFresh.config.experienceLevel, answers.experience, 'GuardianEngine config should include experienceLevel');
@@ -85,7 +89,8 @@ async function run() {
         assert.ok(normalizedLegacy, 'Legacy config should load');
         assert.strictEqual(normalizedLegacy.experienceLevel, answers.experience, 'Legacy config should normalize experienceLevel');
         assert.strictEqual(normalizedLegacy.preferredProvider, answers.aiProvider, 'Legacy config should normalize preferredProvider');
-        assert.strictEqual(normalizedLegacy.platform, answers.cloudProvider, 'Legacy config should normalize platform');
+        assert.strictEqual(normalizedLegacy.platform, expectedPlatformSlug, 'Legacy config should normalize platform slug');
+        assert.strictEqual(normalizedLegacy.cloudProvider, answers.cloudProvider, 'Legacy config should preserve cloudProvider label');
 
         const engineFromLegacy = new GuardianEngine(legacyDir, normalizedLegacy);
         assert.strictEqual(engineFromLegacy.config.experienceLevel, answers.experience, 'GuardianEngine should normalize legacy experience');
@@ -103,7 +108,7 @@ async function run() {
         const envFile = `PROJECT_NAME=${answers.projectName}
 EXPERIENCE_LEVEL=${answers.experience}
 PREFERRED_PROVIDER=${answers.aiProvider}
-PLATFORM=${answers.cloudProvider}
+PLATFORM=${expectedPlatformSlug}
 
 AI_PROVIDER=${answers.aiProvider}
 CLOUD_PROVIDER=${answers.cloudProvider}
@@ -115,7 +120,8 @@ CLOUD_PROVIDER=${answers.cloudProvider}
         assert.strictEqual(normalizedEnv.projectName, answers.projectName, 'Environment should provide projectName');
         assert.strictEqual(normalizedEnv.experienceLevel, answers.experience, 'Environment should provide experienceLevel');
         assert.strictEqual(normalizedEnv.preferredProvider, answers.aiProvider, 'Environment should provide preferredProvider');
-        assert.strictEqual(normalizedEnv.platform, answers.cloudProvider, 'Environment should provide platform');
+        assert.strictEqual(normalizedEnv.platform, expectedPlatformSlug, 'Environment should provide platform slug');
+        assert.strictEqual(normalizedEnv.cloudProvider, answers.cloudProvider, 'Environment should provide cloudProvider label');
 
         const engineFromEnv = new GuardianEngine(envDir, normalizedEnv);
         assert.strictEqual(engineFromEnv.ai.config.preferredProvider, answers.aiProvider, 'GuardianEngine should honor provider from environment');

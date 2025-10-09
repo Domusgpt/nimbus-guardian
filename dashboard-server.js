@@ -103,7 +103,8 @@ class DashboardServer {
                 const engine = new GuardianEngine(this.projectPath, this.config);
                 const results = await engine.analyze({ aiExplanations: false });
                 res.writeHead(200);
-                res.end(JSON.stringify(results));
+                const generatedAt = new Date().toISOString();
+                res.end(JSON.stringify({ ...results, generatedAt }));
                 return;
             }
 
@@ -112,7 +113,8 @@ class DashboardServer {
                 const detector = new ToolDetector(this.projectPath);
                 const tools = await detector.analyze();
                 res.writeHead(200);
-                res.end(JSON.stringify(tools));
+                const generatedAt = new Date().toISOString();
+                res.end(JSON.stringify({ ...tools, generatedAt }));
                 return;
             }
 
@@ -123,7 +125,8 @@ class DashboardServer {
                 const engine = new GuardianEngine(this.projectPath, this.config);
                 const result = await engine.autoFix(issueId);
                 res.writeHead(200);
-                res.end(JSON.stringify(result));
+                const generatedAt = new Date().toISOString();
+                res.end(JSON.stringify({ ...result, generatedAt }));
                 return;
             }
 
@@ -138,7 +141,8 @@ class DashboardServer {
                 });
                 const response = await ai.ask(message);
                 res.writeHead(200);
-                res.end(JSON.stringify(response));
+                const generatedAt = new Date().toISOString();
+                res.end(JSON.stringify({ ...response, generatedAt }));
                 return;
             }
 
@@ -197,11 +201,13 @@ class DashboardServer {
     }
 
     async getProjectStatus() {
+        const generatedAt = new Date().toISOString();
         const status = {
             projectName: this.config.projectName,
             path: this.projectPath,
             experienceLevel: this.config.experienceLevel,
-            timestamp: new Date().toISOString()
+            timestamp: generatedAt,
+            generatedAt
         };
 
         // Package.json info
@@ -260,15 +266,16 @@ class DashboardServer {
                 return { hash, message: message.join(' ') };
             });
 
-            return { branch, status, commits };
+            return { branch, status, commits, generatedAt: new Date().toISOString() };
         } catch (error) {
-            return { error: 'Not a git repository' };
+            return { error: 'Not a git repository', generatedAt: new Date().toISOString() };
         }
     }
 
     async getDeploymentHistory() {
         // Check for Firebase deployments
         const deployments = [];
+        const generatedAt = new Date().toISOString();
 
         try {
             const firebase = execSync('firebase projects:list --json', {
@@ -279,7 +286,8 @@ class DashboardServer {
             const projects = JSON.parse(firebase);
             deployments.push({
                 platform: 'firebase',
-                projects: projects.results || []
+                projects: projects.results || [],
+                generatedAt
             });
         } catch {
             // Firebase not configured or not installed
@@ -294,7 +302,8 @@ class DashboardServer {
             });
             deployments.push({
                 platform: 'vercel',
-                deployments: JSON.parse(vercel)
+                deployments: JSON.parse(vercel),
+                generatedAt
             });
         } catch {
             // Vercel not configured
@@ -314,37 +323,54 @@ class DashboardServer {
             const match = remote.match(/github\.com[:/](.+?)\/(.+?)(\.git)?$/);
             if (match) {
                 const [, owner, repo] = match;
+                const generatedAt = new Date().toISOString();
+                const repoName = repo.replace('.git', '');
 
                 // Try to get GitHub info via gh CLI
                 try {
                     const info = execSync(`gh repo view ${owner}/${repo} --json name,description,url,isPrivate,stargazerCount`, {
                         encoding: 'utf-8'
                     });
-                    return JSON.parse(info);
+                    const parsed = JSON.parse(info);
+                    return {
+                        name: parsed.name || repoName,
+                        owner,
+                        repo: repoName,
+                        description: parsed.description || null,
+                        url: parsed.url || `https://github.com/${owner}/${repoName}`,
+                        isPrivate: parsed.isPrivate ?? null,
+                        stargazerCount: parsed.stargazerCount ?? null,
+                        generatedAt
+                    };
                 } catch {
                     return {
                         owner,
-                        repo: repo.replace('.git', ''),
-                        url: `https://github.com/${owner}/${repo}`
+                        repo: repoName,
+                        name: repoName,
+                        url: `https://github.com/${owner}/${repoName}`,
+                        isPrivate: null,
+                        stargazerCount: null,
+                        generatedAt
                     };
                 }
             }
 
-            return { error: 'Not a GitHub repository' };
+            return { error: 'Not a GitHub repository', generatedAt: new Date().toISOString() };
         } catch {
-            return { error: 'No git remote configured' };
+            return { error: 'No git remote configured', generatedAt: new Date().toISOString() };
         }
     }
 
     async installTool(command) {
+        const generatedAt = new Date().toISOString();
         try {
             execSync(command, {
                 cwd: this.projectPath,
                 stdio: 'inherit'
             });
-            return { success: true, message: 'Tool installed successfully' };
+            return { success: true, message: 'Tool installed successfully', generatedAt };
         } catch (error) {
-            return { success: false, message: error.message };
+            return { success: false, message: error.message, generatedAt };
         }
     }
 

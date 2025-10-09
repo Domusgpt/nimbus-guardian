@@ -57,6 +57,14 @@ users/
         fixes: number
         lastSyncAt: timestamp
 
+    mailQueue/
+      {docId}/
+        to: string
+        template: string
+        data: object
+        status: 'pending' | 'sent'
+        createdAt: timestamp
+
     sessions/
       {sessionId}/
         machineId: string
@@ -86,6 +94,15 @@ licenses/
 - Assign userId if first activation
 - Add machineId to allowed list
 **Return**: `{ valid: boolean, tier: string, userId: string }`
+
+### 1b. `registerAccount` (HTTPS Callable)
+**Trigger**: CLI setup/registration
+**Input**: `{ email, projectName?, useCase?, machineId?, licenseKey? }`
+**Process**:
+- Normalize email and look up existing user (by `userId` or email) to reuse machine history
+- Create/update Firestore `users/{userId}` record with account metadata, machine IDs, and optional license info
+- Link license document back to the user and log `ACCOUNT_REGISTERED`/`ACCOUNT_SYNCED` admin analytics
+**Return**: `{ userId: string, tier: string, licenseLinked: boolean }`
 
 ### 2. `syncUsage` (HTTPS Callable)
 **Trigger**: CLI calls on every scan (FREE: daily, PRO: real-time)
@@ -117,9 +134,10 @@ licenses/
 **Trigger**: Stripe payment succeeded
 **Input**: Stripe webhook payload
 **Process**:
-- Parse payment metadata (email, tier)
-- Call `generateLicenseKey`
-- Email license to customer
+- Verify Stripe signature using `STRIPE_WEBHOOK_SECRET`
+- Parse payment metadata (email, tier, machine limits)
+- Call the shared license service to create the Firestore record + analytics event
+- Queue transactional email in `mailQueue` for the customer license drop
 **Return**: 200 OK
 
 ---
@@ -168,6 +186,33 @@ async register(email) {
   }
 
   return account;
+}
+```
+
+### Current Implementation Snapshot
+```javascript
+// lib/account-manager.js (excerpt)
+const response = await fetch(`${FUNCTION_BASE_URL}/registerAccount`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    data: {
+      email: account.email,
+      projectName: account.projectName,
+      useCase: account.useCase,
+      machineId: account.machineId
+    }
+  })
+});
+
+const result = await response.json();
+
+if (!result.error) {
+  account.id = result.result.userId;
+  account.tier = result.result.tier;
+  account.cloud = { synced: true, lastSyncedAt: new Date().toISOString() };
+} else {
+  account.cloud = { synced: false, lastError: result.error.message };
 }
 ```
 

@@ -148,6 +148,32 @@ Opens at http://localhost:3333 with:
 - Issue tracking
 - AI-powered insights
 
+#### Allow additional dashboard origins
+
+The dashboard APIs only trust the local loopback origins by default. If you embed the UI inside another trusted site (for example, an internal developer portal served from `https://portal.example.com`), set the `GUARDIAN_DASHBOARD_ALLOWED_ORIGINS` environment variable before running `nimbus dashboard`.
+
+```bash
+export GUARDIAN_DASHBOARD_ALLOWED_ORIGINS="https://portal.example.com"
+nimbus dashboard
+```
+
+You can provide multiple comma- or newline-separated origins, but every entry must be an `http://` or `https://` origin. Unrecognized values are ignored for safety.
+
+#### Observability snapshots
+
+Nimbus now captures lightweight session and throttling telemetry while the dashboard runs. The built-in cards surface the live metrics, and operators can retrieve the raw snapshot at any time via:
+
+```
+GET /api/observability
+```
+
+The JSON response includes:
+
+- Session lifecycle counters (active sessions, creations, touches, expirations) with ISO timestamps.
+- Rate limit outcomes for each profile (actions, scans, chat, installs) with anonymized request fingerprints and last retry guidance.
+
+All identifiers are hashed before exposure so observability tooling can monitor behavior without leaking cookies or IP addresses.
+
 ---
 
 ## Getting API Keys

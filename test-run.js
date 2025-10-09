@@ -187,13 +187,13 @@ async function runTest() {
 
     console.log('\n💡 Next Steps:');
     if (securityResults.issues.filter(i => i.autoFixable).length > 0) {
-        console.log('   1. Run: guardian fix (to auto-fix issues)');
+        console.log('   1. Run: nimbus fix (to auto-fix issues)');
     }
     if (toolResults.missing.length > 0) {
         console.log('   2. Install missing tools (see above)');
     }
-    console.log('   3. Launch dashboard: guardian dashboard');
-    console.log('   4. Try AI chat: guardian chat\n');
+    console.log('   3. Launch dashboard: nimbus dashboard');
+    console.log('   4. Try AI chat: nimbus chat\n');
 
     // Generate report file
     const report = {

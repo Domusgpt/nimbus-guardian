@@ -154,6 +154,36 @@
             text-align: center;
             margin: 20px 0;
         }
+
+        .success-text {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 18px;
+            color: #28a745;
+        }
+
+        .metric-value--success {
+            color: #28a745;
+        }
+
+        .success-banner {
+            margin-top: 20px;
+            padding: 15px;
+            background: #d4edda;
+            border-radius: 8px;
+            color: #155724;
+        }
+
+        .next-steps-list {
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+
+        .next-steps-code {
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -189,6 +219,34 @@
                 <div class="metric">
                     <span class="metric-label">Branch</span>
                     <span class="metric-value">main</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Sessions</span>
+                    <span class="metric-value">1</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Sessions Created</span>
+                    <span class="metric-value">4</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Session Touches</span>
+                    <span class="metric-value">17</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Action Blocks</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Scan Blocks</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Chat Blocks</span>
+                    <span class="metric-value">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Install Blocks</span>
+                    <span class="metric-value">0</span>
                 </div>
             </div>
 
@@ -248,14 +306,14 @@
                             <strong>HIGH:</strong> .gitignore missing critical patterns
                             <br><small>Missing: .env.*, *.env, dist/, logs/, *.pem, *.key</small>
                         </div>
-                        <button class="btn" onclick="alert('Run: guardian fix')">Fix</button>
+                        <button class="btn" data-fix-message="Run: nimbus fix">Fix</button>
                     </li>
                     <li class="issue-item">
                         <span class="issue-icon">🟡</span>
                         <div class="issue-text">
                             <strong>MEDIUM:</strong> Missing .env.example for team reference
                         </div>
-                        <button class="btn" onclick="alert('Run: guardian fix')">Fix</button>
+                        <button class="btn" data-fix-message="Run: nimbus fix">Fix</button>
                     </li>
                     <li class="issue-item">
                         <span class="issue-icon">💡</span>
@@ -285,7 +343,7 @@
             <div class="card full-width">
                 <h2>✅ Guardian Self-Test Results</h2>
                 <div class="success-icon">🎉</div>
-                <p style="text-align: center; margin: 10px 0; font-size: 18px; color: #28a745;">
+                <p class="success-text">
                     <strong>Guardian Works Perfectly!</strong>
                 </p>
                 <div class="metric">
@@ -302,9 +360,9 @@
                 </div>
                 <div class="metric">
                     <span class="metric-label">Overall Grade</span>
-                    <span class="metric-value" style="color: #28a745;">A-</span>
+                    <span class="metric-value metric-value--success">A-</span>
                 </div>
-                <p style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px; color: #155724;">
+                <p class="success-banner">
                     <strong>✅ Product is ready for beta users!</strong><br>
                     All core features work correctly. Security scanning, tool detection, and smart recommendations all functioning perfectly.
                 </p>
@@ -313,9 +371,9 @@
             <!-- Next Steps -->
             <div class="card full-width">
                 <h2>🚀 Next Steps</h2>
-                <ol style="padding-left: 20px; line-height: 1.8;">
-                    <li><strong>Run auto-fixes:</strong> <code style="background: #f0f0f0; padding: 2px 8px; border-radius: 4px;">guardian fix</code></li>
-                    <li><strong>Add testing:</strong> <code style="background: #f0f0f0; padding: 2px 8px; border-radius: 4px;">npm install --save-dev jest</code></li>
+                <ol class="next-steps-list">
+                    <li><strong>Run auto-fixes:</strong> <code class="next-steps-code">nimbus fix</code></li>
+                    <li><strong>Add testing:</strong> <code class="next-steps-code">npm install --save-dev jest</code></li>
                     <li><strong>Setup CI/CD:</strong> Create .github/workflows/test.yml</li>
                     <li><strong>Test with real users:</strong> Share with 20 developers for beta testing</li>
                     <li><strong>Launch:</strong> Product Hunt, Reddit, Dev.to</li>
@@ -329,6 +387,15 @@
         console.log('Guardian Dashboard loaded');
         console.log('This is a static demo of the test results');
         console.log('For live data, run: node dashboard-server.js (after fixing the async issue)');
+
+        document.querySelectorAll('[data-fix-message]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const message = button.getAttribute('data-fix-message');
+                if (message) {
+                    alert(message);
+                }
+            });
+        });
     </script>
 </body>
 </html>

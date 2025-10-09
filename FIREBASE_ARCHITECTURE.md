@@ -57,6 +57,14 @@ users/
         fixes: number
         lastSyncAt: timestamp
 
+    mailQueue/
+      {docId}/
+        to: string
+        template: string
+        data: object
+        status: 'pending' | 'sent'
+        createdAt: timestamp
+
     sessions/
       {sessionId}/
         machineId: string
@@ -71,6 +79,59 @@ licenses/
     createdAt: timestamp
     maxMachines: number
     status: "active" | "revoked" | "expired"
+
+deploymentEvents/
+  {eventId}/
+    projectId: string
+    provider: string
+    environment: string
+    status: string
+    commit: string (optional)
+    trigger: string (optional)
+    url: string (optional)
+    version: string (optional)
+    release: string (optional)
+    metadata: object
+    startedAt: timestamp
+    completedAt: timestamp (optional)
+    recordedAt: timestamp
+
+githubInsights/
+  {snapshotId}/
+    projectId: string
+    owner: string
+    repo: string
+    stars: number
+    forks: number
+    openIssues: number
+    openPullRequests: number
+    watchers: number (optional)
+    defaultBranch: string (optional)
+    fetchedAt: timestamp
+    metadata: object
+
+projects/
+  {projectId}/
+    telemetry:
+      lastDeployment:
+        id: string
+        provider: string
+        environment: string
+        status: string
+        commit: string (optional)
+        trigger: string (optional)
+        recordedAt: timestamp
+      providers: array<string>
+    github:
+      owner: string
+      repo: string
+      stars: number
+      forks: number
+      openIssues: number
+      openPullRequests: number
+      watchers: number (optional)
+      defaultBranch: string (optional)
+      lastSyncedAt: timestamp
 ```
 
 ---
@@ -86,6 +147,15 @@ licenses/
 - Assign userId if first activation
 - Add machineId to allowed list
 **Return**: `{ valid: boolean, tier: string, userId: string }`
+
+### 1b. `registerAccount` (HTTPS Callable)
+**Trigger**: CLI setup/registration
+**Input**: `{ email, projectName?, useCase?, machineId?, licenseKey? }`
+**Process**:
+- Normalize email and look up existing user (by `userId` or email) to reuse machine history
+- Create/update Firestore `users/{userId}` record with account metadata, machine IDs, and optional license info
+- Link license document back to the user and log `ACCOUNT_REGISTERED`/`ACCOUNT_SYNCED` admin analytics
+**Return**: `{ userId: string, tier: string, licenseLinked: boolean }`
 
 ### 2. `syncUsage` (HTTPS Callable)
 **Trigger**: CLI calls on every scan (FREE: daily, PRO: real-time)
@@ -117,10 +187,49 @@ licenses/
 **Trigger**: Stripe payment succeeded
 **Input**: Stripe webhook payload
 **Process**:
-- Parse payment metadata (email, tier)
-- Call `generateLicenseKey`
-- Email license to customer
+- Verify Stripe signature using `STRIPE_WEBHOOK_SECRET`
+- Parse payment metadata (email, tier, machine limits)
+- Call the shared license service to create the Firestore record + analytics event
+- Queue transactional email in `mailQueue` for the customer license drop
 **Return**: 200 OK
+
+### 6. `recordDeploymentEvent` (HTTPS Callable)
+**Trigger**: CLI, CI/CD pipelines, or Firebase automation logs deployment results
+**Input**: `{ projectId, provider, environment, status, startedAt?, completedAt?, commit?, trigger?, url?, version?, release?, metadata? }`
+**Process**:
+- Requires callable auth with `admin` or `automation` claim
+- Stores deployment snapshot in `deploymentEvents/`
+- Updates `projects/{projectId}.telemetry.lastDeployment` and provider list
+- Emits a `DEPLOYMENT_RECORDED` admin event for audit history
+**Return**: `{ deploymentId }`
+
+### 7. `listDeployments` (HTTPS Callable)
+**Trigger**: Dashboard fetches deployment timeline
+**Input**: `{ projectId, limit?, provider? }`
+**Process**:
+- Query `deploymentEvents/` by projectId (and optional provider)
+- Sort by `startedAt`/`recordedAt` descending, slice to limit (default 20)
+- Return normalized entries and a summary block for the latest deployment
+**Return**: `{ projectId, entries: DeploymentEvent[], summary: { ... } }`
+
+### 8. `recordGitHubInsight` (HTTPS Callable)
+**Trigger**: GitHub Actions/cron snapshots repository health
+**Input**: `{ projectId, owner, repo, stars, forks, openIssues, openPullRequests, watchers?, defaultBranch?, fetchedAt?, metadata? }`
+**Process**:
+- Requires callable auth with `admin` or `automation` claim
+- Persist snapshot in `githubInsights/`
+- Update `projects/{projectId}.github` aggregates
+- Emit `GITHUB_INSIGHT_RECORDED` admin event
+**Return**: `{ insightId }`
+
+### 9. `listGitHubInsights` (HTTPS Callable)
+**Trigger**: Dashboard and analytics exports pull GitHub trends
+**Input**: `{ projectId, limit? }`
+**Process**:
+- Query `githubInsights/` for the project and sort by `fetchedAt`
+- Compute delta metrics between the latest two snapshots (stars, forks, issues, PRs, watchers)
+- Return normalized entries (default limit 30) plus summary with delta stats
+**Return**: `{ projectId, entries: Insight[], summary: { ... } }`
 
 ---
 
@@ -168,6 +277,33 @@ async register(email) {
   }
 
   return account;
+}
+```
+
+### Current Implementation Snapshot
+```javascript
+// lib/account-manager.js (excerpt)
+const response = await fetch(`${FUNCTION_BASE_URL}/registerAccount`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    data: {
+      email: account.email,
+      projectName: account.projectName,
+      useCase: account.useCase,
+      machineId: account.machineId
+    }
+  })
+});
+
+const result = await response.json();
+
+if (!result.error) {
+  account.id = result.result.userId;
+  account.tier = result.result.tier;
+  account.cloud = { synced: true, lastSyncedAt: new Date().toISOString() };
+} else {
+  account.cloud = { synced: false, lastError: result.error.message };
 }
 ```
 

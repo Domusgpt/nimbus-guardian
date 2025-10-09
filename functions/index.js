@@ -9,16 +9,140 @@
 const {onInit} = require("firebase-functions/v2/core");
 const {onRequest, onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
-const admin = require("firebase-admin");
+const {getAdmin} = require("./lib/firebase");
 const crypto = require("crypto");
+const stripe = require("stripe");
+const {createLicenseRecord, recordLicenseActivation} = require("./lib/license-service");
+const {queueEmail} = require("./lib/notifications");
+const {recordAdminEvent} = require("./lib/admin-events");
+const {upsertUserAccount} = require("./lib/user-service");
+const {
+    recordDeploymentEvent,
+    listDeploymentsForProject,
+    recordGitHubInsight,
+    listGitHubInsightsForProject,
+} = require("./lib/telemetry-service");
 
 // Defer initialization to avoid deployment timeout
 onInit(() => {
-    admin.initializeApp();
+    getAdmin().initializeApp();
 });
 
 // Get Firestore instance (will be initialized when function runs)
-const getDb = () => admin.firestore();
+const getDb = (adminOverride) => (adminOverride || getAdmin()).firestore();
+
+function requireAutomationAuth(request) {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Authentication required for telemetry updates");
+    }
+
+    const token = request.auth.token || {};
+    if (!token.admin && !token.automation) {
+        throw new HttpsError("permission-denied", "Automation credentials required");
+    }
+}
+
+// ============================================================================
+// ACCOUNT REGISTRATION & SYNC
+// ============================================================================
+
+async function registerAccountHandler(data, {adminOverride} = {}) {
+    const admin = adminOverride || getAdmin();
+    const db = admin.firestore();
+    const FieldValue = admin.firestore.FieldValue;
+
+    const {
+        email,
+        projectName,
+        useCase,
+        machineId,
+        licenseKey,
+        userId,
+        tier
+    } = data || {};
+
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+        throw new HttpsError("invalid-argument", "A valid email address is required");
+    }
+
+    let licenseDoc = null;
+    let licenseRef = null;
+
+    if (licenseKey) {
+        licenseRef = db.collection("licenses").doc(licenseKey);
+        const snapshot = await licenseRef.get();
+
+        if (!snapshot.exists) {
+            throw new HttpsError("not-found", "License key not found");
+        }
+
+        licenseDoc = snapshot.data();
+
+        if (licenseDoc.status === "revoked") {
+            throw new HttpsError("permission-denied", "License key has been revoked");
+        }
+
+        if (licenseDoc.expiresAt && licenseDoc.expiresAt.toDate && licenseDoc.expiresAt.toDate() < new Date()) {
+            throw new HttpsError("permission-denied", "License key has expired");
+        }
+    }
+
+    const licenseInfo = licenseDoc
+        ? {
+            key: licenseKey,
+            tier: licenseDoc.tier,
+            expiresAt: licenseDoc.expiresAt || null
+        }
+        : null;
+
+    const {userId: resolvedUserId, tier: resolvedTier, existed} = await upsertUserAccount({
+        email,
+        projectName,
+        useCase,
+        machineId,
+        license: licenseInfo,
+        userId,
+        tier
+    }, {adminOverride: admin});
+
+    if (licenseRef) {
+        const licenseUpdate = {
+            userId: resolvedUserId,
+            email,
+            lastActivatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (machineId) {
+            licenseUpdate.machineIds = FieldValue.arrayUnion(machineId);
+        }
+
+        await licenseRef.set(licenseUpdate, {merge: true});
+    }
+
+    await recordAdminEvent(existed ? "ACCOUNT_SYNCED" : "ACCOUNT_REGISTERED", {
+        userId: resolvedUserId,
+        email,
+        projectName: projectName || null,
+        useCase: useCase || null,
+        licenseKey: licenseKey || null,
+        tier: resolvedTier
+    }, {adminOverride: admin});
+
+    return {
+        success: true,
+        userId: resolvedUserId,
+        tier: resolvedTier,
+        licenseLinked: Boolean(licenseKey),
+        existingAccount: existed,
+    };
+}
+
+exports.registerAccount = onCall({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (request) => {
+    return registerAccountHandler(request.data || {});
+});
 
 // ============================================================================
 // LICENSE VALIDATION
@@ -75,7 +199,7 @@ exports.validateLicense = onCall({
         machineIds.push(machineId);
         await licenseRef.update({
             machineIds: machineIds,
-            lastActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastActivatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
         });
     }
 
@@ -87,18 +211,34 @@ exports.validateLicense = onCall({
         await db.collection("users").doc(userId).set({
             account: {
                 email: email || license.email || "unknown@example.com",
-                registeredAt: admin.firestore.FieldValue.serverTimestamp(),
+                registeredAt: getAdmin().firestore.FieldValue.serverTimestamp(),
                 machineId: machineId,
                 tier: license.tier,
             },
             license: {
                 key: licenseKey,
                 tier: license.tier,
-                activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                activatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
             },
         });
 
         await licenseRef.update({userId: userId});
+
+        await recordLicenseActivation({
+            licenseKey,
+            userId,
+            machineId
+        });
+
+        await queueEmail({
+            to: email || license.email,
+            template: "license-activated",
+            data: {
+                licenseKey,
+                tier: license.tier,
+                machineId
+            }
+        });
 
         return {
             success: true,
@@ -107,6 +247,12 @@ exports.validateLicense = onCall({
             message: "License activated successfully",
         };
     }
+
+    await recordLicenseActivation({
+        licenseKey,
+        userId: license.userId,
+        machineId
+    });
 
     return {
         success: true,
@@ -239,8 +385,8 @@ exports.syncUsage = onCall({
     // Increment counter
     await usageRef.set(
         {
-            [action]: admin.firestore.FieldValue.increment(1),
-            lastAction: admin.firestore.FieldValue.serverTimestamp(),
+            [action]: getAdmin().firestore.FieldValue.increment(1),
+            lastAction: getAdmin().firestore.FieldValue.serverTimestamp(),
             metadata: metadata || {},
         },
         {merge: true}
@@ -250,6 +396,40 @@ exports.syncUsage = onCall({
         success: true,
         message: "Usage recorded",
     };
+});
+
+// ============================================================================
+// DEPLOYMENT & INSIGHT TELEMETRY
+// ============================================================================
+
+exports.recordDeploymentEvent = onCall({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (request) => {
+    requireAutomationAuth(request);
+    return recordDeploymentEvent(request.data || {});
+});
+
+exports.listDeployments = onCall({
+    timeoutSeconds: 120,
+    memory: "256MiB"
+}, async (request) => {
+    return listDeploymentsForProject(request.data || {});
+});
+
+exports.recordGitHubInsight = onCall({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (request) => {
+    requireAutomationAuth(request);
+    return recordGitHubInsight(request.data || {});
+});
+
+exports.listGitHubInsights = onCall({
+    timeoutSeconds: 120,
+    memory: "256MiB"
+}, async (request) => {
+    return listGitHubInsightsForProject(request.data || {});
 });
 
 // ============================================================================
@@ -287,34 +467,26 @@ exports.generateLicenseKey = onCall({
         throw new HttpsError("invalid-argument", "Tier and email required");
     }
 
-    // Generate license key: NIMBUS-XXXX-XXXX-XXXX-XXXX
-    const generateSegment = () => {
-        return crypto.randomBytes(2).toString("hex").toUpperCase();
-    };
-
-    const licenseKey = `NIMBUS-${generateSegment()}-${generateSegment()}-${generateSegment()}-${generateSegment()}`;
-
-    // Calculate expiration
-    let expiresAt = null;
-    if (expiresInDays) {
-        expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + expiresInDays);
-    }
-
-    // Create license document
-    const db = getDb();
-    await db.collection("licenses").doc(licenseKey).set({
-        tier: tier,
-        email: email,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: "active",
-        maxMachines: maxMachines || (tier === "PRO" ? 3 : tier === "ENTERPRISE" ? 10 : 1),
-        machineIds: [],
-        userId: null,
-        expiresAt: expiresAt,
+    const {licenseKey} = await createLicenseRecord({
+        tier,
+        email,
+        maxMachines,
+        expiresInDays,
+        source: "admin",
+        metadata: {
+            requestedBy: request.auth.uid || "admin",
+        }
     });
 
-    // TODO: Send email with license key
+    await queueEmail({
+        to: email,
+        template: "license-issued",
+        data: {
+            licenseKey,
+            tier,
+            expiresInDays: expiresInDays || null,
+        }
+    });
 
     return {
         success: true,
@@ -332,13 +504,91 @@ exports.generateLicenseKey = onCall({
  * Handle Stripe payment webhook
  * Automatically generates license key when payment succeeds
  */
-exports.handleStripeWebhook = onRequest(async (req, res) => {
-    // TODO: Verify Stripe signature
-    // TODO: Parse webhook payload
-    // TODO: Call generateLicenseKey
-    // TODO: Email license to customer
+async function processStripeEvent(event) {
+    const eventType = event.type;
+    const payload = event.data?.object || {};
 
-    res.status(200).send({received: true});
+    if (eventType !== "checkout.session.completed" && eventType !== "payment_intent.succeeded") {
+        return {processed: false};
+    }
+
+    const customerEmail = payload.customer_details?.email || payload.receipt_email || payload.email || payload.metadata?.email;
+    const tier = payload.metadata?.tier || "PRO";
+    const maxMachines = payload.metadata?.maxMachines ? Number(payload.metadata.maxMachines) : undefined;
+    const expiresInDays = payload.metadata?.expiresInDays ? Number(payload.metadata.expiresInDays) : undefined;
+
+    const {licenseKey} = await createLicenseRecord({
+        tier,
+        email: customerEmail,
+        maxMachines,
+        expiresInDays,
+        source: "stripe",
+        metadata: {
+            stripeEventId: event.id,
+            stripeObject: payload.id,
+            amountTotal: payload.amount_total || payload.amount_received || null,
+        }
+    });
+
+    await queueEmail({
+        to: customerEmail,
+        template: "license-issued",
+        data: {
+            licenseKey,
+            tier,
+            expiresInDays: expiresInDays || null,
+        }
+    });
+
+    await recordAdminEvent("STRIPE_LICENSE_FULFILLED", {
+        eventId: event.id,
+        licenseKey,
+        tier,
+        email: customerEmail,
+    });
+
+    return {
+        processed: true,
+        licenseKey
+    };
+}
+
+exports.handleStripeWebhook = onRequest({
+    timeoutSeconds: 180,
+    memory: "256MiB"
+}, async (req, res) => {
+    if (req.method !== "POST") {
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    let event;
+
+    try {
+        if (webhookSecret) {
+            const stripeClient = stripe(process.env.STRIPE_SECRET_KEY || "");
+            event = stripeClient.webhooks.constructEvent(
+                req.rawBody,
+                req.headers["stripe-signature"],
+                webhookSecret
+            );
+        } else {
+            event = req.body;
+        }
+    } catch (error) {
+        console.error("Stripe webhook verification failed", error.message);
+        res.status(400).send(`Webhook Error: ${error.message}`);
+        return;
+    }
+
+    try {
+        const result = await processStripeEvent(event);
+        res.status(200).send({received: true, ...result});
+    } catch (error) {
+        console.error("Stripe webhook handler error", error);
+        res.status(500).send({error: error.message});
+    }
 });
 
 // ============================================================================
@@ -348,16 +598,43 @@ exports.handleStripeWebhook = onRequest(async (req, res) => {
 /**
  * Send welcome email when user registers
  */
-exports.onUserCreated = onDocumentCreated("users/{userId}", async (event) => {
+async function handleUserCreated(event, {adminOverride} = {}) {
     const userData = event.data.data();
     const userId = event.params.userId;
+    const db = getDb(adminOverride);
 
-    console.log(`New user registered: ${userId}`, userData.account.email);
+    console.log(`New user registered: ${userId}`, userData.account?.email);
 
-    // TODO: Send welcome email
-    // TODO: Create initial usage document
-    // TODO: Add to mailing list
+    const today = new Date().toISOString().split("T")[0];
+    await db
+        .collection("users")
+        .doc(userId)
+        .collection("usage")
+        .doc(today)
+        .set({
+            scans: 0,
+            ai: 0,
+            fixes: 0,
+            lastAction: (adminOverride || getAdmin()).firestore.FieldValue.serverTimestamp(),
+        });
 
+    await queueEmail({
+        to: userData.account?.email,
+        template: "welcome",
+        data: {
+            tier: userData.license?.tier || "FREE",
+            userId,
+        }
+    }, {adminOverride});
+
+    await recordAdminEvent("USER_REGISTERED", {
+        userId,
+        tier: userData.license?.tier || "FREE",
+    }, {adminOverride});
+}
+
+exports.onUserCreated = onDocumentCreated("users/{userId}", async (event) => {
+    await handleUserCreated(event);
     return null;
 });
 
@@ -370,8 +647,31 @@ exports.onLicenseActivated = onDocumentCreated("licenses/{licenseKey}", async (e
 
     console.log(`New license created: ${licenseKey}`, licenseData.tier);
 
-    // TODO: Log to analytics
-    // TODO: Send notification to admin
+    await recordAdminEvent("LICENSE_CREATED_TRIGGER", {
+        licenseKey,
+        tier: licenseData.tier,
+        email: licenseData.email,
+    });
+
+    await queueEmail({
+        to: licenseData.email,
+        template: "license-issued",
+        data: {
+            licenseKey,
+            tier: licenseData.tier,
+            expiresInDays: null,
+        }
+    });
 
     return null;
 });
+
+exports.__internal = {
+    processStripeEvent,
+    handleUserCreated,
+    registerAccountHandler,
+    recordDeploymentEvent,
+    listDeploymentsForProject,
+    recordGitHubInsight,
+    listGitHubInsightsForProject,
+};

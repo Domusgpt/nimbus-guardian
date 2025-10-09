@@ -1,0 +1,61 @@
+{
+  "entry": "public/js/holographic/dashboard-main.js",
+  "minify": false,
+  "buildDurationMs": 84,
+  "outputFiles": [
+    {
+      "path": ".bundle-analysis/dashboard-main.js",
+      "bytes": 93499,
+      "gzipBytes": 17068
+    },
+    {
+      "path": ".bundle-analysis/assistant-SFNVGVVG.js",
+      "bytes": 6097,
+      "gzipBytes": 1528
+    }
+  ],
+  "totalBytes": 99596,
+  "totalGzipBytes": 18596,
+  "largestInputs": [
+    {
+      "path": "public/js/holographic/dashboard-main.js",
+      "bytes": 62453
+    },
+    {
+      "path": "public/js/holographic/assistant.js",
+      "bytes": 6018
+    },
+    {
+      "path": "public/js/holographic/motion.js",
+      "bytes": 5951
+    },
+    {
+      "path": "public/js/holographic/networking.js",
+      "bytes": 5523
+    },
+    {
+      "path": "public/js/holographic/ui.js",
+      "bytes": 5154
+    },
+    {
+      "path": "public/js/holographic/cards/card-utils.js",
+      "bytes": 3478
+    },
+    {
+      "path": "public/js/holographic/cards/security-utils.js",
+      "bytes": 3186
+    },
+    {
+      "path": "public/js/shared/time.js",
+      "bytes": 3164
+    },
+    {
+      "path": "public/js/holographic/scheduler.js",
+      "bytes": 2887
+    },
+    {
+      "path": "public/js/shared/clipboard.js",
+      "bytes": 2450
+    }
+  ]
+}

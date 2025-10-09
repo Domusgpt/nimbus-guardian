@@ -1,0 +1,151 @@
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const DashboardServer = require('../dashboard-server.js');
+const GuardianEngine = require('../guardian-engine.js');
+const ToolDetector = require('../tool-detector.js');
+const AIAssistant = require('../ai-assistant.js');
+
+function expectIsoTimestamp(value) {
+  expect(typeof value).toBe('string');
+  expect(Number.isNaN(Date.parse(value))).toBe(false);
+}
+
+describe('DashboardServer API contracts', () => {
+  let server;
+
+  beforeEach(() => {
+    server = new DashboardServer();
+    server.projectPath = process.cwd();
+    server.config = { projectName: 'Demo Project', experienceLevel: 'expert' };
+
+    vi.spyOn(GuardianEngine.prototype, 'analyze').mockResolvedValue({
+      issues: [],
+      warnings: [],
+      summary: 'All clear'
+    });
+
+    vi.spyOn(GuardianEngine.prototype, 'autoFix').mockResolvedValue({
+      success: true,
+      message: 'Issue resolved'
+    });
+
+    vi.spyOn(ToolDetector.prototype, 'analyze').mockResolvedValue({
+      detected: [{ name: 'firebase', version: '13.0.0' }],
+      missing: [],
+      recommendations: []
+    });
+
+    vi.spyOn(AIAssistant.prototype, 'ask').mockResolvedValue({
+      provider: 'claude',
+      response: 'Hello from Claude',
+      model: 'claude-3-opus'
+    });
+
+    server.installTool = vi.fn(async () => ({
+      success: true,
+      message: 'Tool installed successfully',
+      generatedAt: new Date().toISOString()
+    }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns project status with generatedAt metadata', async () => {
+    const status = await server.getProjectStatus();
+    expect(status.projectName).toBe('Demo Project');
+    expect(status.timestamp).toBe(status.generatedAt);
+    expectIsoTimestamp(status.generatedAt);
+  });
+
+  it('returns git, deployment, and GitHub payloads with timestamps', async () => {
+    const git = await server.getGitStatus();
+    expectIsoTimestamp(git.generatedAt);
+
+    const deployments = await server.getDeploymentHistory();
+    deployments.forEach(entry => expectIsoTimestamp(entry.generatedAt));
+
+    const github = await server.getGitHubInfo();
+    expectIsoTimestamp(github.generatedAt);
+  });
+
+  it('stamps generatedAt onto API handler responses', async () => {
+    const invoke = async (path, { method = 'GET', body } = {}) => {
+      const req = new EventEmitter();
+      req.method = method;
+      req.headers = {};
+      const resHeaders = {};
+      let statusCode;
+      let payload = '';
+      const res = {
+        setHeader: (name, value) => {
+          resHeaders[name] = value;
+        },
+        writeHead: code => {
+          statusCode = code;
+        },
+        end: () => {}
+      };
+
+      const completion = new Promise(resolve => {
+        res.end = chunk => {
+          if (chunk) {
+            payload = chunk;
+          }
+          resolve();
+        };
+      });
+
+      const url = new URL(path, 'http://localhost:3333');
+
+      process.nextTick(() => {
+        if (body) {
+          req.emit('data', Buffer.from(body));
+        }
+        req.emit('end');
+      });
+
+      await server.handleAPI(url, req, res);
+      await completion;
+
+      return {
+        statusCode,
+        json: payload ? JSON.parse(payload) : null,
+        headers: resHeaders
+      };
+    };
+
+    const tools = await invoke('/api/tools');
+    expect(tools.statusCode).toBe(200);
+    expectIsoTimestamp(tools.json.generatedAt);
+
+    const scan = await invoke('/api/scan', { method: 'POST' });
+    expect(scan.statusCode).toBe(200);
+    expectIsoTimestamp(scan.json.generatedAt);
+
+    const fix = await invoke('/api/fix', {
+      method: 'POST',
+      body: JSON.stringify({ issueId: 'demo-issue' })
+    });
+    expect(fix.statusCode).toBe(200);
+    expectIsoTimestamp(fix.json.generatedAt);
+
+    const chat = await invoke('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: 'Hello' })
+    });
+    expect(chat.statusCode).toBe(200);
+    expectIsoTimestamp(chat.json.generatedAt);
+
+    const install = await invoke('/api/install-tool', {
+      method: 'POST',
+      body: JSON.stringify({ tool: 'firebase', command: 'npm install -g firebase-tools' })
+    });
+    expect(install.statusCode).toBe(200);
+    expectIsoTimestamp(install.json.generatedAt);
+  });
+});

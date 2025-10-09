@@ -94,6 +94,10 @@ firebase deploy --only functions:validateLicense
 firebase deploy --only functions:checkRateLimit
 firebase deploy --only functions:syncUsage
 firebase deploy --only functions:generateLicenseKey
+firebase deploy --only functions:recordDeploymentEvent
+firebase deploy --only functions:listDeployments
+firebase deploy --only functions:recordGitHubInsight
+firebase deploy --only functions:listGitHubInsights
 ```
 
 **Expected Output**:
@@ -102,11 +106,19 @@ firebase deploy --only functions:generateLicenseKey
 ✔ functions[checkRateLimit(us-central1)]: Successful create operation.
 ✔ functions[syncUsage(us-central1)]: Successful create operation.
 ✔ functions[generateLicenseKey(us-central1)]: Successful create operation.
+✔ functions[recordDeploymentEvent(us-central1)]: Successful create operation.
+✔ functions[listDeployments(us-central1)]: Successful create operation.
+✔ functions[recordGitHubInsight(us-central1)]: Successful create operation.
+✔ functions[listGitHubInsights(us-central1)]: Successful create operation.
 
 Function URLs:
 validateLicense: https://us-central1-nimbus-guardian.cloudfunctions.net/validateLicense
 checkRateLimit: https://us-central1-nimbus-guardian.cloudfunctions.net/checkRateLimit
 syncUsage: https://us-central1-nimbus-guardian.cloudfunctions.net/syncUsage
+recordDeploymentEvent: https://us-central1-nimbus-guardian.cloudfunctions.net/recordDeploymentEvent
+listDeployments: https://us-central1-nimbus-guardian.cloudfunctions.net/listDeployments
+recordGitHubInsight: https://us-central1-nimbus-guardian.cloudfunctions.net/recordGitHubInsight
+listGitHubInsights: https://us-central1-nimbus-guardian.cloudfunctions.net/listGitHubInsights
 ```
 
 ---

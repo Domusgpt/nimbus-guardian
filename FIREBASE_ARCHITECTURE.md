@@ -57,6 +57,14 @@ users/
         fixes: number
         lastSyncAt: timestamp
 
+    mailQueue/
+      {docId}/
+        to: string
+        template: string
+        data: object
+        status: 'pending' | 'sent'
+        createdAt: timestamp
+
     sessions/
       {sessionId}/
         machineId: string
@@ -87,22 +95,31 @@ licenses/
 - Add machineId to allowed list
 **Return**: `{ valid: boolean, tier: string, userId: string }`
 
-### 2. `syncUsage` (HTTPS Callable)
-**Trigger**: CLI calls on every scan (FREE: daily, PRO: real-time)
-**Input**: `{ userId, machineId, action: "scan" | "ai" | "fix" }`
+### 1b. `registerAccount` (HTTPS Callable)
+**Trigger**: CLI setup/registration
+**Input**: `{ email, projectName?, useCase?, machineId?, licenseKey? }`
 **Process**:
-- Get today's date (YYYY-MM-DD)
-- Increment usage counter in `users/{userId}/usage/{date}`
-- Check rate limits based on tier
-**Return**: `{ allowed: boolean, remaining: number, resetAt: timestamp }`
+- Normalize email and look up existing user (by `userId` or email) to reuse machine history
+- Create/update Firestore `users/{userId}` record with account metadata, machine IDs, and optional license info
+- Link license document back to the user and log `ACCOUNT_REGISTERED`/`ACCOUNT_SYNCED` admin analytics
+**Return**: `{ userId: string, tier: string, licenseLinked: boolean }`
+
+### 2. `syncUsage` (HTTPS Callable)
+**Trigger**: CLI calls on every scan/fix/AI invocation (FREE tier batches daily, paid tiers real-time)
+**Input**: `{ userId, action: "scans" | "fixes" | "ai", metadata?: object }`
+**Process**:
+- Derive today's document (`users/{userId}/usage/{YYYY-MM-DD}`) and increment both total counters and the current hour bucket via the shared usage-service.
+- Persist a sanitized metadata snapshot (`lastMetadata`) alongside `lastActionAt` timestamps so dashboards can show fresh context when limits are hit.
+- Return the updated totals so clients can optionally surface usage hints without a follow-up read.
+**Return**: `{ success: true, usage: { action, totalActions, hourlyActions, lastMetadata } }`
 
 ### 3. `checkRateLimit` (HTTPS Callable)
 **Trigger**: CLI calls before every action
-**Input**: `{ userId, action: "scan" | "ai" | "fix" }`
+**Input**: `{ userId, action: "scans" | "fixes" | "ai" }`
 **Process**:
-- Get today's usage from Firestore
-- Compare against tier limits
-**Return**: `{ allowed: boolean, reason: string, upgrade: url }`
+- Look up the user's tier, load the same usage document, and consult the usage-service for hourly/daily allowances (Free tier) or unlimited flags (Pro/Enterprise).
+- Surface friendly guidance (`reason`, `resetAt`, `upgrade`) when quotas are exhausted while returning remaining daily counts for valid requests.
+**Return**: `{ allowed: boolean, remaining: number | "unlimited", resetAt?: timestamp, upgrade?: url, tier: string }`
 
 ### 4. `generateLicenseKey` (HTTPS Callable - Admin Only)
 **Trigger**: Manual admin call or Stripe webhook
@@ -117,9 +134,10 @@ licenses/
 **Trigger**: Stripe payment succeeded
 **Input**: Stripe webhook payload
 **Process**:
-- Parse payment metadata (email, tier)
-- Call `generateLicenseKey`
-- Email license to customer
+- Verify Stripe signature using `STRIPE_WEBHOOK_SECRET`
+- Parse payment metadata (email, tier, machine limits)
+- Call the shared license service to create the Firestore record + analytics event
+- Queue transactional email in `mailQueue` for the customer license drop
 **Return**: 200 OK
 
 ---
@@ -168,6 +186,33 @@ async register(email) {
   }
 
   return account;
+}
+```
+
+### Current Implementation Snapshot
+```javascript
+// lib/account-manager.js (excerpt)
+const response = await fetch(`${FUNCTION_BASE_URL}/registerAccount`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    data: {
+      email: account.email,
+      projectName: account.projectName,
+      useCase: account.useCase,
+      machineId: account.machineId
+    }
+  })
+});
+
+const result = await response.json();
+
+if (!result.error) {
+  account.id = result.result.userId;
+  account.tier = result.result.tier;
+  account.cloud = { synced: true, lastSyncedAt: new Date().toISOString() };
+} else {
+  account.cloud = { synced: false, lastError: result.error.message };
 }
 ```
 
@@ -328,6 +373,7 @@ public/dashboard/
 - [ ] `checkRateLimit` function
 - [ ] `syncUsage` function
 - [ ] Deploy functions
+  - _Update (Session 16)_: `checkRateLimit` and `syncUsage` now share a centralized usage-service that enforces hourly/daily limits and returns structured summaries.
 
 ### Phase 3: CLI Integration (3 hours)
 - [ ] Add `firebase-admin` dependency

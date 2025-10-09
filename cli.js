@@ -760,7 +760,7 @@ program
         const spinner = ora('Creating account...').start();
 
         try {
-            const account = accountManager.register(
+            const account = await accountManager.register(
                 answers.email,
                 answers.projectName,
                 answers.useCase
@@ -777,6 +777,10 @@ program
                 chalk.gray('For commercial use, contact: chairman@parserator.com'),
                 { padding: 1, margin: 1, borderStyle: 'round', borderColor: 'green' }
             ));
+
+            if (account.cloud && !account.cloud.synced) {
+                console.log(chalk.yellow('\n⚠️  Cloud sync pending - using local mode until connectivity returns.\n'));
+            }
 
             if (answers.useCase === 'Commercial/Business' || answers.useCase === 'Enterprise') {
                 console.log(chalk.yellow('\n⚠️  Commercial use detected!'));

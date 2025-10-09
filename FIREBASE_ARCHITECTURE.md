@@ -57,6 +57,14 @@ users/
         fixes: number
         lastSyncAt: timestamp
 
+    mailQueue/
+      {docId}/
+        to: string
+        template: string
+        data: object
+        status: 'pending' | 'sent'
+        createdAt: timestamp
+
     sessions/
       {sessionId}/
         machineId: string
@@ -117,9 +125,10 @@ licenses/
 **Trigger**: Stripe payment succeeded
 **Input**: Stripe webhook payload
 **Process**:
-- Parse payment metadata (email, tier)
-- Call `generateLicenseKey`
-- Email license to customer
+- Verify Stripe signature using `STRIPE_WEBHOOK_SECRET`
+- Parse payment metadata (email, tier, machine limits)
+- Call the shared license service to create the Firestore record + analytics event
+- Queue transactional email in `mailQueue` for the customer license drop
 **Return**: 200 OK
 
 ---

@@ -3,6 +3,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
+const os = require('node:os');
+const path = require('node:path');
+const fs = require('node:fs/promises');
 
 const DashboardServer = require('../dashboard-server');
 
@@ -10,7 +13,8 @@ async function createTestServer(t) {
     const fingerprintState = {
         total: 0,
         lastFingerprint: null,
-        lastSeen: null
+        lastSeen: null,
+        touches: 0
     };
 
     const fingerprintStore = {
@@ -33,8 +37,14 @@ async function createTestServer(t) {
             fingerprintState.lastFingerprint = `stub-${fingerprint}`;
             fingerprintState.lastSeen = new Date(0).toISOString();
         },
-        recordSessionTouched: async () => {},
-        recordSessionEnded: async () => {},
+        recordSessionTouched: async () => {
+            fingerprintState.touches += 1;
+            fingerprintState.lastSeen = new Date(fingerprintState.touches * 1000).toISOString();
+        },
+        recordSessionEnded: async () => {
+            fingerprintState.touches += 1;
+            fingerprintState.lastSeen = new Date(fingerprintState.touches * 2000).toISOString();
+        },
         recordSessionMetadata: async () => {}
     };
 
@@ -572,4 +582,377 @@ test('dashboard observability endpoint reports session and rate metrics', async 
     assert.equal(typeof metrics.rateLimits.install.lastKeyHash, 'string');
 
     await stop();
+});
+
+test('dashboard observability stream emits fingerprint updates', async (t) => {
+    const { baseUrl, origin, stop } = await createTestServer(t);
+
+    const { sessionCookie } = await bootstrapSession(baseUrl, origin);
+
+    const events = [];
+    const streamUrl = new URL('/api/observability/stream', baseUrl);
+
+    const streamPromise = new Promise((resolve, reject) => {
+        const request = http.request({
+            protocol: streamUrl.protocol,
+            hostname: streamUrl.hostname,
+            port: streamUrl.port,
+            path: streamUrl.pathname,
+            method: 'GET',
+            headers: {
+                ...baseHeaders,
+                Cookie: sessionCookie,
+                Origin: origin,
+                Accept: 'text/event-stream'
+            }
+        }, (res) => {
+            try {
+                assert.equal(res.statusCode, 200);
+            } catch (error) {
+                reject(error);
+                request.destroy();
+                return;
+            }
+
+            res.setEncoding('utf8');
+            let buffer = '';
+            res.on('data', (chunk) => {
+                buffer += chunk;
+                const frames = buffer.split('\n\n');
+                buffer = frames.pop();
+                for (const frame of frames) {
+                    const lines = frame.split('\n').filter((line) => line.startsWith('data: '));
+                    for (const line of lines) {
+                        try {
+                            events.push(JSON.parse(line.slice(6).trim()));
+                        } catch {
+                            continue;
+                        }
+                        if (events.length >= 2) {
+                            resolve();
+                            request.destroy();
+                            return;
+                        }
+                    }
+                }
+            });
+
+            res.on('end', () => {
+                reject(new Error('stream ended before update'));
+            });
+        });
+
+        request.on('error', reject);
+        request.end();
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const statusResponse = await fetch(`${baseUrl}/api/status`, {
+        headers: {
+            ...baseHeaders,
+            Cookie: sessionCookie,
+            Origin: origin
+        }
+    });
+    assert.equal(statusResponse.status, 200);
+    await statusResponse.json();
+
+    await streamPromise;
+
+    assert.ok(events.length >= 2);
+    assert.equal(events[0].type, 'fingerprints');
+    assert.ok(Number.isFinite(events[0].fingerprints.totalTracked));
+    const latest = events[events.length - 1];
+    assert.equal(latest.type, 'fingerprints');
+    assert.ok(Array.isArray(latest.fingerprints.recentFingerprints));
+
+    await stop();
+});
+
+test('dashboard observability history endpoint returns bounded snapshots', async (t) => {
+    const { baseUrl, origin, serverInstance, stop } = await createTestServer(t);
+
+    serverInstance.observabilityExporter.debounceMs = 0;
+
+    const { sessionCookie } = await bootstrapSession(baseUrl, origin);
+
+    const session = {
+        id: 'history-session',
+        createdAt: new Date(0).toISOString(),
+        lastSeen: new Date(0).toISOString(),
+        metadata: { fingerprint: 'history-fingerprint' }
+    };
+
+    serverInstance.recordFingerprintMetric('created', session);
+    serverInstance.recordFingerprintMetric('touched', session);
+    serverInstance.recordFingerprintMetric('ended', session);
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const response = await fetch(`${baseUrl}/api/observability/history?limit=2`, {
+        headers: {
+            ...baseHeaders,
+            Cookie: sessionCookie,
+            Origin: origin
+        }
+    });
+
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.ok(Array.isArray(body.history));
+    assert.ok(body.history.length > 0);
+    assert.ok(body.history.length <= 2);
+
+    const latest = body.history[body.history.length - 1];
+    assert.equal(latest.type, 'fingerprints');
+    assert.equal(typeof latest.emittedAt, 'string');
+    assert.ok(
+        typeof latest.fingerprints.totalTracked === 'number'
+        && latest.fingerprints.totalTracked >= 1
+    );
+
+    await stop();
+});
+
+test('dashboard writes observability snapshots to disk when enabled', async (t) => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'guardian-obs-log-'));
+    const logPath = path.join(tmpDir, 'observability.log');
+    process.env.GUARDIAN_OBSERVABILITY_LOG_PATH = logPath;
+
+    const { serverInstance, stop } = await createTestServer(t);
+
+    try {
+        serverInstance.observabilityExporter.debounceMs = 0;
+
+        const session = {
+            id: 'session-log-1',
+            createdAt: new Date().toISOString(),
+            lastSeen: new Date().toISOString(),
+            metadata: { fingerprint: 'log-fp' }
+        };
+
+        await serverInstance.recordFingerprintMetric('created', session);
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        let latest = null;
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+            try {
+                const contents = await fs.readFile(logPath, 'utf8');
+                const lines = contents.trim().split('\n').filter(Boolean);
+                if (lines.length > 0) {
+                    const parsed = JSON.parse(lines[lines.length - 1]);
+                    if (parsed?.fingerprints?.totalTracked >= 1) {
+                        latest = parsed;
+                        break;
+                    }
+                }
+            } catch (error) {
+                if (!error || error.code !== 'ENOENT') {
+                    throw error;
+                }
+            }
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+
+        assert.ok(latest, 'expected observability log sink to persist fingerprint summary');
+        assert.equal(latest.type, 'fingerprints');
+        assert.ok(Array.isArray(latest.fingerprints.recentFingerprints));
+    } finally {
+        delete process.env.GUARDIAN_OBSERVABILITY_LOG_PATH;
+        await stop();
+        await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+});
+
+test('dashboard forwards observability snapshots to webhook sinks when enabled', async () => {
+    process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_URL = 'https://example.test/webhook';
+    process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_HEADERS = JSON.stringify({
+        Authorization: 'Bearer secret',
+        'X-Team': 'observability'
+    });
+    process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_TIMEOUT_MS = '2500';
+    process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_MAX_RETRIES = '4';
+    process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_ITEMS = '3';
+    process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_WAIT_MS = '1500';
+    process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_BYTES = '4096';
+
+    const summary = {
+        totalTracked: 0,
+        recentFingerprints: [],
+        ttlMs: 60000,
+        lastUpdatedAt: new Date(0).toISOString()
+    };
+
+    const fingerprintStore = {
+        ensureLoaded: async () => {},
+        getSummary: () => ({
+            totalTracked: summary.totalTracked,
+            recentFingerprints: [...summary.recentFingerprints],
+            ttlMs: summary.ttlMs,
+            lastUpdatedAt: summary.lastUpdatedAt
+        }),
+        recordSessionCreated: async (fingerprint) => {
+            summary.totalTracked += 1;
+            const now = new Date(summary.totalTracked * 1000).toISOString();
+            summary.lastUpdatedAt = now;
+            summary.recentFingerprints = [{
+                fingerprintHash: `hash-${fingerprint}`,
+                sessionCount: summary.totalTracked,
+                firstSeen: now,
+                lastSeen: now
+            }];
+        },
+        recordSessionTouched: async () => {},
+        recordSessionEnded: async () => {},
+        recordSessionMetadata: async () => {}
+    };
+
+    const sinkCalls = [];
+    const sinkConfigs = [];
+    const sinkHandlers = new Set();
+
+    const exporter = {
+        addSink: (handler, options = {}) => {
+            sinkHandlers.add(handler);
+            if (options?.metrics) {
+                options.metrics();
+            }
+            queueMicrotask(() => {
+                handler({
+                    type: 'fingerprints',
+                    fingerprints: fingerprintStore.getSummary()
+                });
+            });
+            return () => sinkHandlers.delete(handler);
+        },
+        notifyFingerprintUpdate: () => {
+            const payload = {
+                type: 'fingerprints',
+                fingerprints: fingerprintStore.getSummary()
+            };
+            for (const handler of sinkHandlers) {
+                handler(payload);
+            }
+        },
+        getSinkTelemetry: () => []
+    };
+
+    const server = new DashboardServer(0, {
+        fingerprintStore,
+        observabilityExporter: exporter,
+        createObservabilityWebhookSink: (config) => {
+            sinkConfigs.push(config);
+            return {
+                deliver: async (payload) => {
+                    sinkCalls.push(payload);
+                }
+            };
+        }
+    });
+
+    try {
+        const session = {
+            id: 'session-webhook-1',
+            createdAt: new Date(0).toISOString(),
+            lastSeen: new Date(0).toISOString(),
+            metadata: { fingerprint: 'webhook-fp' }
+        };
+
+        await server.recordFingerprintMetric('created', session);
+
+        for (let attempt = 0; attempt < 10 && sinkCalls.length < 2; attempt += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+
+        assert.ok(sinkConfigs.length >= 1, 'expected webhook sink configuration to be used');
+        assert.equal(sinkConfigs[0].url, 'https://example.test/webhook');
+        assert.equal(sinkConfigs[0].headers.Authorization, 'Bearer secret');
+        assert.equal(sinkConfigs[0].headers['X-Team'], 'observability');
+        assert.equal(sinkConfigs[0].timeoutMs, 2500);
+        assert.equal(sinkConfigs[0].maxRetries, 4);
+        assert.equal(sinkConfigs[0].batchMaxItems, 3);
+        assert.equal(sinkConfigs[0].batchMaxWaitMs, 1500);
+        assert.equal(sinkConfigs[0].batchMaxBytes, 4096);
+        assert.equal(typeof sinkConfigs[0].onTelemetry, 'function');
+
+        assert.ok(sinkCalls.length >= 1, 'expected webhook sink to receive at least one payload');
+        const latest = sinkCalls[sinkCalls.length - 1];
+        assert.equal(latest.type, 'fingerprints');
+        assert.ok(latest.fingerprints);
+        assert.ok(latest.fingerprints.totalTracked >= 1);
+        assert.ok(Array.isArray(latest.fingerprints.recentFingerprints));
+    } finally {
+        delete process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_URL;
+        delete process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_HEADERS;
+        delete process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_TIMEOUT_MS;
+        delete process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_MAX_RETRIES;
+        delete process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_ITEMS;
+        delete process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_WAIT_MS;
+        delete process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_BYTES;
+        server._configureObservabilitySinks();
+    }
+});
+
+test('fingerprint observability waits for persistence before notifying exporter', async () => {
+    const notifications = [];
+    let resolveWrite;
+    const writePromise = new Promise((resolve) => {
+        resolveWrite = resolve;
+    });
+
+    const exporter = {
+        notifyFingerprintUpdate: () => {
+            notifications.push('notified');
+        },
+        getSinkTelemetry: () => []
+    };
+
+    const store = {
+        ensureLoaded: async () => {},
+        recordSessionCreated: () => writePromise,
+        recordSessionTouched: () => writePromise,
+        recordSessionEnded: () => writePromise,
+        recordSessionMetadata: () => writePromise,
+        getSummary: () => ({ totalTracked: 0, recentFingerprints: [] })
+    };
+
+    const server = new DashboardServer(0, {
+        sessionManager: { ttlMs: 60000 },
+        fingerprintStore: store,
+        observabilityExporter: exporter
+    });
+
+    const session = {
+        id: 'session-1',
+        createdAt: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        metadata: { fingerprint: 'abc123' }
+    };
+
+    server.recordFingerprintMetric('created', session);
+    assert.equal(notifications.length, 0);
+
+    resolveWrite();
+    await writePromise;
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(notifications.length, 1);
+
+    let resolveMetadata;
+    const metadataPromise = new Promise((resolve) => {
+        resolveMetadata = resolve;
+    });
+
+    store.recordSessionMetadata = () => metadataPromise;
+
+    server.recordFingerprintMetadata(session, 'abc123');
+    assert.equal(notifications.length, 1);
+
+    resolveMetadata();
+    await metadataPromise;
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(notifications.length, 2);
 });

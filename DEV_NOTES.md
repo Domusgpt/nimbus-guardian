@@ -151,11 +151,67 @@ Centralized session-by-session log of Nimbus Guardian workstreams and forward-lo
   - Expanded automated coverage with dedicated fingerprint store tests and refreshed integration harness stubs to validate the new telemetry.
 - **Tests**: `npm test`
 
+### Session 20 – Streaming fingerprint exporter
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Built an `ObservabilityExporter` SSE helper to stream anonymized fingerprint summaries to remote subscribers without leaking identifiers.
+  - Added a `/api/observability/stream` endpoint and README guidance so operators can tail live fingerprint metrics with curl or log forwarders.
+  - Extended the dashboard integration suite to validate the streaming feed alongside new unit coverage for the exporter utility.
+- **Tests**: `npm test`
+
+### Session 21 – CLI observability subscriber
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added a reusable observability stream client that parses SSE payloads and handles graceful shutdowns for dashboards without browsers.
+  - Introduced a `nimbus observability-stream` command with JSON, timeout, and single-shot flags so operators can monitor telemetry from terminals or pipelines.
+  - Documented the CLI workflow in the README for smoother onboarding to the streaming exporter.
+- **Tests**: `npm test`
+
+### Session 22 – Disk-backed observability sink
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Extended the observability exporter with reusable sink hooks so telemetry can be forwarded beyond SSE clients.
+  - Added a rotating log sink that persists fingerprint snapshots to disk when `GUARDIAN_OBSERVABILITY_LOG_PATH` is set.
+  - Documented the new workflow and expanded unit and integration coverage for sink behavior and dashboard plumbing.
+- **Tests**: `npm test`
+
+### Session 23 – Remote webhook observability sink
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added an HTTP webhook sink with retry logic so snapshots can stream to remote monitoring stacks alongside on-disk archives.
+  - Wired the dashboard to hydrate webhook options from environment variables, including custom headers, timeouts, and retry caps.
+  - Documented the webhook workflow and expanded automated coverage with targeted sink tests plus dashboard plumbing verification.
+- **Tests**: `npm test`
+
+### Session 24 – Webhook batching guardrails
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added queue-aware delivery to the observability webhook sink with configurable batch, byte, and time thresholds.
+  - Extended the dashboard environment contract and README guidance to surface the new batching controls and payload shape.
+  - Expanded unit and integration coverage to validate batching flushes, manual drains, and dashboard wiring under test factories.
+- **Tests**: `npm test`
+
+### Session 25 – Sink telemetry surfaced through observability API
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Extended the observability exporter so sinks can register telemetry callbacks and surfaced their status via `/api/observability`.
+  - Added delivery health reporting to the disk log and webhook sinks, including queue depth, last HTTP outcome, and rotation metadata.
+  - Updated dashboard wiring, README guidance, and automated coverage to validate telemetry serialization and sink metrics.
+- **Tests**: `npm test`
+
+### Session 26 – CLI observability snapshot helper
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Extracted reusable HTTP header and cookie utilities for observability tooling so stream and status clients share parsing logic.
+  - Added a `nimbus observability-status` command that fetches `/api/observability`, renders sink telemetry summaries, and supports JSON output for automation.
+  - Documented the snapshot workflow in the README and added dedicated unit tests covering the new helper utilities.
+- **Tests**: `npm test`
+
 ## Upcoming Focus
-- Explore streaming fingerprint summaries into the observability exporter so remote dashboards can ingest hashed session insights.
 - Continue migrating marketing and documentation assets to reference the living development log for onboarding new contributors.
 - Explore lightweight mocks for git and deployment data so integration tests can assert dashboard presentation without shelling out to real services.
-- Assess lightweight exporters so observability snapshots can be pushed to operator-controlled sinks or logs for remote dashboards.
+- Evaluate lightweight CLI tooling that can authenticate and subscribe to the SSE observability feed without manual cookie handling.
+- Assess whether webhook batching metrics should surface in the observability API so operators can confirm downstream delivery health.
 
 ## Session Update Template
 Use the template below when adding the next session entry:

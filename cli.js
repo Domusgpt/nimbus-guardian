@@ -13,11 +13,14 @@ const ora = require('ora');
 const boxen = require('boxen');
 const path = require('path');
 const fs = require('fs-extra');
+const fetch = require('node-fetch');
 const { loadConfig: loadGuardianConfig } = require('./lib/config-service');
 
 const GuardianEngine = require('./guardian-engine');
 const AIAssistant = require('./ai-assistant');
 const setup = require('./setup');
+const ObservabilityStreamClient = require('./lib/observability-stream-client');
+const { parseHeaderOptions, normalizeCookie } = require('./lib/observability-http-utils');
 
 program
     .name('nimbus')
@@ -854,6 +857,301 @@ program
             spinner.fail('Activation failed');
             console.error(chalk.red('\n' + error.message + '\n'));
             console.log('Contact support: chairman@parserator.com\n');
+        }
+    });
+
+program
+    .command('observability-stream')
+    .description('Stream anonymized fingerprint telemetry from the dashboard SSE endpoint')
+    .option('--url <url>', 'Observability stream URL', 'http://localhost:3333/api/observability/stream')
+    .option('--cookie <value>', 'guardian_session cookie value or full Cookie header')
+    .option('--header <header...>', 'Additional request header(s) in KEY:VALUE format')
+    .option('--json', 'Print raw JSON payloads instead of formatted summaries')
+    .option('--once', 'Exit after the first fingerprint payload is received')
+    .option('--timeout <seconds>', 'Stop streaming after the specified number of seconds')
+    .option('--quiet', 'Suppress connection status and heartbeat output')
+    .action(async (options) => {
+        const { headers, warnings } = parseHeaderOptions(options.header);
+        for (const warning of warnings) {
+            console.log(chalk.yellow(warning));
+        }
+
+        const client = new ObservabilityStreamClient({
+            url: options.url,
+            headers,
+            logger: console
+        });
+
+        const spinner = ora('Connecting to observability stream...').start();
+
+        let timeoutId = null;
+        let stopRequested = false;
+        let exitCode = 0;
+        let updateCount = 0;
+
+        const requestStop = (code = 0) => {
+            if (stopRequested) {
+                return;
+            }
+            stopRequested = true;
+            exitCode = code;
+            client.stop();
+        };
+
+        if (options.timeout !== undefined) {
+            const seconds = Number(options.timeout);
+            if (Number.isFinite(seconds) && seconds > 0) {
+                timeoutId = setTimeout(() => {
+                    if (!options.quiet) {
+                        console.log(chalk.yellow('\n⏱️  Timeout reached, closing stream.'));
+                    }
+                    requestStop(0);
+                }, seconds * 1000);
+                timeoutId.unref?.();
+            } else {
+                console.log(chalk.yellow('Ignoring invalid --timeout value. Expected a positive number.'));
+            }
+        }
+
+        const handleSigint = () => {
+            console.log();
+            if (!options.quiet) {
+                console.log(chalk.yellow('Received interrupt. Closing stream...'));
+            }
+            requestStop(0);
+        };
+
+        process.on('SIGINT', handleSigint);
+
+        try {
+            await client.start({
+                cookie: options.cookie,
+                onConnect: () => {
+                    spinner.succeed('Connected to observability stream.');
+                    if (!options.quiet) {
+                        console.log(chalk.gray('Listening for fingerprint updates...'));
+                    }
+                },
+                onHeartbeat: (comment) => {
+                    if (!options.quiet && comment) {
+                        console.log(chalk.gray(`♥ ${comment}`));
+                    }
+                },
+                onData: (payload) => {
+                    updateCount += 1;
+                    if (options.json) {
+                        console.log(JSON.stringify(payload));
+                    } else {
+                        const emittedAt = payload?.emittedAt
+                            ? new Date(payload.emittedAt).toISOString()
+                            : new Date().toISOString();
+                        const totalTracked = payload?.fingerprints?.totalTracked ?? 0;
+                        const recentFingerprints = Array.isArray(payload?.fingerprints?.recentFingerprints)
+                            ? payload.fingerprints.recentFingerprints
+                            : [];
+
+                        console.log(chalk.cyan(`\n📡 Fingerprint update #${updateCount} @ ${emittedAt}`));
+                        console.log(chalk.white(`  Total tracked: ${totalTracked}`));
+                        console.log(chalk.white(`  Recent fingerprints: ${recentFingerprints.length}`));
+
+                        if (recentFingerprints.length > 0) {
+                            const latest = recentFingerprints[0];
+                            if (latest) {
+                                console.log(chalk.gray(`  Latest fingerprint: ${latest.fingerprintHash} (sessions: ${latest.sessionCount})`));
+                            }
+                        }
+                    }
+
+                    if (options.once) {
+                        requestStop(0);
+                    }
+                }
+            });
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            if (!stopRequested && !options.quiet) {
+                console.log(chalk.gray('\nStream closed by server.'));
+            }
+
+            process.exitCode = exitCode;
+        } catch (error) {
+            spinner.fail('Unable to connect to observability stream');
+            console.error(chalk.red(error.message));
+            process.exitCode = 1;
+        } finally {
+            process.off('SIGINT', handleSigint);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            if (spinner.isSpinning) {
+                spinner.stop();
+            }
+        }
+    });
+
+program
+    .command('observability-status')
+    .description('Fetch a one-time observability snapshot with sink telemetry from the dashboard API')
+    .option('--url <url>', 'Observability status URL', 'http://localhost:3333/api/observability')
+    .option('--cookie <value>', 'guardian_session cookie value or full Cookie header')
+    .option('--header <header...>', 'Additional request header(s) in KEY:VALUE format')
+    .option('--json', 'Print the raw JSON response instead of a formatted summary')
+    .action(async (options) => {
+        const { headers: customHeaders, warnings } = parseHeaderOptions(options.header);
+        for (const warning of warnings) {
+            console.log(chalk.yellow(warning));
+        }
+
+        const requestHeaders = {
+            Accept: 'application/json',
+            ...customHeaders
+        };
+
+        if (options.cookie) {
+            const cookieValue = normalizeCookie(options.cookie);
+            if (cookieValue) {
+                requestHeaders.Cookie = cookieValue;
+            }
+        }
+
+        const spinner = ora('Fetching observability snapshot...').start();
+
+        try {
+            const response = await fetch(options.url, {
+                method: 'GET',
+                headers: requestHeaders
+            });
+
+            if (!response.ok) {
+                let detail = '';
+                try {
+                    detail = await response.text();
+                } catch {
+                    detail = '';
+                }
+                const message = detail?.trim()?.length ? detail.trim() : (response.statusText || 'unexpected response');
+                throw new Error(`Observability snapshot request failed (${response.status}): ${message}`);
+            }
+
+            let payload;
+            try {
+                payload = await response.json();
+            } catch {
+                throw new Error('Observability snapshot response was not valid JSON');
+            }
+
+            spinner.succeed('Observability snapshot received.');
+
+            if (options.json) {
+                console.log(JSON.stringify(payload, null, 2));
+                return;
+            }
+
+            const printTimestamp = (label, value) => {
+                if (value) {
+                    console.log(chalk.gray(`    ${label}: ${value}`));
+                }
+            };
+
+            const sessions = payload?.sessions || {};
+            console.log(chalk.cyan('\n📊 Session Metrics'));
+            console.log(chalk.white(`  Active: ${sessions.active ?? 0}`));
+            console.log(chalk.white(`  Created: ${sessions.created ?? 0}`));
+            console.log(chalk.white(`  Destroyed: ${sessions.destroyed ?? 0}`));
+            console.log(chalk.white(`  Expired: ${sessions.expired ?? 0}`));
+            printTimestamp('Last created', sessions.lastCreatedAt);
+            printTimestamp('Last touched', sessions.lastTouchedAt);
+            printTimestamp('Last destroyed', sessions.lastDestroyedAt);
+            printTimestamp('Last expired', sessions.lastExpiredAt);
+
+            const rateLimits = payload?.rateLimits ?? {};
+            const rateEntries = Object.entries(rateLimits);
+            console.log(chalk.cyan('\n🚦 Rate Limits'));
+            if (rateEntries.length === 0) {
+                console.log(chalk.gray('  No rate-limit events recorded yet.'));
+            } else {
+                for (const [profile, metrics] of rateEntries) {
+                    const allowed = metrics?.allowed ?? 0;
+                    const blocked = metrics?.blocked ?? 0;
+                    console.log(chalk.white(`  • ${profile}: ${allowed} allowed / ${blocked} blocked`));
+                    if (typeof metrics?.lastRemaining === 'number') {
+                        console.log(chalk.gray(`    Remaining: ${metrics.lastRemaining}`));
+                    }
+                    if (metrics?.lastAttemptAt) {
+                        console.log(chalk.gray(`    Last attempt: ${metrics.lastAttemptAt}`));
+                    }
+                    if (metrics?.lastRetryAfterMs) {
+                        console.log(chalk.gray(`    Last retry-after: ${metrics.lastRetryAfterMs} ms`));
+                    }
+                    if (metrics?.lastKeyHash) {
+                        console.log(chalk.gray(`    Last key hash: ${metrics.lastKeyHash}`));
+                    }
+                }
+            }
+
+            const fingerprints = payload?.fingerprints ?? {};
+            console.log(chalk.cyan('\n🆔 Fingerprints'));
+            console.log(chalk.white(`  Total tracked: ${fingerprints.totalTracked ?? 0}`));
+            if (Number.isFinite(fingerprints.ttlMs)) {
+                const seconds = Math.round(fingerprints.ttlMs / 1000);
+                console.log(chalk.white(`  TTL: ${seconds}s`));
+            }
+            if (fingerprints.lastUpdatedAt) {
+                console.log(chalk.gray(`    Last updated: ${fingerprints.lastUpdatedAt}`));
+            }
+            const recent = Array.isArray(fingerprints.recentFingerprints)
+                ? fingerprints.recentFingerprints.slice(0, 3)
+                : [];
+            if (recent.length > 0) {
+                console.log(chalk.gray('    Recent fingerprints:'));
+                for (const entry of recent) {
+                    const details = [`sessions: ${entry.sessionCount ?? 0}`];
+                    if (entry.lastSeen) {
+                        details.push(`lastSeen: ${entry.lastSeen}`);
+                    }
+                    console.log(chalk.gray(`      - ${entry.fingerprintHash ?? 'unknown'} (${details.join(', ')})`));
+                }
+                if (Array.isArray(fingerprints.recentFingerprints) && fingerprints.recentFingerprints.length > recent.length) {
+                    console.log(chalk.gray(`      … and ${fingerprints.recentFingerprints.length - recent.length} more`));
+                }
+            } else {
+                console.log(chalk.gray('    No recent fingerprint activity.'));
+            }
+
+            const sinks = Array.isArray(payload?.sinks) ? payload.sinks : [];
+            console.log(chalk.cyan('\n🪝 Observability Sinks'));
+            if (sinks.length === 0) {
+                console.log(chalk.gray('  No sinks registered.'));
+            } else {
+                for (const sink of sinks) {
+                    const name = sink?.name ?? 'observability-sink';
+                    console.log(chalk.white(`  • ${name}`));
+                    if (sink?.metricsError) {
+                        console.log(chalk.red(`    Metrics error: ${sink.metricsError}`));
+                        continue;
+                    }
+                    if (!sink?.metrics) {
+                        console.log(chalk.gray('    No metrics reported.'));
+                        continue;
+                    }
+                    const metricsText = JSON.stringify(sink.metrics, null, 2)
+                        .split('\n')
+                        .map((line) => `    ${line}`)
+                        .join('\n');
+                    console.log(chalk.gray(metricsText));
+                }
+            }
+        } catch (error) {
+            spinner.fail('Unable to retrieve observability snapshot');
+            console.error(chalk.red(error.message));
+            process.exitCode = 1;
+        } finally {
+            if (spinner.isSpinning) {
+                spinner.stop();
+            }
         }
     });
 

@@ -151,11 +151,19 @@ Centralized session-by-session log of Nimbus Guardian workstreams and forward-lo
   - Expanded automated coverage with dedicated fingerprint store tests and refreshed integration harness stubs to validate the new telemetry.
 - **Tests**: `npm test`
 
+### Session 20 – Streaming fingerprint exporter
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Built an `ObservabilityExporter` SSE helper to stream anonymized fingerprint summaries to remote subscribers without leaking identifiers.
+  - Added a `/api/observability/stream` endpoint and README guidance so operators can tail live fingerprint metrics with curl or log forwarders.
+  - Extended the dashboard integration suite to validate the streaming feed alongside new unit coverage for the exporter utility.
+- **Tests**: `npm test`
+
 ## Upcoming Focus
-- Explore streaming fingerprint summaries into the observability exporter so remote dashboards can ingest hashed session insights.
 - Continue migrating marketing and documentation assets to reference the living development log for onboarding new contributors.
 - Explore lightweight mocks for git and deployment data so integration tests can assert dashboard presentation without shelling out to real services.
 - Assess lightweight exporters so observability snapshots can be pushed to operator-controlled sinks or logs for remote dashboards.
+- Evaluate lightweight CLI tooling that can authenticate and subscribe to the SSE observability feed without manual cookie handling.
 
 ## Session Update Template
 Use the template below when adding the next session entry:

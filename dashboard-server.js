@@ -21,6 +21,9 @@ const SessionManager = require('./lib/session-manager');
 const RateLimiter = require('./lib/rate-limiter');
 const DashboardObservability = require('./lib/dashboard-observability');
 const FingerprintStore = require('./lib/fingerprint-store');
+const ObservabilityExporter = require('./lib/observability-exporter');
+const ObservabilityLogSink = require('./lib/observability-log-sink');
+const ObservabilityWebhookSink = require('./lib/observability-webhook-sink');
 
 class HttpError extends Error {
     constructor(statusCode, message) {
@@ -108,9 +111,20 @@ class DashboardServer {
         this.config = null;
         this.configWarnings = [];
         this.cache = {};
+        this.logger = options.logger || console;
         this.observability = options.observability || new DashboardObservability();
 
         this.fingerprintStore = options.fingerprintStore || null;
+        this.observabilityExporter = options.observabilityExporter || new ObservabilityExporter({
+            getSnapshot: () => this.getObservabilitySnapshot(),
+            logger: this.logger
+        });
+
+        this.observabilityLogSink = null;
+        this.observabilityWebhookSink = null;
+        this.observabilitySinkCleanups = [];
+        this.observabilitySinkCleanup = null;
+        this._configureObservabilitySinks();
 
         const sessionManagerConfig = options.sessionManagerConfig || {};
         const sessionCallbacks = {
@@ -192,6 +206,162 @@ class DashboardServer {
         this.allowedOrigins = new Set([...defaultOrigins, ...extraOrigins]);
     }
 
+    _configureObservabilitySinks() {
+        const existingCleanups = [];
+        if (Array.isArray(this.observabilitySinkCleanups)) {
+            existingCleanups.push(...this.observabilitySinkCleanups);
+        }
+        if (typeof this.observabilitySinkCleanup === 'function') {
+            existingCleanups.push(this.observabilitySinkCleanup);
+        }
+
+        for (const cleanup of existingCleanups) {
+            if (typeof cleanup !== 'function') {
+                continue;
+            }
+            try {
+                cleanup();
+            } catch {
+                // ignore cleanup errors
+            }
+        }
+
+        this.observabilitySinkCleanups = [];
+        this.observabilitySinkCleanup = null;
+        this.observabilityLogSink = null;
+        this.observabilityWebhookSink = null;
+
+        const sinkCleanups = [];
+        const notifySinkTelemetry = () => {
+            try {
+                this.observabilityExporter?.notifySinkUpdate?.();
+            } catch (error) {
+                this.logger?.warn?.('Failed to broadcast sink telemetry update', error);
+            }
+        };
+
+        const logPath = process.env.GUARDIAN_OBSERVABILITY_LOG_PATH;
+        if (logPath) {
+            try {
+                this.observabilityLogSink = new ObservabilityLogSink({
+                    filePath: logPath,
+                    logger: this.logger,
+                    onTelemetry: notifySinkTelemetry
+                });
+                const cleanup = this.observabilityExporter.addSink((payload) => {
+                    return this.observabilityLogSink.writeSnapshot(payload);
+                }, {
+                    name: 'disk-log',
+                    metrics: () => this.observabilityLogSink?.getTelemetry?.() ?? null
+                });
+                sinkCleanups.push(cleanup);
+            } catch (error) {
+                this.logger?.warn?.('Failed to configure observability log sink', error);
+                this.observabilityLogSink = null;
+            }
+        }
+
+        const webhookUrl = process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_URL;
+        if (webhookUrl) {
+            try {
+                const webhookOptions = {
+                    url: webhookUrl,
+                    headers: this._parseWebhookHeaders(process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_HEADERS),
+                    timeoutMs: this._parseInteger(process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_TIMEOUT_MS, 5000, 1),
+                    maxRetries: this._parseInteger(process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_MAX_RETRIES, 2, 0),
+                    batchMaxItems: this._parseInteger(process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_ITEMS, 1, 1),
+                    batchMaxWaitMs: this._parseInteger(process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_WAIT_MS, 0, 0),
+                    batchMaxBytes: this._parseInteger(process.env.GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_BYTES, 0, 0),
+                    logger: this.logger,
+                    onTelemetry: notifySinkTelemetry
+                };
+
+                const factory = this.options?.createObservabilityWebhookSink;
+                const sinkInstance = typeof factory === 'function'
+                    ? factory(webhookOptions)
+                    : new ObservabilityWebhookSink(webhookOptions);
+
+                let handler = null;
+                let metrics = null;
+
+                if (typeof sinkInstance === 'function') {
+                    handler = sinkInstance;
+                } else if (sinkInstance && typeof sinkInstance.deliver === 'function') {
+                    handler = (payload) => sinkInstance.deliver(payload);
+                    this.observabilityWebhookSink = sinkInstance;
+                    if (typeof sinkInstance.getTelemetry === 'function') {
+                        metrics = () => this.observabilityWebhookSink?.getTelemetry() ?? null;
+                    }
+                } else {
+                    throw new Error('Observability webhook sink must be a function or expose deliver()');
+                }
+
+                const cleanup = this.observabilityExporter.addSink(handler, {
+                    name: 'webhook',
+                    metrics
+                });
+                sinkCleanups.push(cleanup);
+            } catch (error) {
+                this.logger?.warn?.('Failed to configure observability webhook sink', error);
+                this.observabilityWebhookSink = null;
+            }
+        }
+
+        if (sinkCleanups.length > 0) {
+            this.observabilitySinkCleanups = sinkCleanups;
+            this.observabilitySinkCleanup = sinkCleanups[0];
+        }
+    }
+
+    _parseWebhookHeaders(raw) {
+        if (!raw || typeof raw !== 'string') {
+            return {};
+        }
+
+        try {
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') {
+                return {};
+            }
+
+            const headers = {};
+            for (const [key, value] of Object.entries(parsed)) {
+                if (!key || typeof key !== 'string') {
+                    continue;
+                }
+
+                const trimmedKey = key.trim();
+                if (!trimmedKey) {
+                    continue;
+                }
+
+                if (typeof value === 'undefined' || value === null) {
+                    continue;
+                }
+
+                headers[trimmedKey] = String(value);
+            }
+
+            return headers;
+        } catch (error) {
+            this.logger?.warn?.('Failed to parse observability webhook headers', error);
+            return {};
+        }
+    }
+
+    _parseInteger(raw, fallback, minimum = 0) {
+        const parsed = Number.parseInt(raw, 10);
+        if (!Number.isFinite(parsed) || Number.isNaN(parsed)) {
+            return fallback;
+        }
+
+        if (parsed < minimum) {
+            return fallback;
+        }
+
+        return parsed;
+    }
+
     createRateLimiter(profileName, config = {}) {
         if (this.options?.rateLimiterFactory) {
             return this.options.rateLimiterFactory(profileName, config, (event) => {
@@ -244,7 +414,28 @@ class DashboardServer {
         if (this.fingerprintStore) {
             snapshot.fingerprints = this.fingerprintStore.getSummary();
         }
+        if (typeof this.observabilityExporter?.getSinkTelemetry === 'function') {
+            snapshot.sinks = this.observabilityExporter.getSinkTelemetry();
+        }
         return snapshot;
+    }
+
+    handleObservabilityStream(req, res) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.writeHead(200);
+        res.flushHeaders?.();
+
+        const cleanup = this.observabilityExporter.addStream(res);
+        const close = () => {
+            cleanup();
+        };
+
+        req.on('close', close);
+        req.on('error', close);
     }
 
     recordFingerprintMetric(eventType, session) {
@@ -263,6 +454,8 @@ class DashboardServer {
             lastSeen: session.lastSeen
         };
 
+        const notify = () => this.observabilityExporter?.notifyFingerprintUpdate();
+
         try {
             let task;
             if (eventType === 'created') {
@@ -273,12 +466,19 @@ class DashboardServer {
                 task = this.fingerprintStore.recordSessionEnded(fingerprint, payload);
             }
 
-            if (task && typeof task.catch === 'function') {
-                task.catch(() => {});
+            if (task && typeof task.then === 'function') {
+                task.then(notify).catch(() => {
+                    notify();
+                });
+                return;
             }
         } catch {
             // Fingerprint persistence should never block the dashboard flow.
+            notify();
+            return;
         }
+
+        notify();
     }
 
     recordFingerprintMetadata(session, fingerprint) {
@@ -292,14 +492,23 @@ class DashboardServer {
             lastSeen: session.lastSeen
         };
 
+        const notify = () => this.observabilityExporter?.notifyFingerprintUpdate();
+
         try {
             const task = this.fingerprintStore.recordSessionMetadata(fingerprint, payload);
-            if (task && typeof task.catch === 'function') {
-                task.catch(() => {});
+            if (task && typeof task.then === 'function') {
+                task.then(notify).catch(() => {
+                    notify();
+                });
+                return;
             }
         } catch {
             // Ignore metadata persistence issues.
+            notify();
+            return;
         }
+
+        notify();
     }
 
     async handleRequest(req, res) {
@@ -609,6 +818,11 @@ class DashboardServer {
                 const snapshot = this.getObservabilitySnapshot();
                 res.writeHead(200);
                 res.end(JSON.stringify(snapshot));
+                return;
+            }
+
+            if (url.pathname === '/api/observability/stream' && req.method === 'GET') {
+                this.handleObservabilityStream(req, res);
                 return;
             }
 

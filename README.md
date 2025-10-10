@@ -175,6 +175,22 @@ The JSON response includes:
 
 All identifiers are hashed before exposure so observability tooling can monitor behavior without leaking cookies or IP addresses.
 
+Need a live feed for remote dashboards? Connect to the streaming exporter:
+
+```
+GET /api/observability/stream
+```
+
+This endpoint uses Server-Sent Events (SSE) to push fingerprint summaries as they change. For example:
+
+```bash
+curl --no-buffer \
+  -H "Cookie: guardian_session=<your-session-cookie>" \
+  http://localhost:3333/api/observability/stream
+```
+
+Each `data:` frame contains a `type: "fingerprints"` payload with the latest anonymized fingerprint totals and recent activity windows, ready to ingest into log forwarders or remote dashboards.
+
 ---
 
 ## Getting API Keys

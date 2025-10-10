@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node cli.js",
     "setup": "node setup.js",
-    "chat": "node chat-assistant.js"
+    "chat": "node chat-assistant.js",
+    "test": "node --test"
   },
   "keywords": [
     "deployment",

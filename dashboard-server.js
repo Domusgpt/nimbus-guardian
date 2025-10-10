@@ -21,6 +21,7 @@ const SessionManager = require('./lib/session-manager');
 const RateLimiter = require('./lib/rate-limiter');
 const DashboardObservability = require('./lib/dashboard-observability');
 const FingerprintStore = require('./lib/fingerprint-store');
+const ObservabilityExporter = require('./lib/observability-exporter');
 
 class HttpError extends Error {
     constructor(statusCode, message) {
@@ -111,6 +112,9 @@ class DashboardServer {
         this.observability = options.observability || new DashboardObservability();
 
         this.fingerprintStore = options.fingerprintStore || null;
+        this.observabilityExporter = options.observabilityExporter || new ObservabilityExporter({
+            getSnapshot: () => this.getObservabilitySnapshot()
+        });
 
         const sessionManagerConfig = options.sessionManagerConfig || {};
         const sessionCallbacks = {
@@ -247,6 +251,24 @@ class DashboardServer {
         return snapshot;
     }
 
+    handleObservabilityStream(req, res) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.writeHead(200);
+        res.flushHeaders?.();
+
+        const cleanup = this.observabilityExporter.addStream(res);
+        const close = () => {
+            cleanup();
+        };
+
+        req.on('close', close);
+        req.on('error', close);
+    }
+
     recordFingerprintMetric(eventType, session) {
         if (!this.fingerprintStore || !session) {
             return;
@@ -278,6 +300,8 @@ class DashboardServer {
             }
         } catch {
             // Fingerprint persistence should never block the dashboard flow.
+        } finally {
+            this.observabilityExporter?.notifyFingerprintUpdate();
         }
     }
 
@@ -299,6 +323,8 @@ class DashboardServer {
             }
         } catch {
             // Ignore metadata persistence issues.
+        } finally {
+            this.observabilityExporter?.notifyFingerprintUpdate();
         }
     }
 
@@ -609,6 +635,11 @@ class DashboardServer {
                 const snapshot = this.getObservabilitySnapshot();
                 res.writeHead(200);
                 res.end(JSON.stringify(snapshot));
+                return;
+            }
+
+            if (url.pathname === '/api/observability/stream' && req.method === 'GET') {
+                this.handleObservabilityStream(req, res);
                 return;
             }
 

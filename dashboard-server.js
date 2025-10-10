@@ -21,6 +21,8 @@ const SessionManager = require('./lib/session-manager');
 const RateLimiter = require('./lib/rate-limiter');
 const DashboardObservability = require('./lib/dashboard-observability');
 const FingerprintStore = require('./lib/fingerprint-store');
+const ObservabilityExporter = require('./lib/observability-exporter');
+const ObservabilityLogSink = require('./lib/observability-log-sink');
 
 class HttpError extends Error {
     constructor(statusCode, message) {
@@ -108,9 +110,18 @@ class DashboardServer {
         this.config = null;
         this.configWarnings = [];
         this.cache = {};
+        this.logger = options.logger || console;
         this.observability = options.observability || new DashboardObservability();
 
         this.fingerprintStore = options.fingerprintStore || null;
+        this.observabilityExporter = options.observabilityExporter || new ObservabilityExporter({
+            getSnapshot: () => this.getObservabilitySnapshot(),
+            logger: this.logger
+        });
+
+        this.observabilityLogSink = null;
+        this.observabilitySinkCleanup = null;
+        this._configureObservabilitySinks();
 
         const sessionManagerConfig = options.sessionManagerConfig || {};
         const sessionCallbacks = {
@@ -192,6 +203,37 @@ class DashboardServer {
         this.allowedOrigins = new Set([...defaultOrigins, ...extraOrigins]);
     }
 
+    _configureObservabilitySinks() {
+        if (typeof this.observabilitySinkCleanup === 'function') {
+            try {
+                this.observabilitySinkCleanup();
+            } catch {
+                // ignore cleanup errors
+            }
+        }
+        this.observabilitySinkCleanup = null;
+        this.observabilityLogSink = null;
+
+        const logPath = process.env.GUARDIAN_OBSERVABILITY_LOG_PATH;
+        if (!logPath) {
+            return;
+        }
+
+        try {
+            this.observabilityLogSink = new ObservabilityLogSink({
+                filePath: logPath,
+                logger: this.logger
+            });
+            this.observabilitySinkCleanup = this.observabilityExporter.addSink((payload) => {
+                return this.observabilityLogSink.writeSnapshot(payload);
+            });
+        } catch (error) {
+            this.logger?.warn?.('Failed to configure observability log sink', error);
+            this.observabilityLogSink = null;
+            this.observabilitySinkCleanup = null;
+        }
+    }
+
     createRateLimiter(profileName, config = {}) {
         if (this.options?.rateLimiterFactory) {
             return this.options.rateLimiterFactory(profileName, config, (event) => {
@@ -247,6 +289,24 @@ class DashboardServer {
         return snapshot;
     }
 
+    handleObservabilityStream(req, res) {
+        res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.writeHead(200);
+        res.flushHeaders?.();
+
+        const cleanup = this.observabilityExporter.addStream(res);
+        const close = () => {
+            cleanup();
+        };
+
+        req.on('close', close);
+        req.on('error', close);
+    }
+
     recordFingerprintMetric(eventType, session) {
         if (!this.fingerprintStore || !session) {
             return;
@@ -263,6 +323,8 @@ class DashboardServer {
             lastSeen: session.lastSeen
         };
 
+        const notify = () => this.observabilityExporter?.notifyFingerprintUpdate();
+
         try {
             let task;
             if (eventType === 'created') {
@@ -273,12 +335,19 @@ class DashboardServer {
                 task = this.fingerprintStore.recordSessionEnded(fingerprint, payload);
             }
 
-            if (task && typeof task.catch === 'function') {
-                task.catch(() => {});
+            if (task && typeof task.then === 'function') {
+                task.then(notify).catch(() => {
+                    notify();
+                });
+                return;
             }
         } catch {
             // Fingerprint persistence should never block the dashboard flow.
+            notify();
+            return;
         }
+
+        notify();
     }
 
     recordFingerprintMetadata(session, fingerprint) {
@@ -292,14 +361,23 @@ class DashboardServer {
             lastSeen: session.lastSeen
         };
 
+        const notify = () => this.observabilityExporter?.notifyFingerprintUpdate();
+
         try {
             const task = this.fingerprintStore.recordSessionMetadata(fingerprint, payload);
-            if (task && typeof task.catch === 'function') {
-                task.catch(() => {});
+            if (task && typeof task.then === 'function') {
+                task.then(notify).catch(() => {
+                    notify();
+                });
+                return;
             }
         } catch {
             // Ignore metadata persistence issues.
+            notify();
+            return;
         }
+
+        notify();
     }
 
     async handleRequest(req, res) {
@@ -609,6 +687,11 @@ class DashboardServer {
                 const snapshot = this.getObservabilitySnapshot();
                 res.writeHead(200);
                 res.end(JSON.stringify(snapshot));
+                return;
+            }
+
+            if (url.pathname === '/api/observability/stream' && req.method === 'GET') {
+                this.handleObservabilityStream(req, res);
                 return;
             }
 

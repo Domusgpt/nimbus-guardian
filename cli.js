@@ -18,6 +18,53 @@ const { loadConfig: loadGuardianConfig } = require('./lib/config-service');
 const GuardianEngine = require('./guardian-engine');
 const AIAssistant = require('./ai-assistant');
 const setup = require('./setup');
+const ObservabilityStreamClient = require('./lib/observability-stream-client');
+const ObservabilityStatusClient = require('./lib/observability-status-client');
+
+const parseHeaderOptions = (input, { onWarning } = {}) => {
+    const list = input ? (Array.isArray(input) ? input : [input]) : [];
+    const headers = {};
+
+    for (const entry of list) {
+        if (typeof entry !== 'string') {
+            continue;
+        }
+
+        const separator = entry.indexOf(':');
+        if (separator === -1) {
+            onWarning?.(`Ignoring invalid header "${entry}". Use KEY:VALUE format.`);
+            continue;
+        }
+
+        const key = entry.slice(0, separator).trim();
+        const value = entry.slice(separator + 1).trim();
+
+        if (!key || !value) {
+            onWarning?.(`Ignoring invalid header "${entry}". Use KEY:VALUE format.`);
+            continue;
+        }
+
+        headers[key] = value;
+    }
+
+    return headers;
+};
+
+const formatSinkStatus = (status) => {
+    const normalized = typeof status === 'string' ? status.toLowerCase() : 'unknown';
+    switch (normalized) {
+        case 'healthy':
+            return chalk.green('healthy');
+        case 'pending':
+            return chalk.cyan('pending');
+        case 'degraded':
+            return chalk.yellow('degraded');
+        case 'failing':
+            return chalk.red('failing');
+        default:
+            return chalk.gray(normalized || 'unknown');
+    }
+};
 
 program
     .name('nimbus')
@@ -854,6 +901,235 @@ program
             spinner.fail('Activation failed');
             console.error(chalk.red('\n' + error.message + '\n'));
             console.log('Contact support: chairman@parserator.com\n');
+        }
+    });
+
+program
+    .command('observability-stream')
+    .description('Stream anonymized fingerprint telemetry from the dashboard SSE endpoint')
+    .option('--url <url>', 'Observability stream URL', 'http://localhost:3333/api/observability/stream')
+    .option('--cookie <value>', 'guardian_session cookie value or full Cookie header')
+    .option('--header <header...>', 'Additional request header(s) in KEY:VALUE format')
+    .option('--json', 'Print raw JSON payloads instead of formatted summaries')
+    .option('--once', 'Exit after the first fingerprint payload is received')
+    .option('--timeout <seconds>', 'Stop streaming after the specified number of seconds')
+    .option('--quiet', 'Suppress connection status and heartbeat output')
+    .action(async (options) => {
+        const headers = parseHeaderOptions(options.header, {
+            onWarning: (message) => console.log(chalk.yellow(message))
+        });
+
+        const client = new ObservabilityStreamClient({
+            url: options.url,
+            headers,
+            logger: console
+        });
+
+        const spinner = ora('Connecting to observability stream...').start();
+
+        let timeoutId = null;
+        let stopRequested = false;
+        let exitCode = 0;
+        let updateCount = 0;
+
+        const requestStop = (code = 0) => {
+            if (stopRequested) {
+                return;
+            }
+            stopRequested = true;
+            exitCode = code;
+            client.stop();
+        };
+
+        if (options.timeout !== undefined) {
+            const seconds = Number(options.timeout);
+            if (Number.isFinite(seconds) && seconds > 0) {
+                timeoutId = setTimeout(() => {
+                    if (!options.quiet) {
+                        console.log(chalk.yellow('\n⏱️  Timeout reached, closing stream.'));
+                    }
+                    requestStop(0);
+                }, seconds * 1000);
+                timeoutId.unref?.();
+            } else {
+                console.log(chalk.yellow('Ignoring invalid --timeout value. Expected a positive number.'));
+            }
+        }
+
+        const handleSigint = () => {
+            console.log();
+            if (!options.quiet) {
+                console.log(chalk.yellow('Received interrupt. Closing stream...'));
+            }
+            requestStop(0);
+        };
+
+        process.on('SIGINT', handleSigint);
+
+        try {
+            await client.start({
+                cookie: options.cookie,
+                onConnect: () => {
+                    spinner.succeed('Connected to observability stream.');
+                    if (!options.quiet) {
+                        console.log(chalk.gray('Listening for fingerprint updates...'));
+                    }
+                },
+                onHeartbeat: (comment) => {
+                    if (!options.quiet && comment) {
+                        console.log(chalk.gray(`♥ ${comment}`));
+                    }
+                },
+                onData: (payload) => {
+                    updateCount += 1;
+                    if (options.json) {
+                        console.log(JSON.stringify(payload));
+                    } else {
+                        const emittedAt = payload?.emittedAt
+                            ? new Date(payload.emittedAt).toISOString()
+                            : new Date().toISOString();
+                        const totalTracked = payload?.fingerprints?.totalTracked ?? 0;
+                        const recentFingerprints = Array.isArray(payload?.fingerprints?.recentFingerprints)
+                            ? payload.fingerprints.recentFingerprints
+                            : [];
+
+                        console.log(chalk.cyan(`\n📡 Fingerprint update #${updateCount} @ ${emittedAt}`));
+                        console.log(chalk.white(`  Total tracked: ${totalTracked}`));
+                        console.log(chalk.white(`  Recent fingerprints: ${recentFingerprints.length}`));
+
+                        if (recentFingerprints.length > 0) {
+                            const latest = recentFingerprints[0];
+                            if (latest) {
+                        console.log(chalk.gray(`  Latest fingerprint: ${latest.fingerprintHash} (sessions: ${latest.sessionCount})`));
+                            }
+                        }
+                    }
+
+                    if (options.once) {
+                        requestStop(0);
+                    }
+                }
+            });
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            if (!stopRequested && !options.quiet) {
+                console.log(chalk.gray('\nStream closed by server.'));
+            }
+
+            process.exitCode = exitCode;
+        } catch (error) {
+            spinner.fail('Unable to connect to observability stream');
+            console.error(chalk.red(error.message));
+            process.exitCode = 1;
+        } finally {
+            process.off('SIGINT', handleSigint);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            if (spinner.isSpinning) {
+                spinner.stop();
+            }
+        }
+    });
+
+program
+    .command('observability-status')
+    .description('Fetch a single observability snapshot from the dashboard API')
+    .option('--url <url>', 'Observability status URL', 'http://localhost:3333/api/observability')
+    .option('--cookie <value>', 'guardian_session cookie value or full Cookie header')
+    .option('--header <header...>', 'Additional request header(s) in KEY:VALUE format')
+    .option('--json', 'Print raw JSON payload instead of a formatted summary')
+    .option('--timeout <seconds>', 'Request timeout in seconds (default: 5)')
+    .action(async (options) => {
+        const headers = parseHeaderOptions(options.header, {
+            onWarning: (message) => console.log(chalk.yellow(message))
+        });
+
+        const timeoutSeconds = Number(options.timeout);
+        const timeoutMs = Number.isFinite(timeoutSeconds) && timeoutSeconds > 0
+            ? timeoutSeconds * 1000
+            : undefined;
+
+        const client = new ObservabilityStatusClient({
+            url: options.url,
+            headers,
+            timeoutMs,
+            logger: console
+        });
+
+        const spinner = ora('Fetching observability snapshot...').start();
+
+        try {
+            const snapshot = await client.fetchStatus({ cookie: options.cookie });
+
+            spinner.succeed('Snapshot retrieved.');
+
+            if (options.json) {
+                console.log(JSON.stringify(snapshot, null, 2));
+                return;
+            }
+
+            if (!snapshot) {
+                console.log(chalk.yellow('No observability snapshot returned.'));
+                return;
+            }
+
+            const emittedAt = snapshot?.fingerprints?.generatedAt
+                || snapshot?.emittedAt
+                || new Date().toISOString();
+
+            console.log(chalk.cyan(`\n📊 Observability snapshot @ ${emittedAt}`));
+
+            const fingerprintStats = snapshot?.fingerprints || {};
+            if (typeof fingerprintStats.totalTracked === 'number') {
+                console.log(chalk.white(`  Total tracked fingerprints: ${fingerprintStats.totalTracked}`));
+            }
+            if (Array.isArray(fingerprintStats.recentFingerprints)) {
+                console.log(chalk.white(`  Recent fingerprints: ${fingerprintStats.recentFingerprints.length}`));
+            }
+
+            if (Array.isArray(snapshot?.sinks) && snapshot.sinks.length > 0) {
+                console.log(chalk.cyan('\n🔌 Sink telemetry'));
+                for (const sink of snapshot.sinks) {
+                    const name = sink?.name || 'observability-sink';
+                    console.log(chalk.white(`• ${name}`));
+
+                    const statusLabel = formatSinkStatus(sink?.status);
+                    console.log(`  Status: ${statusLabel}`);
+                    if (sink?.statusReason) {
+                        console.log(chalk.gray(`  Reason: ${sink.statusReason}`));
+                    }
+
+                    const metrics = sink?.metrics;
+                    if (metrics && typeof metrics === 'object') {
+                        const entries = Object.entries(metrics);
+                        if (entries.length === 0) {
+                            console.log(chalk.gray('  (no metrics reported)'));
+                        } else {
+                            for (const [metricKey, metricValue] of entries) {
+                                console.log(chalk.gray(`  ${metricKey}: ${JSON.stringify(metricValue)}`));
+                            }
+                        }
+                    } else if (sink?.metricsError) {
+                        console.log(chalk.yellow(`  metrics error: ${sink.metricsError}`));
+                    } else {
+                        console.log(chalk.gray('  (metrics unavailable)'));
+                    }
+                }
+            } else {
+                console.log(chalk.gray('\nNo registered observability sinks.'));
+            }
+        } catch (error) {
+            spinner.fail('Unable to fetch observability snapshot');
+            console.error(chalk.red(error.message));
+            process.exitCode = 1;
+        } finally {
+            if (spinner.isSpinning) {
+                spinner.stop();
+            }
         }
     });
 

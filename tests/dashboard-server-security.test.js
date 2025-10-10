@@ -10,7 +10,8 @@ async function createTestServer(t) {
     const fingerprintState = {
         total: 0,
         lastFingerprint: null,
-        lastSeen: null
+        lastSeen: null,
+        touches: 0
     };
 
     const fingerprintStore = {
@@ -33,8 +34,14 @@ async function createTestServer(t) {
             fingerprintState.lastFingerprint = `stub-${fingerprint}`;
             fingerprintState.lastSeen = new Date(0).toISOString();
         },
-        recordSessionTouched: async () => {},
-        recordSessionEnded: async () => {},
+        recordSessionTouched: async () => {
+            fingerprintState.touches += 1;
+            fingerprintState.lastSeen = new Date(fingerprintState.touches * 1000).toISOString();
+        },
+        recordSessionEnded: async () => {
+            fingerprintState.touches += 1;
+            fingerprintState.lastSeen = new Date(fingerprintState.touches * 2000).toISOString();
+        },
         recordSessionMetadata: async () => {}
     };
 
@@ -572,4 +579,151 @@ test('dashboard observability endpoint reports session and rate metrics', async 
     assert.equal(typeof metrics.rateLimits.install.lastKeyHash, 'string');
 
     await stop();
+});
+
+test('dashboard observability stream emits fingerprint updates', async (t) => {
+    const { baseUrl, origin, stop } = await createTestServer(t);
+
+    const { sessionCookie } = await bootstrapSession(baseUrl, origin);
+
+    const events = [];
+    const streamUrl = new URL('/api/observability/stream', baseUrl);
+
+    const streamPromise = new Promise((resolve, reject) => {
+        const request = http.request({
+            protocol: streamUrl.protocol,
+            hostname: streamUrl.hostname,
+            port: streamUrl.port,
+            path: streamUrl.pathname,
+            method: 'GET',
+            headers: {
+                ...baseHeaders,
+                Cookie: sessionCookie,
+                Origin: origin,
+                Accept: 'text/event-stream'
+            }
+        }, (res) => {
+            try {
+                assert.equal(res.statusCode, 200);
+            } catch (error) {
+                reject(error);
+                request.destroy();
+                return;
+            }
+
+            res.setEncoding('utf8');
+            let buffer = '';
+            res.on('data', (chunk) => {
+                buffer += chunk;
+                const frames = buffer.split('\n\n');
+                buffer = frames.pop();
+                for (const frame of frames) {
+                    const lines = frame.split('\n').filter((line) => line.startsWith('data: '));
+                    for (const line of lines) {
+                        try {
+                            events.push(JSON.parse(line.slice(6).trim()));
+                        } catch {
+                            continue;
+                        }
+                        if (events.length >= 2) {
+                            resolve();
+                            request.destroy();
+                            return;
+                        }
+                    }
+                }
+            });
+
+            res.on('end', () => {
+                reject(new Error('stream ended before update'));
+            });
+        });
+
+        request.on('error', reject);
+        request.end();
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const statusResponse = await fetch(`${baseUrl}/api/status`, {
+        headers: {
+            ...baseHeaders,
+            Cookie: sessionCookie,
+            Origin: origin
+        }
+    });
+    assert.equal(statusResponse.status, 200);
+    await statusResponse.json();
+
+    await streamPromise;
+
+    assert.ok(events.length >= 2);
+    assert.equal(events[0].type, 'fingerprints');
+    assert.ok(Number.isFinite(events[0].fingerprints.totalTracked));
+    const latest = events[events.length - 1];
+    assert.equal(latest.type, 'fingerprints');
+    assert.ok(Array.isArray(latest.fingerprints.recentFingerprints));
+
+    await stop();
+});
+
+test('fingerprint observability waits for persistence before notifying exporter', async () => {
+    const notifications = [];
+    let resolveWrite;
+    const writePromise = new Promise((resolve) => {
+        resolveWrite = resolve;
+    });
+
+    const exporter = {
+        notifyFingerprintUpdate: () => {
+            notifications.push('notified');
+        }
+    };
+
+    const store = {
+        ensureLoaded: async () => {},
+        recordSessionCreated: () => writePromise,
+        recordSessionTouched: () => writePromise,
+        recordSessionEnded: () => writePromise,
+        recordSessionMetadata: () => writePromise,
+        getSummary: () => ({ totalTracked: 0, recentFingerprints: [] })
+    };
+
+    const server = new DashboardServer(0, {
+        sessionManager: { ttlMs: 60000 },
+        fingerprintStore: store,
+        observabilityExporter: exporter
+    });
+
+    const session = {
+        id: 'session-1',
+        createdAt: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        metadata: { fingerprint: 'abc123' }
+    };
+
+    server.recordFingerprintMetric('created', session);
+    assert.equal(notifications.length, 0);
+
+    resolveWrite();
+    await writePromise;
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(notifications.length, 1);
+
+    let resolveMetadata;
+    const metadataPromise = new Promise((resolve) => {
+        resolveMetadata = resolve;
+    });
+
+    store.recordSessionMetadata = () => metadataPromise;
+
+    server.recordFingerprintMetadata(session, 'abc123');
+    assert.equal(notifications.length, 1);
+
+    resolveMetadata();
+    await metadataPromise;
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(notifications.length, 2);
 });

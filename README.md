@@ -175,6 +175,31 @@ The JSON response includes:
 
 All identifiers are hashed before exposure so observability tooling can monitor behavior without leaking cookies or IP addresses.
 
+Need a live feed for remote dashboards? Connect to the streaming exporter:
+
+```
+GET /api/observability/stream
+```
+
+This endpoint uses Server-Sent Events (SSE) to push fingerprint summaries as they change. For example:
+
+```bash
+curl --no-buffer \
+  -H "Cookie: guardian_session=<your-session-cookie>" \
+  http://localhost:3333/api/observability/stream
+```
+
+Each `data:` frame contains a `type: "fingerprints"` payload with the latest anonymized fingerprint totals and recent activity windows, ready to ingest into log forwarders or remote dashboards.
+
+Prefer to avoid managing curl headers? Nimbus now includes a helper command that keeps your terminal subscribed:
+
+```bash
+nimbus observability-stream \
+  --cookie "guardian_session=<your-session-cookie>"
+```
+
+The CLI prints formatted summaries by default, or you can pass `--json` to emit newline-delimited payloads for piping into other tools. Use `--once` to exit after the next update or `--timeout 60` to auto-disconnect after a minute.
+
 ---
 
 ## Getting API Keys

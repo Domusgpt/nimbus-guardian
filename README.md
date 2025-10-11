@@ -172,8 +172,119 @@ The JSON response includes:
 - Session lifecycle counters (active sessions, creations, touches, expirations) with ISO timestamps.
 - Rate limit outcomes for each profile (actions, scans, chat, installs) with anonymized request fingerprints and last retry guidance.
 - Persistent fingerprint telemetry summarizing hashed client identities, TTL, and latest activity even after dashboard restarts.
+- Observability sink telemetry detailing disk and webhook delivery health (pending queue sizes, retry counts, timestamps).
 
 All identifiers are hashed before exposure so observability tooling can monitor behavior without leaking cookies or IP addresses.
+
+Need a live feed for remote dashboards? Connect to the streaming exporter:
+
+```
+GET /api/observability/stream
+```
+
+This endpoint uses Server-Sent Events (SSE) to push fingerprint summaries as they change. For example:
+
+```bash
+curl --no-buffer \
+  -H "Cookie: guardian_session=<your-session-cookie>" \
+  http://localhost:3333/api/observability/stream
+```
+
+Each `data:` frame contains a `type: "fingerprints"` payload with the latest anonymized fingerprint totals, recent activity windows, and any configured sink telemetry so operators can watch queue depth, delivery health, and batching counters in real time.
+
+Prefer to avoid managing curl headers? Nimbus now includes a helper command that keeps your terminal subscribed:
+
+```bash
+nimbus observability-stream \
+  --cookie "guardian_session=<your-session-cookie>"
+```
+
+The CLI prints formatted summaries by default—including per-sink status badges and nested metrics—or you can pass `--json` to emit newline-delimited payloads for piping into other tools. Use `--once` to exit after the next update or `--timeout 60` to auto-disconnect after a minute.
+
+Need a quick health check without staying connected? Grab a single snapshot (including sink telemetry) whenever you need it:
+
+```bash
+nimbus observability-status \
+  --cookie "guardian_session=<your-session-cookie>"
+```
+
+By default the command renders a readable summary showing total fingerprints plus per-sink delivery metrics and status badges. Add `--json` to print the raw API response or `--timeout 10` to raise an error if the dashboard takes longer than ten seconds to respond. Supply `--header KEY:VALUE` flags to forward custom headers such as `X-Forwarded-For` or additional authentication.
+
+Trying to spot trends or confirm when a sink last updated? The dashboard now keeps a lightweight history buffer that you can query at any time:
+
+```
+GET /api/observability/history?limit=10
+```
+
+The response returns the most recent fingerprint snapshots—including sink telemetry—bounded by the optional `limit` parameter (defaults to 50 when omitted). Each entry carries the emitted timestamp so downstream tooling can reconstruct a short timeline without tailing the live stream. Operators can adjust the in-memory buffer size with the `GUARDIAN_OBSERVABILITY_HISTORY_LIMIT` environment variable when launching the dashboard.
+
+CLI fans can request the same backlog using:
+
+```bash
+nimbus observability-status \
+  --cookie "guardian_session=<your-session-cookie>" \
+  --history 5
+```
+
+When `--history` is supplied Nimbus appends a “Recent observability history” section after the live snapshot (or returns `{ "snapshot": ..., "history": [...], "overview": {...} }` in JSON mode) so operators can see the latest fingerprint totals and sink counts over the requested window. Nimbus also prints an aggregated history overview ahead of the timestamped entries so you can glance at coverage length, min/max fingerprint totals, average activity, and sink transition counts without parsing the raw payloads.
+
+Need durable breadcrumbs for compliance or offline analysis? Set the `GUARDIAN_OBSERVABILITY_LOG_PATH` environment variable before launching the dashboard and Nimbus will append every fingerprint snapshot to that file as newline-delimited JSON.
+
+##### Snapshot summary rollups
+
+Snapshots now include a `summary` block that condenses the most useful fingerprint and sink metrics into a quick-glance digest. The exporter tallies how many fingerprints are currently tracked, how many recent entries are active, the combined session count for the recent window, and the TTL/last-update metadata provided by the fingerprint store. Sink telemetry receives the same treatment: Nimbus records how many sinks are registered, buckets them by health status, tracks how many are exporting metrics, and highlights degraded or failing destinations under an `unhealthy` key.
+
+Both `nimbus observability-stream` and `nimbus observability-status` render this rollup automatically so operators can immediately see counts and health summaries without parsing the raw JSON. History output reuses the same aggregates, surfacing failing/degraded sink totals alongside each archived timestamp for faster troubleshooting. Downstream tooling can read the same structure programmatically from `/api/observability`, `/api/observability/stream`, or `/api/observability/history` responses under `payload.summary`.
+
+##### History overview analytics
+
+The history endpoint now includes an `overview` companion object that summarizes trends across the returned snapshots. It reports the total number of entries, the first/last emission timestamps, and the millisecond coverage window so you know how much time the buffer spans. Fingerprint analytics capture min/max/average totals, average recent fingerprint volume, maximum active fingerprints, session-count averages, and a unique fingerprint estimate drawn from the recent window. Sink analytics highlight how many unique sinks appeared, aggregate status occurrence counts, the number of status transitions (broken down by `from->to` pairs), how many snapshots reported degraded/failing sinks, how often sink metric collection errored, and when the most recent unhealthy snapshot occurred. The CLI renders this overview automatically whenever `--history` is requested, and the JSON payload exposes it under the `overview` key for automation.
+
+##### Snapshot change deltas
+
+Every fingerprint snapshot now carries a lightweight `delta` block that highlights what changed since the previous emission. The exporter tracks fingerprint totals, recent fingerprint additions/removals, and per-sink status or metric shifts so operators can immediately spot activity spikes or failing sinks. Both the streaming and status CLI commands surface these deltas—look for the `Δ Fingerprint activity` and `Δ Sink changes` sections after each payload—or inspect the raw JSON to programmatically react to the same data.
+
+```bash
+export GUARDIAN_OBSERVABILITY_LOG_PATH="/var/log/nimbus/observability.log"
+nimbus dashboard
+```
+
+The log writer creates directories as needed, stores entries with a `receivedAt` timestamp, and automatically rotates the file once it grows past ~1 MB (keeping up to five historical archives with `.1`, `.2`, etc. suffixes). Dashboard operators can confirm the sink is healthy by checking the `/api/observability` response – the `sinks` array will include a `disk-log` entry describing the resolved path, rotation thresholds, and a `status`/`statusReason` pair that flips to **degraded** or **failing** when writes begin erroring.
+
+Need to fan fingerprints out to a remote observability platform instead? Provide a webhook endpoint and Nimbus will POST every snapshot as JSON with automatic retries on transient failures:
+
+```bash
+export GUARDIAN_OBSERVABILITY_WEBHOOK_URL="https://ops.example.com/hooks/nimbus"
+export GUARDIAN_OBSERVABILITY_WEBHOOK_HEADERS='{"Authorization":"Bearer <token>","X-Source":"nimbus-dashboard"}'
+export GUARDIAN_OBSERVABILITY_WEBHOOK_TIMEOUT_MS=5000
+export GUARDIAN_OBSERVABILITY_WEBHOOK_MAX_RETRIES=3
+# Optional batching controls to limit request volume during traffic spikes
+export GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_ITEMS=10
+export GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_WAIT_MS=1000
+export GUARDIAN_OBSERVABILITY_WEBHOOK_BATCH_MAX_BYTES=32768
+nimbus dashboard
+```
+
+Each request includes the fingerprint summary plus a `sentAt` timestamp so downstream processors can reconcile delivery time. When batching is enabled Nimbus coalesces multiple summaries into a single payload shaped as:
+
+```json
+{
+  "type": "fingerprints-batch",
+  "sentAt": "2025-10-10T12:00:00.000Z",
+  "count": 3,
+  "entries": [
+    { "type": "fingerprints", "sentAt": "2025-10-10T11:59:30.000Z", ... },
+    { "type": "fingerprints", "sentAt": "2025-10-10T11:59:45.000Z", ... },
+    { "type": "fingerprints", "sentAt": "2025-10-10T12:00:00.000Z", ... }
+  ]
+}
+```
+
+The `/api/observability` snapshot now exposes real-time delivery telemetry for every configured sink. Webhook entries report queue depth, batching configuration, the last HTTP status observed, and timestamps for the most recent successes or failures alongside a health `status` and explanatory `statusReason`. This makes it easy to verify that batches are flushing on schedule and to alert when downstream endpoints stop accepting payloads.
+
+When batching is enabled the snapshot also includes a `batchingStats` object that tracks how and when deliveries are flushed. Counters cover manual flush invocations, automatic drains triggered by the `maxItems`, `maxBytes`, or `maxWaitMs` thresholds, and the largest batch Nimbus has shipped so far. Each update stamps the most recent flush reason and ISO timestamp so operators can confirm the pipeline is moving regularly. The `nimbus observability-status` CLI renders the nested structure directly, keeping related counters grouped for quick triage.
+
+Requests still honor custom headers from the JSON blob exactly as provided, making it easy to attach API tokens or routing hints without touching code. Tune the batching knobs to trade latency for lower webhook volume or set them to `1`/`0` to preserve one-request-per-snapshot behavior.
 
 ---
 

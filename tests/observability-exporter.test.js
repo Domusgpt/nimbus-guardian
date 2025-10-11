@@ -1,0 +1,400 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+
+const ObservabilityExporter = require('../lib/observability-exporter');
+
+function createFakeStream(log = []) {
+    return {
+        writes: log,
+        write(chunk) {
+            this.writes.push(chunk);
+        },
+        on() {
+            // no-op for tests
+        },
+        end() {
+            // no-op for tests
+        }
+    };
+}
+
+function extractEvents(writes) {
+    const frames = [];
+    for (const chunk of writes) {
+        const parts = chunk.split('\n\n');
+        for (const part of parts) {
+            if (!part.trim()) {
+                continue;
+            }
+            const lines = part.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const payload = line.slice(6).trim();
+                    frames.push(JSON.parse(payload));
+                }
+            }
+        }
+    }
+    return frames;
+}
+
+test('ObservabilityExporter streams fingerprint payloads when summaries change', () => {
+    const snapshots = [
+        { fingerprints: { totalTracked: 0, recentFingerprints: [] } },
+        { fingerprints: { totalTracked: 1, recentFingerprints: [
+            {
+                fingerprintHash: 'hash-1',
+                sessionCount: 1,
+                firstSeen: '2025-01-01T00:00:00.000Z',
+                lastSeen: '2025-01-01T00:00:00.000Z'
+            }
+        ] } }
+    ];
+
+    let currentIndex = 0;
+    const exporter = new ObservabilityExporter({
+        getSnapshot: () => snapshots[currentIndex],
+        now: () => Date.parse('2025-01-01T00:00:00.000Z'),
+        debounceMs: 0
+    });
+
+    const writes = [];
+    const stream = createFakeStream(writes);
+    exporter.addStream(stream);
+
+    let events = extractEvents(writes);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].type, 'fingerprints');
+    assert.equal(events[0].fingerprints.totalTracked, 0);
+
+    currentIndex = 1;
+    exporter.notifyFingerprintUpdate();
+
+    events = extractEvents(writes);
+    assert.equal(events.length, 2);
+    assert.equal(events[1].fingerprints.totalTracked, 1);
+    assert.equal(events[1].fingerprints.recentFingerprints[0].fingerprintHash, 'hash-1');
+
+    exporter.notifyFingerprintUpdate();
+    events = extractEvents(writes);
+    assert.equal(events.length, 2, 'duplicate snapshots should be ignored');
+});
+
+test('ObservabilityExporter annotates snapshots with fingerprint and sink deltas', () => {
+    const snapshots = [
+        {
+            fingerprints: {
+                totalTracked: 1,
+                recentFingerprints: [
+                    { fingerprintHash: 'hash-1', sessionCount: 1 }
+                ]
+            },
+            sinks: [
+                {
+                    name: 'disk-log',
+                    status: 'healthy',
+                    metrics: {
+                        delivery: {
+                            deliveredEntries: 1,
+                            failedEntries: 0
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            fingerprints: {
+                totalTracked: 2,
+                recentFingerprints: [
+                    { fingerprintHash: 'hash-1', sessionCount: 2 },
+                    { fingerprintHash: 'hash-2', sessionCount: 1 }
+                ]
+            },
+            sinks: [
+                {
+                    name: 'disk-log',
+                    status: 'degraded',
+                    metrics: {
+                        delivery: {
+                            deliveredEntries: 1,
+                            failedEntries: 1
+                        }
+                    }
+                },
+                {
+                    name: 'webhook',
+                    status: 'healthy',
+                    metrics: {
+                        queue: {
+                            pendingEntries: 0
+                        }
+                    }
+                }
+            ]
+        }
+    ];
+
+    let index = 0;
+    const exporter = new ObservabilityExporter({
+        getSnapshot: () => snapshots[index],
+        debounceMs: 0,
+        historyLimit: 5
+    });
+
+    const writes = [];
+    exporter.addStream(createFakeStream(writes));
+
+    let events = extractEvents(writes);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].fingerprints.totalTracked, 1);
+    assert.equal(events[0].delta, undefined);
+
+    index = 1;
+    exporter.notifyFingerprintUpdate();
+
+    events = extractEvents(writes);
+    assert.equal(events.length, 2);
+
+    const delta = events[1].delta;
+    assert.ok(delta);
+    assert.ok(delta.fingerprints);
+    assert.ok(delta.sinks);
+
+    assert.equal(delta.fingerprints.totalTracked.delta, 1);
+    assert.equal(delta.fingerprints.totalTracked.previous, 1);
+    assert.equal(delta.fingerprints.totalTracked.current, 2);
+
+    const updates = delta.fingerprints.recentFingerprints.updated;
+    assert.ok(Array.isArray(updates));
+    assert.equal(updates[0].fingerprintHash, 'hash-1');
+    assert.equal(updates[0].delta, 1);
+
+    const additions = delta.fingerprints.recentFingerprints.added;
+    assert.ok(Array.isArray(additions));
+    assert.equal(additions[0].fingerprintHash, 'hash-2');
+
+    assert.ok(Array.isArray(delta.sinks.added));
+    assert.equal(delta.sinks.added[0].name, 'webhook');
+
+    const statusChange = delta.sinks.statusChanges[0];
+    assert.equal(statusChange.name, 'disk-log');
+    assert.equal(statusChange.previous, 'healthy');
+    assert.equal(statusChange.current, 'degraded');
+
+    const metricsChange = delta.sinks.metricsChanged[0];
+    assert.equal(metricsChange.name, 'disk-log');
+    assert.ok(metricsChange.metrics['delivery.failedEntries']);
+    assert.equal(metricsChange.metrics['delivery.failedEntries'].delta, 1);
+
+    const history = exporter.getSnapshotHistory();
+    assert.equal(history.length, 1);
+    assert.equal(history[0].delta.fingerprints.totalTracked.delta, 1);
+});
+
+test('ObservabilityExporter sends fresh snapshots for new subscribers', () => {
+    const snapshots = [
+        { fingerprints: { totalTracked: 1, recentFingerprints: [] } },
+        { fingerprints: { totalTracked: 3, recentFingerprints: [
+            {
+                fingerprintHash: 'hash-2',
+                sessionCount: 2,
+                firstSeen: '2025-01-02T00:00:00.000Z',
+                lastSeen: '2025-01-02T00:00:00.000Z'
+            }
+        ] } }
+    ];
+
+    let currentIndex = 0;
+    const exporter = new ObservabilityExporter({
+        getSnapshot: () => snapshots[currentIndex],
+        now: () => Date.parse('2025-01-02T00:00:00.000Z'),
+        debounceMs: 0
+    });
+
+    const firstWrites = [];
+    exporter.addStream(createFakeStream(firstWrites));
+
+    currentIndex = 1;
+    exporter.shutdown();
+
+    const secondWrites = [];
+    exporter.addStream(createFakeStream(secondWrites));
+
+    const events = extractEvents(secondWrites);
+    assert.equal(events.length, 1);
+    assert.equal(events[0].fingerprints.totalTracked, 3);
+    assert.equal(events[0].fingerprints.recentFingerprints[0].fingerprintHash, 'hash-2');
+});
+
+test('ObservabilityExporter notifies sinks for new snapshots and supports removal', async () => {
+    const snapshots = [
+        { fingerprints: { totalTracked: 1 } },
+        { fingerprints: { totalTracked: 2 } }
+    ];
+
+    let currentIndex = 0;
+    const exporter = new ObservabilityExporter({
+        getSnapshot: () => snapshots[currentIndex],
+        debounceMs: 0,
+        logger: { warn: () => {} }
+    });
+
+    const received = [];
+    const cleanup = exporter.addSink((payload) => {
+        received.push(payload);
+    });
+
+    await Promise.resolve();
+    assert.equal(received.length, 1);
+    assert.equal(received[0].fingerprints.totalTracked, 1);
+
+    currentIndex = 1;
+    exporter.notifyFingerprintUpdate();
+
+    assert.equal(received.length, 2);
+    assert.equal(received[1].fingerprints.totalTracked, 2);
+
+    exporter.notifyFingerprintUpdate();
+    assert.equal(received.length, 2, 'duplicate snapshots should be ignored for sinks');
+
+    cleanup();
+
+    currentIndex = 0;
+    exporter.notifyFingerprintUpdate();
+    assert.equal(received.length, 2, 'removed sinks should not receive further updates');
+});
+
+test('ObservabilityExporter surfaces sink telemetry with metadata and error isolation', () => {
+    const exporter = new ObservabilityExporter({
+        getSnapshot: () => ({ fingerprints: { totalTracked: 1 } }),
+        debounceMs: 0,
+        logger: { warn: () => {} }
+    });
+
+    let metricCalls = 0;
+    const cleanup = exporter.addSink(() => {}, {
+        name: 'custom-sink',
+        metrics: () => {
+            metricCalls += 1;
+            return { pending: 0 };
+        }
+    });
+
+    exporter.addSink(() => {
+        throw new Error('boom');
+    }, {
+        metrics: () => {
+            throw new Error('metric failure');
+        }
+    });
+
+    const telemetry = exporter.getSinkTelemetry();
+    assert.equal(telemetry.length, 2);
+    assert.equal(telemetry[0].name, 'custom-sink');
+    assert.deepEqual(telemetry[0].metrics, { pending: 0 });
+    assert.equal(telemetry[0].status, 'unknown');
+    assert.ok(telemetry[0].statusReason);
+    assert.equal(metricCalls, 1);
+    assert.equal(telemetry[1].name, 'observability-sink');
+    assert.equal(telemetry[1].metrics, null);
+    assert.match(telemetry[1].metricsError, /metric failure/i);
+    assert.equal(telemetry[1].status, 'unknown');
+    assert.ok(telemetry[1].statusReason);
+
+    cleanup();
+    const remaining = exporter.getSinkTelemetry();
+    assert.equal(remaining.length, 1);
+});
+
+test('ObservabilityExporter emits sink telemetry updates without duplicating sink payloads', async () => {
+    const snapshot = {
+        fingerprints: { totalTracked: 1 },
+        sinks: [
+            {
+                name: 'webhook',
+                metrics: { queue: { pendingEntries: 0 } }
+            }
+        ]
+    };
+
+    const exporter = new ObservabilityExporter({
+        getSnapshot: () => snapshot,
+        debounceMs: 0,
+        logger: { warn: () => {} }
+    });
+
+    const writes = [];
+    exporter.addStream(createFakeStream(writes));
+
+    const sinkPayloads = [];
+    const cleanup = exporter.addSink((payload) => {
+        sinkPayloads.push(payload);
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    let events = extractEvents(writes);
+    assert.equal(events.length, 2);
+    assert.equal(sinkPayloads.length, 1);
+
+    snapshot.sinks[0].metrics.queue.pendingEntries = 5;
+    exporter.notifySinkUpdate();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    events = extractEvents(writes);
+    assert.equal(events.length, 3);
+    assert.equal(events[2].sinks[0].metrics.queue.pendingEntries, 5);
+    assert.equal(sinkPayloads.length, 1, 'sink should not receive duplicate payloads');
+
+    const delta = events[2].delta;
+    assert.ok(delta);
+    assert.ok(Array.isArray(delta.sinks.metricsChanged));
+    const metricDelta = delta.sinks.metricsChanged[0].metrics['queue.pendingEntries'];
+    assert.ok(metricDelta);
+    assert.equal(metricDelta.delta, 5);
+
+    cleanup();
+});
+
+test('ObservabilityExporter records bounded history even without active streams', () => {
+    const snapshots = [
+        { fingerprints: { totalTracked: 0 } },
+        { fingerprints: { totalTracked: 1 } },
+        { fingerprints: { totalTracked: 2 } }
+    ];
+
+    let index = 0;
+    const exporter = new ObservabilityExporter({
+        getSnapshot: () => snapshots[index],
+        debounceMs: 0,
+        historyLimit: 2
+    });
+
+    exporter.notifyFingerprintUpdate();
+    let history = exporter.getSnapshotHistory();
+    assert.equal(history.length, 1);
+    assert.equal(history[0].fingerprints.totalTracked, 0);
+
+    index = 1;
+    exporter.notifyFingerprintUpdate();
+    history = exporter.getSnapshotHistory();
+    assert.equal(history.length, 2);
+    assert.equal(history[0].fingerprints.totalTracked, 0);
+    assert.equal(history[1].fingerprints.totalTracked, 1);
+
+    index = 2;
+    exporter.notifyFingerprintUpdate();
+    history = exporter.getSnapshotHistory();
+    assert.equal(history.length, 2, 'history should be capped to the configured limit');
+    assert.equal(history[0].fingerprints.totalTracked, 1);
+    assert.equal(history[1].fingerprints.totalTracked, 2);
+    assert.equal(history[1].delta.fingerprints.totalTracked.delta, 1);
+
+    history[1].fingerprints.totalTracked = 99;
+    const latest = exporter.getSnapshotHistory();
+    assert.equal(latest[1].fingerprints.totalTracked, 2, 'history reads should be immutable clones');
+    assert.equal(latest[1].delta.fingerprints.totalTracked.delta, 1);
+});

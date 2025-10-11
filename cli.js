@@ -18,6 +18,460 @@ const { loadConfig: loadGuardianConfig } = require('./lib/config-service');
 const GuardianEngine = require('./guardian-engine');
 const AIAssistant = require('./ai-assistant');
 const setup = require('./setup');
+const ObservabilityStreamClient = require('./lib/observability-stream-client');
+const ObservabilityStatusClient = require('./lib/observability-status-client');
+
+const parseHeaderOptions = (input, { onWarning } = {}) => {
+    const list = input ? (Array.isArray(input) ? input : [input]) : [];
+    const headers = {};
+
+    for (const entry of list) {
+        if (typeof entry !== 'string') {
+            continue;
+        }
+
+        const separator = entry.indexOf(':');
+        if (separator === -1) {
+            onWarning?.(`Ignoring invalid header "${entry}". Use KEY:VALUE format.`);
+            continue;
+        }
+
+        const key = entry.slice(0, separator).trim();
+        const value = entry.slice(separator + 1).trim();
+
+        if (!key || !value) {
+            onWarning?.(`Ignoring invalid header "${entry}". Use KEY:VALUE format.`);
+            continue;
+        }
+
+        headers[key] = value;
+    }
+
+    return headers;
+};
+
+const printMetricTree = (value, indent = '  ') => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        console.log(chalk.gray(`${indent}${JSON.stringify(value)}`));
+        return;
+    }
+
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+        console.log(chalk.gray(`${indent}(no data)`));
+        return;
+    }
+
+    for (const [key, child] of entries) {
+        if (child && typeof child === 'object' && !Array.isArray(child)) {
+            console.log(chalk.gray(`${indent}${key}:`));
+            printMetricTree(child, `${indent}  `);
+        } else {
+            console.log(chalk.gray(`${indent}${key}: ${JSON.stringify(child)}`));
+        }
+    }
+};
+
+const formatSinkStatus = (status) => {
+    const normalized = typeof status === 'string' ? status.toLowerCase() : 'unknown';
+    switch (normalized) {
+        case 'healthy':
+            return chalk.green('healthy');
+        case 'pending':
+            return chalk.cyan('pending');
+        case 'degraded':
+            return chalk.yellow('degraded');
+        case 'failing':
+            return chalk.red('failing');
+        default:
+            return chalk.gray(normalized || 'unknown');
+    }
+};
+
+const formatDeltaNumber = (value) => {
+    if (!Number.isFinite(value)) {
+        return chalk.gray('n/a');
+    }
+    if (value > 0) {
+        return chalk.green(`+${value}`);
+    }
+    if (value < 0) {
+        return chalk.red(`${value}`);
+    }
+    return chalk.gray('0');
+};
+
+const formatMaybeNumber = (value) => {
+    if (Number.isFinite(value)) {
+        return String(value);
+    }
+    if (value === null || value === undefined) {
+        return 'n/a';
+    }
+    return String(value);
+};
+
+const formatDurationMs = (ms) => {
+    if (!Number.isFinite(ms) || ms < 0) {
+        return null;
+    }
+
+    const secondsTotal = Math.floor(ms / 1000);
+    const parts = [];
+
+    const days = Math.floor(secondsTotal / 86400);
+    if (days > 0) {
+        parts.push(`${days}d`);
+    }
+
+    const hours = Math.floor((secondsTotal % 86400) / 3600);
+    if (hours > 0) {
+        parts.push(`${hours}h`);
+    }
+
+    const minutes = Math.floor((secondsTotal % 3600) / 60);
+    if (minutes > 0) {
+        parts.push(`${minutes}m`);
+    }
+
+    const seconds = secondsTotal % 60;
+    if (seconds > 0 || parts.length === 0) {
+        parts.push(`${seconds}s`);
+    }
+
+    return parts.join(' ');
+};
+
+const printHistoryOverview = (overview, indent = '  ') => {
+    if (!overview || typeof overview !== 'object') {
+        return false;
+    }
+
+    console.log(chalk.cyan('\n📈 History overview'));
+
+    if (Number.isFinite(overview.totalSnapshots)) {
+        console.log(chalk.white(`${indent}Snapshots: ${overview.totalSnapshots}`));
+    }
+
+    if (typeof overview.firstEmittedAt === 'string') {
+        console.log(chalk.gray(`${indent}First snapshot: ${overview.firstEmittedAt}`));
+    }
+
+    if (typeof overview.lastEmittedAt === 'string') {
+        console.log(chalk.gray(`${indent}Last snapshot: ${overview.lastEmittedAt}`));
+    }
+
+    if (Number.isFinite(overview.rangeMs)) {
+        const durationLabel = formatDurationMs(overview.rangeMs);
+        if (durationLabel) {
+            console.log(chalk.gray(`${indent}Coverage window: ${durationLabel}`));
+        }
+    }
+
+    const fingerprintOverview = overview.fingerprints;
+    if (fingerprintOverview && typeof fingerprintOverview === 'object') {
+        console.log(chalk.white(`${indent}Fingerprints:`));
+
+        if (Number.isFinite(fingerprintOverview.latestTotalTracked)) {
+            console.log(`${indent}  Latest total tracked: ${fingerprintOverview.latestTotalTracked}`);
+        }
+
+        const minTracked = fingerprintOverview.minTotalTracked;
+        const maxTracked = fingerprintOverview.maxTotalTracked;
+        if (Number.isFinite(minTracked) || Number.isFinite(maxTracked)) {
+            const minLabel = Number.isFinite(minTracked) ? minTracked : 'n/a';
+            const maxLabel = Number.isFinite(maxTracked) ? maxTracked : 'n/a';
+            console.log(chalk.gray(`${indent}  Range: ${minLabel} → ${maxLabel}`));
+        }
+
+        if (Number.isFinite(fingerprintOverview.averageTotalTracked)) {
+            console.log(chalk.gray(`${indent}  Avg total tracked: ${fingerprintOverview.averageTotalTracked}`));
+        }
+
+        if (Number.isFinite(fingerprintOverview.averageRecentCount)) {
+            console.log(chalk.gray(`${indent}  Avg recent count: ${fingerprintOverview.averageRecentCount}`));
+        }
+
+        if (Number.isFinite(fingerprintOverview.maxRecentCount)) {
+            console.log(chalk.gray(`${indent}  Max recent count: ${fingerprintOverview.maxRecentCount}`));
+        }
+
+        if (Number.isFinite(fingerprintOverview.maxActiveRecent)) {
+            console.log(chalk.gray(`${indent}  Max active recent: ${fingerprintOverview.maxActiveRecent}`));
+        }
+
+        if (Number.isFinite(fingerprintOverview.uniqueRecentFingerprints)) {
+            console.log(chalk.gray(`${indent}  Unique recent fingerprints: ${fingerprintOverview.uniqueRecentFingerprints}`));
+        }
+
+        if (Number.isFinite(fingerprintOverview.averageSessionCountTotal)) {
+            console.log(chalk.gray(`${indent}  Avg session count total: ${fingerprintOverview.averageSessionCountTotal}`));
+        }
+    }
+
+    const sinkOverview = overview.sinks;
+    if (sinkOverview && typeof sinkOverview === 'object') {
+        console.log(chalk.white(`${indent}Sinks:`));
+
+        if (Number.isFinite(sinkOverview.uniqueSinks)) {
+            console.log(`${indent}  Unique sinks observed: ${sinkOverview.uniqueSinks}`);
+        }
+
+        if (sinkOverview.statusCounts && typeof sinkOverview.statusCounts === 'object') {
+            const entries = Object.entries(sinkOverview.statusCounts);
+            if (entries.length > 0) {
+                console.log(chalk.gray(`${indent}  Status appearances:`));
+                for (const [status, count] of entries) {
+                    const statusLabel = formatSinkStatus(status);
+                    console.log(`    ${statusLabel}: ${count}`);
+                }
+            }
+        }
+
+        if (Number.isFinite(sinkOverview.totalStatusTransitions)) {
+            console.log(chalk.gray(`${indent}  Status transitions: ${sinkOverview.totalStatusTransitions}`));
+            if (sinkOverview.statusTransitions && typeof sinkOverview.statusTransitions === 'object') {
+                for (const [key, count] of Object.entries(sinkOverview.statusTransitions)) {
+                    console.log(chalk.gray(`${indent}    ${key}: ${count}`));
+                }
+            }
+        }
+
+        if (Number.isFinite(sinkOverview.unhealthySnapshots)) {
+            console.log(chalk.yellow(`${indent}  Snapshots with unhealthy sinks: ${sinkOverview.unhealthySnapshots}`));
+        }
+
+        if (Number.isFinite(sinkOverview.metricsWithErrorsSnapshots)) {
+            console.log(chalk.yellow(`${indent}  Snapshots with sink metric errors: ${sinkOverview.metricsWithErrorsSnapshots}`));
+        }
+
+        if (typeof sinkOverview.lastUnhealthyAt === 'string') {
+            console.log(chalk.gray(`${indent}  Last unhealthy snapshot: ${sinkOverview.lastUnhealthyAt}`));
+        }
+    }
+
+    return true;
+};
+
+const printFingerprintDelta = (delta, indent = '  ') => {
+    if (!delta || typeof delta !== 'object') {
+        return false;
+    }
+
+    const lines = [];
+
+    if (delta.totalTracked) {
+        const { previous, current, delta: change } = delta.totalTracked;
+        const changeLabel = formatDeltaNumber(change);
+        const currentLabel = formatMaybeNumber(current);
+        lines.push(`${indent}  Total tracked: ${changeLabel} (now ${currentLabel})`);
+        if (Number.isFinite(previous)) {
+            lines.push(chalk.gray(`${indent}    Previous total: ${previous}`));
+        }
+    }
+
+    const recent = delta.recentFingerprints;
+    if (recent && typeof recent === 'object') {
+        if (Array.isArray(recent.added) && recent.added.length > 0) {
+            const hashes = recent.added
+                .map((entry) => {
+                    const hash = entry?.fingerprintHash || 'unknown';
+                    const count = Number.isFinite(entry?.sessionCount)
+                        ? ` (sessions: ${entry.sessionCount})`
+                        : '';
+                    return `${hash}${count}`;
+                });
+            lines.push(chalk.green(`${indent}  Added fingerprints: ${hashes.join(', ')}`));
+        }
+
+        if (Array.isArray(recent.removed) && recent.removed.length > 0) {
+            const hashes = recent.removed
+                .map((entry) => {
+                    const hash = entry?.fingerprintHash || 'unknown';
+                    const count = Number.isFinite(entry?.sessionCount)
+                        ? ` (was ${entry.sessionCount})`
+                        : '';
+                    return `${hash}${count}`;
+                });
+            lines.push(chalk.red(`${indent}  Removed fingerprints: ${hashes.join(', ')}`));
+        }
+
+        if (Array.isArray(recent.updated) && recent.updated.length > 0) {
+            for (const entry of recent.updated) {
+                const hash = entry?.fingerprintHash || 'unknown';
+                const changeLabel = formatDeltaNumber(entry?.delta);
+                const currentLabel = formatMaybeNumber(entry?.currentSessionCount);
+                lines.push(`${indent}  ${hash}: ${changeLabel} sessions (now ${currentLabel})`);
+            }
+        }
+    }
+
+    if (lines.length === 0) {
+        return false;
+    }
+
+    console.log(chalk.cyan(`${indent}Δ Fingerprint activity`));
+    for (const line of lines) {
+        console.log(line);
+    }
+    return true;
+};
+
+const printSinkDelta = (delta, indent = '  ') => {
+    if (!delta || typeof delta !== 'object') {
+        return false;
+    }
+
+    const lines = [];
+
+    if (Array.isArray(delta.added) && delta.added.length > 0) {
+        for (const entry of delta.added) {
+            const name = entry?.name || 'observability-sink';
+            const statusLabel = formatSinkStatus(entry?.status);
+            lines.push(chalk.green(`${indent}  + ${name} (${statusLabel})`));
+        }
+    }
+
+    if (Array.isArray(delta.removed) && delta.removed.length > 0) {
+        for (const entry of delta.removed) {
+            const name = entry?.name || 'observability-sink';
+            const statusLabel = formatSinkStatus(entry?.status);
+            lines.push(chalk.red(`${indent}  - ${name} (${statusLabel})`));
+        }
+    }
+
+    if (Array.isArray(delta.statusChanges) && delta.statusChanges.length > 0) {
+        for (const entry of delta.statusChanges) {
+            const name = entry?.name || 'observability-sink';
+            const currentLabel = formatSinkStatus(entry?.current);
+            const previousLabel = formatSinkStatus(entry?.previous);
+            lines.push(`${indent}  ${name} status: ${currentLabel}${chalk.gray(' (was ')}${previousLabel}${chalk.gray(')')}`);
+        }
+    }
+
+    if (Array.isArray(delta.metricsChanged) && delta.metricsChanged.length > 0) {
+        for (const entry of delta.metricsChanged) {
+            const name = entry?.name || 'observability-sink';
+            const metrics = entry?.metrics && typeof entry.metrics === 'object'
+                ? Object.entries(entry.metrics)
+                : [];
+            if (metrics.length === 0) {
+                continue;
+            }
+            lines.push(chalk.white(`${indent}  ${name} metrics:`));
+            for (const [key, values] of metrics) {
+                const changeLabel = formatDeltaNumber(values?.delta);
+                const currentLabel = formatMaybeNumber(values?.current);
+                lines.push(chalk.gray(`${indent}    ${key}: ${changeLabel} (now ${currentLabel})`));
+            }
+        }
+    }
+
+    if (lines.length === 0) {
+        return false;
+    }
+
+    console.log(chalk.cyan(`${indent}Δ Sink changes`));
+    for (const line of lines) {
+        console.log(line);
+    }
+    return true;
+};
+
+const printSnapshotSummary = (summary, indent = '  ') => {
+    if (!summary || typeof summary !== 'object') {
+        return false;
+    }
+
+    const fingerprintSummary = summary.fingerprints;
+    const sinkSummary = summary.sinks;
+
+    const hasFingerprints = fingerprintSummary && typeof fingerprintSummary === 'object';
+    const hasSinks = sinkSummary && typeof sinkSummary === 'object';
+
+    if (!hasFingerprints && !hasSinks) {
+        return false;
+    }
+
+    console.log(chalk.cyan(`${indent}Snapshot summary`));
+
+    if (hasFingerprints) {
+        const totalTracked = formatMaybeNumber(fingerprintSummary.totalTracked);
+        const recentCount = Number.isFinite(fingerprintSummary.recentCount)
+            ? fingerprintSummary.recentCount
+            : 0;
+        const activeRecent = Number.isFinite(fingerprintSummary.activeRecent)
+            ? fingerprintSummary.activeRecent
+            : 0;
+
+        console.log(chalk.white(`${indent}  Fingerprints`));
+        console.log(chalk.white(`${indent}    Total tracked: ${totalTracked}`));
+        console.log(chalk.white(`${indent}    Recent listed: ${recentCount}`));
+        console.log(chalk.white(`${indent}    Active recent: ${activeRecent}`));
+
+        if (Number.isFinite(fingerprintSummary.sessionCountTotal)) {
+            console.log(chalk.white(`${indent}    Recent session total: ${fingerprintSummary.sessionCountTotal}`));
+        }
+
+        if (Number.isFinite(fingerprintSummary.ttlMs)) {
+            console.log(chalk.gray(`${indent}    TTL: ${fingerprintSummary.ttlMs}ms`));
+        }
+
+        if (fingerprintSummary.lastUpdatedAt) {
+            console.log(chalk.gray(`${indent}    Last updated: ${fingerprintSummary.lastUpdatedAt}`));
+        }
+    }
+
+    if (hasSinks) {
+        console.log(chalk.white(`${indent}  Sinks`));
+
+        const totalSinks = Number.isFinite(sinkSummary.total)
+            ? sinkSummary.total
+            : Array.isArray(sinkSummary) ? sinkSummary.length : 0;
+        console.log(chalk.white(`${indent}    Registered: ${totalSinks}`));
+
+        const statusCounts = sinkSummary.statusCounts && typeof sinkSummary.statusCounts === 'object'
+            ? sinkSummary.statusCounts
+            : {};
+        const entries = Object.entries(statusCounts).sort((a, b) => a[0].localeCompare(b[0]));
+
+        if (entries.length > 0) {
+            for (const [status, count] of entries) {
+                const label = formatSinkStatus(status);
+                console.log(chalk.white(`${indent}    ${label}: ${count}`));
+            }
+        } else {
+            console.log(chalk.gray(`${indent}    No sink status data.`));
+        }
+
+        if (Number.isFinite(sinkSummary.metricsAvailable)) {
+            console.log(chalk.gray(`${indent}    Sinks with metrics: ${sinkSummary.metricsAvailable}`));
+        }
+
+        if (Number.isFinite(sinkSummary.metricsWithErrors) && sinkSummary.metricsWithErrors > 0) {
+            console.log(chalk.yellow(`${indent}    Sinks reporting metrics errors: ${sinkSummary.metricsWithErrors}`));
+        }
+
+        if (sinkSummary.unhealthy && typeof sinkSummary.unhealthy === 'object') {
+            const failing = Number.isFinite(sinkSummary.unhealthy.failing)
+                ? sinkSummary.unhealthy.failing
+                : 0;
+            const degraded = Number.isFinite(sinkSummary.unhealthy.degraded)
+                ? sinkSummary.unhealthy.degraded
+                : 0;
+
+            if (failing > 0) {
+                console.log(chalk.red(`${indent}    Failing sinks: ${failing}`));
+            }
+
+            if (degraded > 0) {
+                console.log(chalk.yellow(`${indent}    Degraded sinks: ${degraded}`));
+            }
+        }
+    }
+
+    return true;
+};
 
 program
     .name('nimbus')
@@ -854,6 +1308,380 @@ program
             spinner.fail('Activation failed');
             console.error(chalk.red('\n' + error.message + '\n'));
             console.log('Contact support: chairman@parserator.com\n');
+        }
+    });
+
+program
+    .command('observability-stream')
+    .description('Stream anonymized fingerprint telemetry from the dashboard SSE endpoint')
+    .option('--url <url>', 'Observability stream URL', 'http://localhost:3333/api/observability/stream')
+    .option('--cookie <value>', 'guardian_session cookie value or full Cookie header')
+    .option('--header <header...>', 'Additional request header(s) in KEY:VALUE format')
+    .option('--json', 'Print raw JSON payloads instead of formatted summaries')
+    .option('--once', 'Exit after the first fingerprint payload is received')
+    .option('--timeout <seconds>', 'Stop streaming after the specified number of seconds')
+    .option('--quiet', 'Suppress connection status and heartbeat output')
+    .action(async (options) => {
+        const headers = parseHeaderOptions(options.header, {
+            onWarning: (message) => console.log(chalk.yellow(message))
+        });
+
+        const client = new ObservabilityStreamClient({
+            url: options.url,
+            headers,
+            logger: console
+        });
+
+        const spinner = ora('Connecting to observability stream...').start();
+
+        let timeoutId = null;
+        let stopRequested = false;
+        let exitCode = 0;
+        let updateCount = 0;
+
+        const requestStop = (code = 0) => {
+            if (stopRequested) {
+                return;
+            }
+            stopRequested = true;
+            exitCode = code;
+            client.stop();
+        };
+
+        if (options.timeout !== undefined) {
+            const seconds = Number(options.timeout);
+            if (Number.isFinite(seconds) && seconds > 0) {
+                timeoutId = setTimeout(() => {
+                    if (!options.quiet) {
+                        console.log(chalk.yellow('\n⏱️  Timeout reached, closing stream.'));
+                    }
+                    requestStop(0);
+                }, seconds * 1000);
+                timeoutId.unref?.();
+            } else {
+                console.log(chalk.yellow('Ignoring invalid --timeout value. Expected a positive number.'));
+            }
+        }
+
+        const handleSigint = () => {
+            console.log();
+            if (!options.quiet) {
+                console.log(chalk.yellow('Received interrupt. Closing stream...'));
+            }
+            requestStop(0);
+        };
+
+        process.on('SIGINT', handleSigint);
+
+        try {
+            await client.start({
+                cookie: options.cookie,
+                onConnect: () => {
+                    spinner.succeed('Connected to observability stream.');
+                    if (!options.quiet) {
+                        console.log(chalk.gray('Listening for fingerprint updates...'));
+                    }
+                },
+                onHeartbeat: (comment) => {
+                    if (!options.quiet && comment) {
+                        console.log(chalk.gray(`♥ ${comment}`));
+                    }
+                },
+                onData: (payload) => {
+                    updateCount += 1;
+                    if (options.json) {
+                        console.log(JSON.stringify(payload));
+                    } else {
+                        const emittedAt = payload?.emittedAt
+                            ? new Date(payload.emittedAt).toISOString()
+                            : new Date().toISOString();
+                        const recentFingerprints = Array.isArray(payload?.fingerprints?.recentFingerprints)
+                            ? payload.fingerprints.recentFingerprints
+                            : [];
+
+                        console.log(chalk.cyan(`\n📡 Fingerprint update #${updateCount} @ ${emittedAt}`));
+
+                        const printedSummary = printSnapshotSummary(payload?.summary, '  ');
+                        if (!printedSummary) {
+                            const totalTracked = payload?.fingerprints?.totalTracked ?? 0;
+                            console.log(chalk.white(`  Total tracked: ${totalTracked}`));
+                            console.log(chalk.white(`  Recent fingerprints: ${recentFingerprints.length}`));
+                        }
+
+                        if (recentFingerprints.length > 0) {
+                            const latest = recentFingerprints[0];
+                            if (latest) {
+                                console.log(chalk.gray(`  Latest fingerprint: ${latest.fingerprintHash} (sessions: ${latest.sessionCount})`));
+                            }
+                        }
+
+                        if (Array.isArray(payload?.sinks) && payload.sinks.length > 0) {
+                            console.log(chalk.cyan('  Sink telemetry:'));
+                            for (const sink of payload.sinks) {
+                                const name = sink?.name || 'observability-sink';
+                                console.log(chalk.white(`    • ${name}`));
+
+                                const statusLabel = formatSinkStatus(sink?.status);
+                                console.log(`      Status: ${statusLabel}`);
+                                if (sink?.statusReason) {
+                                    console.log(chalk.gray(`      Reason: ${sink.statusReason}`));
+                                }
+
+                                const metrics = sink?.metrics;
+                                if (metrics && typeof metrics === 'object') {
+                                    printMetricTree(metrics, '      ');
+                                } else if (sink?.metricsError) {
+                                    console.log(chalk.yellow(`      metrics error: ${sink.metricsError}`));
+                                } else {
+                                    console.log(chalk.gray('      (metrics unavailable)'));
+                                }
+                            }
+                        } else {
+                            console.log(chalk.gray('  No registered observability sinks.'));
+                        }
+
+                        const fingerprintDelta = payload?.delta?.fingerprints;
+                        const sinkDelta = payload?.delta?.sinks;
+                        if (fingerprintDelta || sinkDelta) {
+                            console.log();
+                            const printedFingerprintDelta = printFingerprintDelta(fingerprintDelta, '  ');
+                            const printedSinkDelta = printSinkDelta(sinkDelta, '  ');
+                            if (!printedFingerprintDelta && !printedSinkDelta) {
+                                console.log(chalk.gray('  No fingerprint or sink deltas detected.'));
+                            }
+                        }
+                    }
+
+                    if (options.once) {
+                        requestStop(0);
+                    }
+                }
+            });
+
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            if (!stopRequested && !options.quiet) {
+                console.log(chalk.gray('\nStream closed by server.'));
+            }
+
+            process.exitCode = exitCode;
+        } catch (error) {
+            spinner.fail('Unable to connect to observability stream');
+            console.error(chalk.red(error.message));
+            process.exitCode = 1;
+        } finally {
+            process.off('SIGINT', handleSigint);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            if (spinner.isSpinning) {
+                spinner.stop();
+            }
+        }
+    });
+
+program
+    .command('observability-status')
+    .description('Fetch a single observability snapshot from the dashboard API')
+    .option('--url <url>', 'Observability status URL', 'http://localhost:3333/api/observability')
+    .option('--cookie <value>', 'guardian_session cookie value or full Cookie header')
+    .option('--header <header...>', 'Additional request header(s) in KEY:VALUE format')
+    .option('--history <count>', 'Include the latest <count> observability snapshots from history')
+    .option('--json', 'Print raw JSON payload instead of a formatted summary')
+    .option('--timeout <seconds>', 'Request timeout in seconds (default: 5)')
+    .action(async (options) => {
+        const headers = parseHeaderOptions(options.header, {
+            onWarning: (message) => console.log(chalk.yellow(message))
+        });
+
+        const timeoutSeconds = Number(options.timeout);
+        const timeoutMs = Number.isFinite(timeoutSeconds) && timeoutSeconds > 0
+            ? timeoutSeconds * 1000
+            : undefined;
+
+        const historyCount = Number.parseInt(options.history, 10);
+        const includeHistory = Number.isFinite(historyCount) && historyCount > 0
+            ? Math.floor(historyCount)
+            : 0;
+
+        const client = new ObservabilityStatusClient({
+            url: options.url,
+            headers,
+            timeoutMs,
+            logger: console
+        });
+
+        const spinner = ora('Fetching observability snapshot...').start();
+
+        try {
+            const snapshot = await client.fetchStatus({ cookie: options.cookie });
+
+            let historyResult = null;
+            if (includeHistory) {
+                spinner.text = 'Fetching observability history...';
+                historyResult = await client.fetchHistory({ cookie: options.cookie, limit: includeHistory });
+            }
+
+            spinner.succeed('Snapshot retrieved.');
+
+            const historyEntries = Array.isArray(historyResult)
+                ? historyResult
+                : Array.isArray(historyResult?.history)
+                    ? historyResult.history
+                    : [];
+            const historyOverview = historyResult && typeof historyResult === 'object'
+                ? historyResult.overview
+                : null;
+
+            if (options.json) {
+                if (includeHistory) {
+                    console.log(JSON.stringify({ snapshot, history: historyEntries, overview: historyOverview }, null, 2));
+                } else {
+                    console.log(JSON.stringify(snapshot, null, 2));
+                }
+                return;
+            }
+
+            if (!snapshot) {
+                console.log(chalk.yellow('No observability snapshot returned.'));
+                if (includeHistory && historyEntries.length > 0) {
+                    if (historyOverview) {
+                        printHistoryOverview(historyOverview);
+                    }
+                    console.log(chalk.cyan('\n🕒 Recent observability history'));
+                    historyEntries.forEach((entry, index) => {
+                        const timestamp = entry?.fingerprints?.generatedAt
+                            || entry?.emittedAt
+                            || 'unknown';
+                        const total = entry?.summary?.fingerprints?.totalTracked
+                            ?? entry?.fingerprints?.totalTracked;
+                        const sinks = entry?.summary?.sinks?.total
+                            ?? (Array.isArray(entry?.sinks) ? entry.sinks.length : 0);
+                        const label = `#${index + 1}`;
+                        console.log(chalk.white(`  ${label}: ${timestamp}`));
+                        if (typeof total === 'number') {
+                            console.log(chalk.gray(`     total tracked: ${total}`));
+                        }
+                        console.log(chalk.gray(`     sinks: ${sinks}`));
+                        const failing = entry?.summary?.sinks?.unhealthy?.failing ?? 0;
+                        const degraded = entry?.summary?.sinks?.unhealthy?.degraded ?? 0;
+                        if (failing > 0) {
+                            console.log(chalk.red(`     failing sinks: ${failing}`));
+                        }
+                        if (degraded > 0) {
+                            console.log(chalk.yellow(`     degraded sinks: ${degraded}`));
+                        }
+                    });
+                } else if (includeHistory) {
+                    console.log(chalk.gray('\nNo observability history available.'));
+                }
+                return;
+            }
+
+            const emittedAt = snapshot?.fingerprints?.generatedAt
+                || snapshot?.emittedAt
+                || new Date().toISOString();
+
+            console.log(chalk.cyan(`\n📊 Observability snapshot @ ${emittedAt}`));
+
+            const printedSummary = printSnapshotSummary(snapshot?.summary, '  ');
+
+            if (!printedSummary) {
+                const fingerprintStats = snapshot?.fingerprints || {};
+                if (typeof fingerprintStats.totalTracked === 'number') {
+                    console.log(chalk.white(`  Total tracked fingerprints: ${fingerprintStats.totalTracked}`));
+                }
+                if (Array.isArray(fingerprintStats.recentFingerprints)) {
+                    console.log(chalk.white(`  Recent fingerprints: ${fingerprintStats.recentFingerprints.length}`));
+                }
+            }
+
+            if (Array.isArray(snapshot?.sinks) && snapshot.sinks.length > 0) {
+                console.log(chalk.cyan('\n🔌 Sink telemetry'));
+                for (const sink of snapshot.sinks) {
+                    const name = sink?.name || 'observability-sink';
+                    console.log(chalk.white(`• ${name}`));
+
+                    const statusLabel = formatSinkStatus(sink?.status);
+                    console.log(`  Status: ${statusLabel}`);
+                    if (sink?.statusReason) {
+                        console.log(chalk.gray(`  Reason: ${sink.statusReason}`));
+                    }
+
+                    const metrics = sink?.metrics;
+                    if (metrics && typeof metrics === 'object') {
+                        printMetricTree(metrics, '  ');
+                    } else if (sink?.metricsError) {
+                        console.log(chalk.yellow(`  metrics error: ${sink.metricsError}`));
+                    } else {
+                        console.log(chalk.gray('  (metrics unavailable)'));
+                    }
+                }
+            } else {
+                console.log(chalk.gray('\nNo registered observability sinks.'));
+            }
+
+            console.log();
+            const printedFingerprintDelta = printFingerprintDelta(snapshot?.delta?.fingerprints);
+            const printedSinkDelta = printSinkDelta(snapshot?.delta?.sinks);
+
+            if (!printedFingerprintDelta && !printedSinkDelta) {
+                console.log(chalk.gray('No recent fingerprint or sink changes detected.'));
+            }
+
+            if (includeHistory) {
+                if (historyOverview) {
+                    printHistoryOverview(historyOverview);
+                }
+
+                if (historyEntries.length > 0) {
+                    console.log(chalk.cyan('\n🕒 Recent observability history'));
+                    historyEntries.forEach((entry, index) => {
+                        const timestamp = entry?.fingerprints?.generatedAt
+                            || entry?.emittedAt
+                            || 'unknown';
+                        const total = entry?.summary?.fingerprints?.totalTracked
+                            ?? entry?.fingerprints?.totalTracked;
+                        const sinks = entry?.summary?.sinks?.total
+                            ?? (Array.isArray(entry?.sinks) ? entry.sinks.length : 0);
+                        const label = `#${index + 1}`;
+                        console.log(chalk.white(`  ${label}: ${timestamp}`));
+                        if (typeof total === 'number') {
+                            console.log(chalk.gray(`     total tracked: ${total}`));
+                        }
+                        if (sinks > 0) {
+                            console.log(chalk.gray(`     sinks: ${sinks}`));
+                        } else {
+                            console.log(chalk.gray('     sinks: 0'));
+                        }
+                        const failing = entry?.summary?.sinks?.unhealthy?.failing ?? 0;
+                        const degraded = entry?.summary?.sinks?.unhealthy?.degraded ?? 0;
+                        if (failing > 0) {
+                            console.log(chalk.red(`     failing sinks: ${failing}`));
+                        }
+                        if (degraded > 0) {
+                            console.log(chalk.yellow(`     degraded sinks: ${degraded}`));
+                        }
+                        const totalDelta = entry?.delta?.fingerprints?.totalTracked?.delta;
+                        if (Number.isFinite(totalDelta) && totalDelta !== 0) {
+                            const deltaLabel = formatDeltaNumber(totalDelta);
+                            console.log(chalk.gray(`     Δ total tracked: ${deltaLabel}`));
+                        }
+                    });
+                } else {
+                    console.log(chalk.gray('\nNo observability history available.'));
+                }
+            }
+        } catch (error) {
+            spinner.fail('Unable to fetch observability snapshot');
+            console.error(chalk.red(error.message));
+            process.exitCode = 1;
+        } finally {
+            if (spinner.isSpinning) {
+                spinner.stop();
+            }
         }
     });
 

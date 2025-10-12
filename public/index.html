@@ -47,6 +47,7 @@
                 <div class="cta-buttons">
                     <a href="#install" class="btn btn-primary">Get Started Free</a>
                     <a href="dashboard.html" class="btn btn-secondary">View Dashboard Demo</a>
+                    <a href="#observability" class="btn btn-ghost">Observability Hub</a>
                 </div>
                 <div class="hero-stats">
                     <div class="stat">
@@ -170,6 +171,58 @@
                     <h3>Deploy</h3>
                     <p>Deploy with confidence!</p>
                     <code>nimbus pre-deploy</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Observability Hub -->
+    <section class="observability-hub" id="observability">
+        <div class="container">
+            <div class="observability-layout">
+                <div class="observability-panel">
+                    <h2 class="section-title">Observability Command Center</h2>
+                    <p class="observability-intro">
+                        Tap straight into live fingerprint telemetry from the CLI or Claude Code plugin without losing the holographic flow.
+                        Stream status updates, pull full history digests, and keep incidents on a short leash while Nimbus keeps the lights neon.
+                    </p>
+                    <ul class="observability-highlights">
+                        <li><span>Claude-first workflow:</span> `/observability-stream`, `/observability-status`, `/observability-history`, `/observability-incidents`, and `/observability-digest` ship inside the local Claude marketplace.</li>
+                        <li><span>CLI parity:</span> `nimbus observability-*` commands mirror the plugin, making it easy to script reports or stash JSON snapshots for your runbooks.</li>
+                        <li><span>Operator fast-lane:</span> Sink metrics, batch telemetry, and incident timelines are always a single command away.</li>
+                    </ul>
+                    <div class="observability-cta">
+                        <a href="https://github.com/Domusgpt/nimbus-guardian/tree/work/claude-plugins" class="btn btn-primary" target="_blank" rel="noopener">Install Claude Bundle</a>
+                        <a href="https://parserstor.com" class="btn btn-ghost" target="_blank" rel="noopener">Visit parserstor.com</a>
+                    </div>
+                    <p class="observability-partners">
+                        parserstor.com is our launch pad for the upcoming Reposiologist and Vib3-Scribe copilots — both tuned to extend this observability lane the moment they drop.
+                    </p>
+                </div>
+                <div class="observability-grid">
+                    <article class="observability-card">
+                        <h3>Live Stream Console</h3>
+                        <p>Watch fingerprint updates roll in via SSE with sink health badges and delta snapshots rendered in realtime.</p>
+                        <code>/observability-stream --watch</code>
+                    </article>
+                    <article class="observability-card">
+                        <h3>One-shot Status</h3>
+                        <p>Grab the latest snapshot, summaries, and sink diagnostics for your war-room docs or incident bridge.</p>
+                        <code>nimbus observability-status --json</code>
+                    </article>
+                    <article class="observability-card">
+                        <h3>History Digest</h3>
+                        <p>Compile rolling summaries, overview analytics, and incident ledgers in a single command — no dashboards required.</p>
+                        <code>/observability-digest</code>
+                    </article>
+                    <article class="observability-card upcoming">
+                        <h3>Next Up: Reposiologist</h3>
+                        <p>Codebase intelligence that feeds the same telemetry fabric. Expect repository heuristics to flow into these cards first.</p>
+                    </article>
+                    <article class="observability-card upcoming">
+                        <h3>Next Up: Vib3-Scribe</h3>
+                        <p>Holographic storytelling for releases and retros — piping annotated observability insights straight into narrative briefs.</p>
+                    </article>
                 </div>
             </div>
         </div>

@@ -260,6 +260,19 @@ body {
     border-color: var(--accent-purple);
 }
 
+.btn-ghost {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+}
+
+.btn-ghost:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 25px var(--glow-cyan);
+    transform: translateY(-2px);
+}
+
 /* Hero Stats */
 .hero-stats {
     display: grid;
@@ -424,6 +437,225 @@ section {
     color: var(--accent-cyan);
     font-family: 'Courier New', monospace;
     font-size: 14px;
+}
+
+.observability-hub {
+    padding: 120px 0;
+    position: relative;
+    background: radial-gradient(circle at top right, rgba(34, 211, 238, 0.08), transparent 55%);
+}
+
+.observability-hub::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.05), transparent);
+    pointer-events: none;
+}
+
+.observability-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+}
+
+.observability-panel {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 48px 40px;
+    backdrop-filter: blur(24px);
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 20px 60px rgba(10, 14, 39, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.observability-panel::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -30%;
+    width: 60%;
+    height: 150%;
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.2), transparent 70%);
+    filter: blur(40px);
+    opacity: 0.8;
+}
+
+.observability-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(34, 211, 238, 0.08));
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+
+.observability-panel:hover::after {
+    opacity: 1;
+}
+
+.observability-intro {
+    color: var(--text-secondary);
+    font-size: 18px;
+    margin-top: 12px;
+    margin-bottom: 28px;
+}
+
+.observability-highlights {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 18px;
+}
+
+.observability-highlights li {
+    position: relative;
+    padding-left: 32px;
+    color: var(--text-secondary);
+}
+
+.observability-highlights li::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    opacity: 0.6;
+    box-shadow: 0 0 18px rgba(34, 211, 238, 0.5);
+}
+
+.observability-highlights li span {
+    color: #fff;
+    font-weight: 600;
+}
+
+.observability-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 36px 0 28px;
+}
+
+.observability-partners {
+    color: rgba(255, 255, 255, 0.55);
+    font-style: italic;
+}
+
+.observability-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+}
+
+.observability-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 22px;
+    padding: 32px 28px;
+    backdrop-filter: blur(18px);
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 16px 40px rgba(10, 14, 39, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+}
+
+.observability-card::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -20%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(34, 211, 238, 0.18), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.observability-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(34, 211, 238, 0.35);
+    box-shadow:
+        0 24px 60px rgba(34, 211, 238, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.observability-card:hover::before {
+    opacity: 1;
+}
+
+.observability-card h3 {
+    font-size: 22px;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.observability-card p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.observability-card code {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: rgba(34, 211, 238, 0.12);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    color: var(--accent-cyan);
+    font-size: 14px;
+}
+
+.observability-card.upcoming {
+    border-style: dashed;
+    border-color: rgba(167, 139, 250, 0.4);
+}
+
+.observability-card.upcoming::before {
+    background: radial-gradient(circle, rgba(167, 139, 250, 0.2), transparent 70%);
+}
+
+.observability-card.upcoming h3 {
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-violet));
+}
+
+.observability-card.upcoming p {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 1024px) {
+    .observability-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .observability-panel {
+        order: 1;
+    }
+
+    .observability-grid {
+        order: 2;
+    }
+}
+
+@media (max-width: 640px) {
+    .observability-panel {
+        padding: 36px 28px;
+    }
+
+    .observability-cta {
+        flex-direction: column;
+        align-items: stretch;
+    }
 }
 
 /* Catches Grid */

@@ -91,7 +91,7 @@ function initMouseParallax() {
         currentY += (mouseY - currentY) * 0.1;
 
         // Apply to feature cards
-        const cards = document.querySelectorAll('.feature-card, .pricing-card');
+        const cards = document.querySelectorAll('.feature-card, .pricing-card, .observability-card');
         cards.forEach((card, index) => {
             const depth = (index % 3 + 1) * 5;
             card.style.transform = `
@@ -123,7 +123,7 @@ function initScrollAnimations() {
     }, observerOptions);
 
     // Observe all cards
-    const cards = document.querySelectorAll('.feature-card, .step, .catch-card, .pricing-card');
+    const cards = document.querySelectorAll('.feature-card, .step, .catch-card, .pricing-card, .observability-card');
     cards.forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(50px)';

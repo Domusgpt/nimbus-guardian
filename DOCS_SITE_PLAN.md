@@ -146,6 +146,18 @@ firebase init hosting
 firebase deploy
 ```
 
+## Observability microsite refresh
+
+To support the Claude Code plugin rollout we’ll sync the main marketing site and docs portal with a light-touch content update that respects the current holographic look-and-feel.
+
+1. **Landing page hero card** – Add a tertiary call-to-action beneath the dashboard showcase that links to [parserstor.com](https://parserstor.com) for deeper partner resources while reusing the existing glowing button styles.
+2. **Observability deep-dive section** – Introduce a new scroll block that mirrors the CLI walkthroughs (`status`, `stream`, `history`, `incidents`, `digest`) with icon tiles and short captions, each pointing back to the on-site documentation.
+3. **Upcoming products teaser** – Reserve a gradient band near the footer that teases the soon-to-be released **Reposiologist** and **Vib3-Scribe** companions, positioning them as complementary storytelling and repository intelligence tools without altering the established typography scale.
+4. **Docs alignment** – Create matching pages inside Docusaurus under `docs/observability/` so the marketing site and documentation share terminology, screenshots, and updated copy.
+5. **Design guardrails** – Lock in the existing font stack, neon grid background, and holographic card treatment; only swap copy and imagery so the vibe stays intact while the content evolves.
+
+These updates can ship as a single content deployment once the new screenshots and copy clear review.
+
 ## Docusaurus Config
 
 ```javascript

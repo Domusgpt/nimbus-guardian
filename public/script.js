@@ -91,7 +91,7 @@ function initMouseParallax() {
         currentY += (mouseY - currentY) * 0.1;
 
         // Apply to feature cards
-        const cards = document.querySelectorAll('.feature-card, .pricing-card');
+        const cards = document.querySelectorAll('.feature-card, .pricing-card, .observability-card, .constellation-card, .trajectory-card, .terminal-card, .terminal-note, .resource-tile, .faq-item');
         cards.forEach((card, index) => {
             const depth = (index % 3 + 1) * 5;
             card.style.transform = `
@@ -123,7 +123,7 @@ function initScrollAnimations() {
     }, observerOptions);
 
     // Observe all cards
-    const cards = document.querySelectorAll('.feature-card, .step, .catch-card, .pricing-card');
+    const cards = document.querySelectorAll('.feature-card, .step, .catch-card, .pricing-card, .observability-card, .constellation-card, .trajectory-card, .terminal-card, .terminal-note, .resource-tile, .faq-item');
     cards.forEach((card, index) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(50px)';
@@ -266,6 +266,80 @@ function initGlowEffects() {
     });
 }
 
+function initOrbitTerminal() {
+    const terminal = document.querySelector('.observability-terminal');
+    if (!terminal) return;
+
+    const tabs = Array.from(terminal.querySelectorAll('.terminal-tab'));
+    const windows = Array.from(terminal.querySelectorAll('.terminal-window'));
+    const notes = Array.from(terminal.querySelectorAll('.terminal-note'));
+    const copyButton = terminal.querySelector('.terminal-copy');
+
+    let activeCommand = tabs.find(tab => tab.classList.contains('is-active'))?.dataset.command || 'status';
+
+    const showCommand = (command) => {
+        activeCommand = command;
+
+        tabs.forEach(tab => {
+            const isActive = tab.dataset.command === command;
+            tab.classList.toggle('is-active', isActive);
+            tab.setAttribute('aria-selected', String(isActive));
+        });
+
+        windows.forEach(win => {
+            const codeEl = win.querySelector('code');
+            const isMatch = codeEl?.dataset.commandContent === command;
+            win.classList.toggle('is-hidden', !isMatch);
+        });
+
+        notes.forEach(note => {
+            const isMatch = note.dataset.commandNote === command;
+            note.classList.toggle('is-hidden', !isMatch);
+        });
+    };
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => showCommand(tab.dataset.command));
+        tab.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                showCommand(tab.dataset.command);
+            }
+        });
+    });
+
+    if (copyButton) {
+        copyButton.addEventListener('click', async () => {
+            const windowEl = windows.find(win => !win.classList.contains('is-hidden'));
+            const codeText = windowEl?.textContent?.trim();
+            if (!codeText) return;
+
+            try {
+                await navigator.clipboard.writeText(codeText);
+                const original = copyButton.textContent;
+                copyButton.textContent = 'Copied!';
+                copyButton.classList.add('is-success');
+
+                setTimeout(() => {
+                    copyButton.textContent = original;
+                    copyButton.classList.remove('is-success');
+                }, 1800);
+            } catch (error) {
+                const original = copyButton.textContent;
+                copyButton.textContent = 'Copy failed';
+                copyButton.classList.add('is-error');
+
+                setTimeout(() => {
+                    copyButton.textContent = original;
+                    copyButton.classList.remove('is-error');
+                }, 2000);
+            }
+        });
+    }
+
+    showCommand(activeCommand);
+}
+
 // Initialize all effects when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     console.log('☁️ Nimbus - AI-Powered Cloud Guardian');
@@ -279,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initCodeCopy();
     initStatsCounter();
     initGlowEffects();
+    initOrbitTerminal();
 
     console.log('✨ All systems operational');
 });

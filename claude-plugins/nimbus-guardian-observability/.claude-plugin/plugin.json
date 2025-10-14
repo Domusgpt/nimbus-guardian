@@ -1,0 +1,8 @@
+{
+  "name": "nimbus-guardian-observability",
+  "description": "Adds Claude Code commands for streaming, inspecting, and triaging Nimbus Guardian observability telemetry.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Nimbus Guardian Team"
+  }
+}

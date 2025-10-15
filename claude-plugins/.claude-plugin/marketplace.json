@@ -1,0 +1,13 @@
+{
+  "name": "claude-plugins",
+  "owner": {
+    "name": "Nimbus Guardian"
+  },
+  "plugins": [
+    {
+      "name": "nimbus-guardian-observability",
+      "source": "./nimbus-guardian-observability",
+      "description": "Commands for working with Nimbus Guardian observability telemetry from Claude Code."
+    }
+  ]
+}

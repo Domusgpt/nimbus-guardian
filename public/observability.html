@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nimbus Observability Orbit – explore the Claude Code plugin, CLI digest flow, and Parserstor roadmap without losing the holographic vibe.">
+    <meta property="og:title" content="Nimbus Observability Orbit">
+    <meta property="og:description" content="Install the Claude Code plugin, stream telemetry from the CLI, and meet the Parserstor constellation.">
+    <title>Nimbus Observability Orbit</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="observability-page">
+    <div id="particles-container"></div>
+    <div class="scan-line"></div>
+
+    <header class="observability-nav">
+        <a href="/" class="nav-logo">Nimbus</a>
+        <nav>
+            <a href="/">Home</a>
+            <a href="#plugin">Plugin</a>
+            <a href="#cli">CLI</a>
+            <a href="#constellation">Parserstor</a>
+            <a href="#resources">Resources</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="observability-hero">
+            <div class="container">
+                <div class="observability-hero__content">
+                    <span class="hero-kicker">Observability Orbit</span>
+                    <h1>Stream Nimbus Telemetry Anywhere</h1>
+                    <p>
+                        Install the Claude Code plugin, pull complete telemetry from the CLI, and stay informed about the
+                        Parserstor roadmap while the main dashboard finishes its polish. Everything here is designed to be
+                        easy to follow without losing the site’s signature presentation.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="btn btn-primary" href="https://github.com/Domusgpt/nimbus-guardian/tree/main/claude-plugins/nimbus-guardian-observability#readme" target="_blank" rel="noreferrer noopener">Install Claude Plugin</a>
+                        <a class="btn btn-outline" href="#cli">See Digest Flow</a>
+                    </div>
+                </div>
+                <div class="observability-hero__visual">
+                    <div class="holo-ring holo-ring--outer"></div>
+                    <div class="holo-ring holo-ring--inner"></div>
+                    <div class="holo-orbit">
+                        <span class="holo-node">Status</span>
+                        <span class="holo-node">Stream</span>
+                        <span class="holo-node">History</span>
+                        <span class="holo-node">Incidents</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="plugin" class="observability-section">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--cyan">Claude Code</span>
+                    <h2>Meet the Observability Plugin</h2>
+                    <p>
+                        Bring observability data directly into Claude Code. The plugin mirrors the dashboard APIs so every
+                        conversation can surface status, streaming, history, and incident context on demand.
+                    </p>
+                </header>
+                <div class="observability-columns">
+                    <article class="holo-panel">
+                        <h3>Included Commands</h3>
+                        <ul class="icon-list">
+                            <li><code>/observability-status</code> – live snapshot with sink health.</li>
+                            <li><code>/observability-history</code> – rolling window with summary insights.</li>
+                            <li><code>/observability-stream</code> – SSE stream viewer with graceful teardown.</li>
+                            <li><code>/observability-incidents</code> – filterable incident tracker.</li>
+                            <li><code>/observability-digest</code> – snapshot, history, and incident bundle.</li>
+                        </ul>
+                    </article>
+                    <article class="holo-panel">
+                        <h3>Trust & Install</h3>
+                        <ol class="numbered">
+                            <li>Open Claude Code in the repository root.</li>
+                            <li>Add the local marketplace: <code>/plugin marketplace add ./claude-plugins</code>.</li>
+                            <li>Install the bundle: <code>/plugin install nimbus-guardian-observability@claude-plugins</code>.</li>
+                            <li>Run <code>/observability-status</code> to verify the commands are available.</li>
+                        </ol>
+                        <p class="panel-footnote">Each command includes inline documentation for quick reference.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="playbook" class="observability-section observability-section--playbook">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--violet">Operator Playbook</span>
+                    <h2>Roll Out the Orbit in Four Moves</h2>
+                    <p>
+                        Follow this short checklist to keep Claude Code, the CLI, and dashboard teams aligned. Each
+                        step mirrors the README guidance without adding marketing fluff.
+                    </p>
+                </header>
+                <div class="playbook-grid">
+                    <article class="playbook-step">
+                        <span class="playbook-step__index">01</span>
+                        <h3>Prep the Workspace</h3>
+                        <p>
+                            Trust the repository inside Claude Code, sync <code>npm install</code>, and confirm the
+                            dashboard environment variables you plan to expose to operators.
+                        </p>
+                        <ul>
+                            <li>Review <code>.env.example</code> for sink toggles.</li>
+                            <li>Capture a fresh session cookie for authenticated calls.</li>
+                        </ul>
+                    </article>
+                    <article class="playbook-step">
+                        <span class="playbook-step__index">02</span>
+                        <h3>Enable Claude Commands</h3>
+                        <p>
+                            Add the local marketplace and install the observability plugin so conversations can pull
+                            status, stream, history, and incident data without leaving Claude.
+                        </p>
+                        <ul>
+                            <li>Run <code>/plugin marketplace add ./claude-plugins</code>.</li>
+                            <li>Install <code>nimbus-guardian-observability@claude-plugins</code>.</li>
+                        </ul>
+                    </article>
+                    <article class="playbook-step">
+                        <span class="playbook-step__index">03</span>
+                        <h3>Mirror Telemetry from CLI</h3>
+                        <p>
+                            Give automation the same insight by installing the CLI and scheduling digest runs that
+                            archive snapshots, history, and incidents.
+                        </p>
+                        <ul>
+                            <li><code>npm install -g nimbus-guardian</code></li>
+                            <li><code>nimbus observability-digest --history --incidents --format json</code></li>
+                        </ul>
+                    </article>
+                    <article class="playbook-step">
+                        <span class="playbook-step__index">04</span>
+                        <h3>Confirm Sinks and Sharing</h3>
+                        <p>
+                            Double-check disk and webhook sinks, point stakeholders to the Orbit microsite, and log the
+                            rollout in your runbook so the team knows where to find telemetry.
+                        </p>
+                        <ul>
+                            <li>Verify <code>GUARDIAN_OBSERVABILITY_LOG_PATH</code> or webhook settings.</li>
+                            <li>Share <code>/observability.html</code> and parserstor.com for roadmap context.</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="cli" class="observability-section observability-section--accent">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--violet">CLI Digest</span>
+                    <h2>One Command for Total Telemetry</h2>
+                    <p>
+                        Generate the same telemetry from your terminal or automation. Batching, JSON output, and header
+                        controls keep the CLI aligned with Claude Code and the dashboard.
+                    </p>
+                </header>
+                <div class="observability-columns">
+                    <article class="holo-panel">
+                        <h3>Quick Start</h3>
+                        <pre><code>npm install -g nimbus-guardian
+nimbus observability-digest --history --incidents --format table</code></pre>
+                        <p class="panel-footnote">Use <code>--format json</code> for automation pipelines or <code>--once</code> for a single update.</p>
+                    </article>
+                    <article class="holo-panel">
+                        <h3>Outputs You Get</h3>
+                        <ul class="icon-list">
+                            <li>Latest snapshot with fingerprint and sink summaries.</li>
+                            <li>Rolling history including overview analytics.</li>
+                            <li>Incident ledger with duration, status, and reason codes.</li>
+                            <li>Exit codes wired for CI/CD fast-fails.</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="orbit-terminal" class="observability-section observability-terminal">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--violet">Orbit Terminal</span>
+                    <h2>Preview the Commands Before You Install</h2>
+                    <p>
+                        Review command syntax, copy common flags, and skim quick notes before running anything locally. The
+                        Orbit Terminal mirrors the Claude plugin docs so teams can share the same reference.
+                    </p>
+                </header>
+                <div class="terminal-grid">
+                    <div class="terminal-card">
+                        <div class="terminal-card__header">
+                            <div class="terminal-tabs" role="tablist">
+                                <button class="terminal-tab is-active" role="tab" aria-selected="true" data-command="status">Status Pulse</button>
+                                <button class="terminal-tab" role="tab" aria-selected="false" data-command="stream">Live Stream</button>
+                                <button class="terminal-tab" role="tab" aria-selected="false" data-command="history">History Sweep</button>
+                                <button class="terminal-tab" role="tab" aria-selected="false" data-command="incidents">Incident Ledger</button>
+                                <button class="terminal-tab" role="tab" aria-selected="false" data-command="digest">Digest Bundle</button>
+                            </div>
+                            <button class="terminal-copy" type="button" aria-label="Copy command">Copy</button>
+                        </div>
+                        <pre class="terminal-window" aria-live="polite"><code data-command-content="status">nimbus observability-status \
+  --timeout 8000 \
+  --format table</code></pre>
+                        <pre class="terminal-window is-hidden"><code data-command-content="stream">nimbus observability-stream \
+  --cookie "guardian_session=..." \
+  --heartbeat 15000</code></pre>
+                        <pre class="terminal-window is-hidden"><code data-command-content="history">nimbus observability-history \
+  --limit 10 \
+  --overview</code></pre>
+                        <pre class="terminal-window is-hidden"><code data-command-content="incidents">nimbus observability-incidents \
+  --status degraded,failing \
+  --format json</code></pre>
+                        <pre class="terminal-window is-hidden"><code data-command-content="digest">nimbus observability-digest \
+  --history --incidents \
+  --output ./orbit-digest.json</code></pre>
+                    </div>
+                    <aside class="terminal-notes" aria-live="polite">
+                        <div class="terminal-note" data-command-note="status">
+                            <h3>Why Run Status?</h3>
+                            <p>Collect a one-shot snapshot with fingerprint deltas, sink summaries, and health badges.
+                                Ideal for CI checks or quick reviews inside Claude conversations.</p>
+                        </div>
+                        <div class="terminal-note is-hidden" data-command-note="stream">
+                            <h3>Why Run Stream?</h3>
+                            <p>Follow live fingerprint updates. Graceful teardown keeps the terminal clean while sink
+                                metrics refresh as soon as exporters emit new telemetry.</p>
+                        </div>
+                        <div class="terminal-note is-hidden" data-command-note="history">
+                            <h3>Why Run History?</h3>
+                            <p>Review the rolling buffer, summary analytics, and incident counts in one view. Helpful for
+                                daily standups or retrospectives.</p>
+                        </div>
+                        <div class="terminal-note is-hidden" data-command-note="incidents">
+                            <h3>Why Run Incidents?</h3>
+                            <p>Filter for degraded or failing windows to see how long each sink struggled and why alerts
+                                fired.</p>
+                        </div>
+                        <div class="terminal-note is-hidden" data-command-note="digest">
+                            <h3>Why Run Digest?</h3>
+                            <p>Bundle a snapshot, history insights, and the incident ledger into one JSON or table-friendly
+                                report for sharing or automation.</p>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="observability-section observability-section--faq">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--cyan">Operator FAQ</span>
+                    <h2>Answers at a Glance</h2>
+                    <p>
+                        Keep the rollout grounded with concise responses to the questions stakeholders ask most often. The FAQ
+                        keeps installation, telemetry, and roadmap expectations aligned with the README and docs plan.
+                    </p>
+                </header>
+                <div class="faq-grid">
+                    <details class="faq-item" open>
+                        <summary>How do we install the Claude plugin safely?</summary>
+                        <p>
+                            Trust the repository folder in Claude Code, then run
+                            <code>/plugin marketplace add ./claude-plugins</code> followed by
+                            <code>/plugin install nimbus-guardian-observability@claude-plugins</code>. The repository’s
+                            marketplace manifest pins the exact plugin version so reviews stay predictable.
+                        </p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Can the CLI share the same telemetry?</summary>
+                        <p>
+                            Yes. The <code>nimbus observability-digest</code> command calls the same exporter endpoints as the
+                            plugin and returns snapshots, history, and incident reports in one run. Pass
+                            <code>--format json</code> to integrate the output with automation or monitoring pipelines.
+                        </p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>Where should we send stakeholders for roadmap updates?</summary>
+                        <p>
+                            Point them to <a href="https://parserstor.com" target="_blank" rel="noreferrer noopener">parserstor.com</a>
+                            for constellation announcements. The site highlights Nimbus today and cues the upcoming
+                            Reposiologist and Vib3-Scribe releases without over-promising timelines.
+                        </p>
+                    </details>
+                    <details class="faq-item">
+                        <summary>What if someone still prefers the dashboard?</summary>
+                        <p>
+                            The dashboard is still the primary destination. The plugin, CLI, and Orbit microsite exist to keep
+                            teams productive while the UI polish finishes. Everything here maps directly back to the dashboard
+                            APIs, so there is no divergent behavior to reconcile later.
+                        </p>
+                    </details>
+                </div>
+            </div>
+        </section>
+
+        <section id="constellation" class="observability-section">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--pink">Parserstor Constellation</span>
+                    <h2>The Orbit Gets Bigger</h2>
+                    <p>
+                        Parserstor.com anchors the next stage. Nimbus delivers observability today, with Reposiologist and
+                        Vib3-Scribe preparing to join the platform soon.
+                    </p>
+                </header>
+                <div class="constellation-grid">
+                    <article class="constellation-card">
+                        <h3>Nimbus Guardian</h3>
+                        <p>Telemetry exporter, webhook sinks, history timelines, and incident intelligence ready now.</p>
+                        <a class="card-link" href="https://github.com/Domusgpt/nimbus-guardian" target="_blank" rel="noreferrer noopener">Explore the repo →</a>
+                    </article>
+                    <article class="constellation-card">
+                        <h3>Reposiologist</h3>
+                        <p>Repository intelligence that highlights code drift and context ahead of releases.</p>
+                        <span class="card-chip">Docking Soon</span>
+                    </article>
+                    <article class="constellation-card">
+                        <h3>Vib3-Scribe</h3>
+                        <p>Tone-aware release documentation designed to summarize launches with consistent language.</p>
+                        <span class="card-chip">Docking Soon</span>
+                    </article>
+                    <article class="constellation-card">
+                        <h3>Parserstor Portal</h3>
+                        <p>Visit <a href="https://parserstor.com" target="_blank" rel="noreferrer noopener">parserstor.com</a> for roadmap updates and early access information.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="resources" class="observability-section observability-section--compact">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--cyan">Resources</span>
+                    <h2>Keep the Signals Flowing</h2>
+                    <p>Jump into the docs, review the dashboard server, or configure webhook and disk sinks.</p>
+                </header>
+                <div class="resource-grid">
+                    <a class="resource-tile" href="https://github.com/Domusgpt/nimbus-guardian/blob/main/README.md" target="_blank" rel="noreferrer noopener">
+                        <h3>Operator README</h3>
+                        <p>Everything you need to install, configure, and monitor Nimbus Guardian.</p>
+                    </a>
+                    <a class="resource-tile" href="https://github.com/Domusgpt/nimbus-guardian/blob/main/DOCS_SITE_PLAN.md" target="_blank" rel="noreferrer noopener">
+                        <h3>Site Roadmap</h3>
+                        <p>See how the holographic web experience expands with each drop.</p>
+                    </a>
+                    <a class="resource-tile" href="https://github.com/Domusgpt/nimbus-guardian/blob/main/DEV_NOTES.md" target="_blank" rel="noreferrer noopener">
+                        <h3>Dev Notes</h3>
+                        <p>Track session-by-session progress, including observability milestones.</p>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section id="trajectory" class="observability-section observability-trajectory">
+            <div class="container">
+                <header class="section-header">
+                    <span class="badge badge--cyan">Trajectory</span>
+                    <h2>Orbit Timeline</h2>
+                    <p>Follow the releases that shaped the observability stack and see what the Parserstor expansion will unlock.</p>
+                </header>
+                <div class="trajectory-grid">
+                    <article class="trajectory-card">
+                        <span class="trajectory-era">Sessions 20-24</span>
+                        <h3>Exporter Awakening</h3>
+                        <p>SSE, log sinks, webhooks, and batching controls turned Nimbus into a multi-channel telemetry
+                            core.</p>
+                    </article>
+                    <article class="trajectory-card">
+                        <span class="trajectory-era">Sessions 25-31</span>
+                        <h3>Insight Layers</h3>
+                        <p>Deltas, summaries, and overview analytics gave operators high-signal snapshots in every medium.</p>
+                    </article>
+                    <article class="trajectory-card">
+                        <span class="trajectory-era">Sessions 32-36</span>
+                        <h3>Claude Orbit</h3>
+                        <p>Plugin packaging, CLI digest tooling, and marketplace docs aligned Claude Code with the dashboard.</p>
+                    </article>
+                    <article class="trajectory-card">
+                        <span class="trajectory-era">Soon</span>
+                        <h3>Parserstor Sync</h3>
+                        <p>Reposiologist and Vib3-Scribe dock with shared incident intelligence so storytelling and telemetry
+                            stay in lockstep.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="observability-footer">
+        <div class="container">
+            <p>© 2025 Nimbus Guardian · A Parserstor Initiative · Crafted by Clear Seas Solutions LLC</p>
+            <a href="mailto:chairman@parserator.com">Contact</a>
+        </div>
+    </footer>
+
+    <script src="script.js" defer></script>
+</body>
+</html>

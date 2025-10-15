@@ -146,6 +146,22 @@ firebase init hosting
 firebase deploy
 ```
 
+## Observability microsite refresh
+
+To support the Claude Code plugin rollout we’ll sync the main marketing site and docs portal with a content update that keeps the existing holographic styling but tightens the message.
+
+1. **Landing page hero card** – Add a tertiary call-to-action beneath the dashboard showcase that links to [parserstor.com](https://parserstor.com) for roadmap details while reusing the current button treatment.
+2. **Observability deep-dive section** – Introduce a scroll block that mirrors the CLI walkthroughs (`status`, `stream`, `history`, `incidents`, `digest`) with icon tiles and short captions, each pointing back to the on-site documentation.
+3. **Upcoming products teaser** – Reserve a gradient band near the footer that mentions the forthcoming **Reposiologist** and **Vib3-Scribe** companions as complementary repository intelligence and release documentation tools.
+4. **Docs alignment** – Create matching pages inside Docusaurus under `docs/observability/` so the marketing site and documentation share terminology, screenshots, and updated copy.
+5. **Design guardrails** – Keep the existing font stack, grid background, and holographic card treatment; refresh only the copy and supporting imagery.
+6. **Orbit Terminal preview** – Embed a code-preview surface that rotates through CLI commands, includes copy-to-clipboard helpers, and summarizes when to use each flow. Mirror the same content in the docs portal.
+7. **Trajectory timeline** – Highlight major exporter, CLI, and plugin releases in a concise roadmap block so stakeholders can retell the observability story without digging through development notes.
+8. **Operator FAQ** – Publish a short, direct FAQ on both the microsite and docs portal that covers installation safety, CLI parity, roadmap links, and dashboard expectations so stakeholders get consistent answers.
+9. **Operator playbook** – Pair the FAQ with a concise four-step rollout checklist so teams know how to install the plugin, mirror telemetry through the CLI, validate sinks, and circulate the microsite.
+
+These updates can ship as a single content deployment once the new screenshots and copy clear review.
+
 ## Docusaurus Config
 
 ```javascript

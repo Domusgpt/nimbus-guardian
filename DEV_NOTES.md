@@ -151,11 +151,194 @@ Centralized session-by-session log of Nimbus Guardian workstreams and forward-lo
   - Expanded automated coverage with dedicated fingerprint store tests and refreshed integration harness stubs to validate the new telemetry.
 - **Tests**: `npm test`
 
+### Session 20 – Streaming fingerprint exporter
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Built an `ObservabilityExporter` SSE helper to stream anonymized fingerprint summaries to remote subscribers without leaking identifiers.
+  - Added a `/api/observability/stream` endpoint and README guidance so operators can tail live fingerprint metrics with curl or log forwarders.
+  - Extended the dashboard integration suite to validate the streaming feed alongside new unit coverage for the exporter utility.
+- **Tests**: `npm test`
+
+### Session 21 – CLI observability subscriber
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added a reusable observability stream client that parses SSE payloads and handles graceful shutdowns for dashboards without browsers.
+  - Introduced a `nimbus observability-stream` command with JSON, timeout, and single-shot flags so operators can monitor telemetry from terminals or pipelines.
+  - Documented the CLI workflow in the README for smoother onboarding to the streaming exporter.
+- **Tests**: `npm test`
+
+### Session 22 – Disk-backed observability sink
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Extended the observability exporter with reusable sink hooks so telemetry can be forwarded beyond SSE clients.
+  - Added a rotating log sink that persists fingerprint snapshots to disk when `GUARDIAN_OBSERVABILITY_LOG_PATH` is set.
+  - Documented the new workflow and expanded unit and integration coverage for sink behavior and dashboard plumbing.
+- **Tests**: `npm test`
+
+### Session 23 – Remote webhook observability sink
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added an HTTP webhook sink with retry logic so snapshots can stream to remote monitoring stacks alongside on-disk archives.
+  - Wired the dashboard to hydrate webhook options from environment variables, including custom headers, timeouts, and retry caps.
+  - Documented the webhook workflow and expanded automated coverage with targeted sink tests plus dashboard plumbing verification.
+- **Tests**: `npm test`
+
+### Session 24 – Webhook batching guardrails
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added queue-aware delivery to the observability webhook sink with configurable batch, byte, and time thresholds.
+  - Extended the dashboard environment contract and README guidance to surface the new batching controls and payload shape.
+  - Expanded unit and integration coverage to validate batching flushes, manual drains, and dashboard wiring under test factories.
+- **Tests**: `npm test`
+
+### Session 25 – Sink telemetry surfaced through observability API
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Extended the observability exporter so sinks can register telemetry callbacks and surfaced their status via `/api/observability`.
+  - Added delivery health reporting to the disk log and webhook sinks, including queue depth, last HTTP outcome, and rotation metadata.
+  - Updated dashboard wiring, README guidance, and automated coverage to validate telemetry serialization and sink metrics.
+- **Tests**: `npm test`
+
+### Session 26 – Snapshot CLI for sink telemetry
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added an `ObservabilityStatusClient` helper with cookie normalization and robust error handling to fetch `/api/observability` snapshots.
+  - Introduced a `nimbus observability-status` command that prints formatted sink metrics or raw JSON with custom headers and timeouts.
+  - Documented the new CLI workflow alongside updated unit coverage for the status client.
+- **Tests**: `npm test`
+
+### Session 27 – Sink health classifications
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Introduced sink health heuristics so `/api/observability` responses annotate each sink with `status` and `statusReason` values.
+  - Instrumented the disk log sink with delivery counters, surfaced CLI status badges, and documented the new health reporting workflow.
+  - Added targeted unit coverage for sink health classification plus delivery metric tracking on the log sink.
+- **Tests**: `npm test`
+
+### Session 28 – Webhook batching telemetry insights
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Instrumented the observability webhook sink with `batchingStats` counters that capture flush triggers, largest batches, and the most recent flush reason/timestamp.
+  - Enhanced the `nimbus observability-status` CLI to render nested sink metrics so batching statistics remain grouped with queue and delivery details.
+  - Documented the new telemetry output and covered the batching counters with unit tests.
+- **Tests**: `npm test`
+
+### Session 29 – Stream sink telemetry live
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Taught the observability exporter to publish sink telemetry alongside fingerprint snapshots and expose a `notifySinkUpdate()` hook for realtime broadcasts.
+  - Wired the disk log and webhook sinks to emit telemetry change notifications, refreshed the streaming CLI to render per-sink metrics, and updated documentation accordingly.
+  - Added focused unit coverage to confirm sink notifications trigger SSE updates without duplicating payloads and that new callbacks fire for log/webhook sinks.
+- **Tests**: `npm test`
+
+### Session 30 – Observability history timelines
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Extended the observability exporter with a bounded history buffer so snapshots persist even when no streams or sinks are registered.
+  - Exposed `/api/observability/history` plus a `--history` flag on `nimbus observability-status` to surface recent fingerprint totals and sink counts from the CLI or API.
+  - Documented the new workflow, wired the dashboard to honor `GUARDIAN_OBSERVABILITY_HISTORY_LIMIT`, and added regression tests for the exporter, client, and server endpoint.
+- **Tests**: `npm test`
+
+### Session 31 – Snapshot delta insights
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Augmented the observability exporter with change detection so every snapshot carries fingerprint and sink deltas for downstream tooling.
+  - Enhanced the streaming and status CLI commands to highlight the new delta sections alongside totals, improving operator visibility without parsing JSON manually.
+  - Documented the delta workflow in the README and refreshed coverage to validate exporter diffs, history cloning, and CLI rendering helpers.
+- **Tests**: `npm test`
+
+### Session 32 – Snapshot rollups at a glance
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added summary generation to the observability exporter so each payload and history entry now includes aggregated fingerprint and sink metrics.
+  - Refreshed the observability CLI commands to render the new summary block and highlight unhealthy sink counts within live and historical output.
+  - Documented the summary workflow and expanded automated coverage to validate summary cloning, history persistence, and CLI formatting helpers.
+- **Tests**: `npm test`
+
+### Session 33 – History trend overview
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Instrumented the observability exporter to compute history overview analytics—coverage window, fingerprint averages, sink status transitions, and metric error counts—whenever snapshots are retrieved.
+  - Updated the dashboard API and status CLI to surface the new `overview` block, printing aggregated trends before recent history entries and returning it in JSON for automation.
+  - Documented the history analytics workflow and added focused exporter/client/server tests to lock in the new summary behavior for bounded and full-window queries.
+- **Tests**: `npm test`
+
+### Session 34 – Sink incident timelines
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Taught the observability exporter to detect degraded/failing sink incidents across history windows, capturing durations, status tallies, and per-sink breakdowns alongside existing overview analytics.
+  - Refreshed the CLI history output to render the new incident summary, including recent events, open counts, and the longest outage duration for fast operator triage.
+  - Documented the incident ledger payload in the README and expanded exporter tests to cover closed and ongoing incidents plus overview wiring for limited history queries.
+- **Tests**: `npm test`
+
+### Session 35 – Incident reporting utilities
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added an on-demand `getIncidentReport()` helper to the observability exporter and exposed it via `/api/observability/incidents` with support for status, sink, open/closed, and limit filters.
+  - Introduced a `nimbus observability-incidents` CLI command that fetches the new endpoint, prints filter-aware summaries, and supports JSON output for automation.
+  - Documented the incident reporting workflow, refreshed the README with usage examples, and expanded exporter, client, and dashboard integration tests to cover the new API surface.
+- **Tests**: `npm test`
+
+### Session 36 – Claude Code observability plugin
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Packaged the observability CLI helpers into a Claude Code plugin with commands for status, history, streaming, and incident reports.
+  - Added a local marketplace manifest plus plugin documentation so contributors can install `/observability-*` commands directly from this repository.
+  - Updated the README to advertise the plugin workflow alongside existing dashboard documentation.
+- **Tests**: _Not applicable (documentation + plugin scaffolding)_
+
+### Session 37 – Observability digest CLI
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added a `nimbus observability-digest` command that reuses shared rendering helpers to print snapshots, history, and incident ledgers in one run.
+  - Refactored the CLI history printing into reusable helpers so status and digest commands stay consistent.
+  - Documented the digest workflow across the README and Claude plugin, including a new `/observability-digest` command for Claude Code users.
+- **Tests**: `npm test`
+
+### Session 38 – Observability web rollout plan
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Added a README roadmap for the upcoming observability site refresh so the Claude plugin and CLI tooling are discoverable without disrupting the holographic aesthetic.
+  - Expanded `DOCS_SITE_PLAN.md` with a coordinated marketing/docs content plan linking to [parserstor.com](https://parserstor.com) and teasing the upcoming Reposiologist and Vib3-Scribe companions.
+- **Tests**: _Not applicable (documentation planning)_
+
+### Session 39 – Orbit terminal and timeline
+- **Date**: 2025-10-10 (UTC)
+- **Completed**
+  - Built an interactive Orbit Terminal on the observability microsite with tabbed CLI previews, copy-to-clipboard helpers, and contextual run guides that mirror the Claude plugin docs.
+  - Added a trajectory timeline plus supporting styles so visitors can replay key exporter, CLI, and plugin milestones while staying in the holographic aesthetic.
+  - Synced the README and documentation plan with the new microsite sections to keep marketing, docs, and web copy aligned.
+- **Tests**: `npm test`
+
+### Session 40 – Observability copy refinements
+- **Date**: 2025-10-11 (UTC)
+- **Completed**
+  - Rewrote microsite and landing page copy to keep the observability story clear while still matching the holographic presentation.
+  - Updated the README and documentation plan to mirror the streamlined messaging and highlight parserstor.com, Reposiologist, and Vib3-Scribe without overhyping them.
+  - Logged the tone adjustments for future contributors so follow-up design passes can stay consistent.
+- **Tests**: `npm test`
+
+### Session 41 – Operator FAQ rollout
+- **Date**: 2025-10-11 (UTC)
+- **Completed**
+  - Added an Operator FAQ block to the Observability Orbit microsite so install, CLI parity, roadmap, and dashboard alignment answers stay direct.
+  - Styled the FAQ with holographic cards and animation hooks to match the rest of the microsite without distracting from the tone refresh.
+  - Synced the README and documentation plan with the new FAQ guidance so docs and marketing reference the same messaging.
+- **Tests**: `npm test`
+
+### Session 42 – Operator playbook
+- **Date**: 2025-10-11 (UTC)
+- **Completed**
+  - Added a four-step Operator Playbook section to the Observability Orbit microsite so installation, CLI parity, sink validation, and sharing stay action-oriented.
+  - Extended the holographic styles and animation hooks to cover the new playbook cards without breaking existing parallax interactions.
+  - Updated the README and documentation site plan to call out the playbook alongside the FAQ for consistent rollout guidance.
+- **Tests**: `npm test`
+
 ## Upcoming Focus
-- Explore streaming fingerprint summaries into the observability exporter so remote dashboards can ingest hashed session insights.
 - Continue migrating marketing and documentation assets to reference the living development log for onboarding new contributors.
 - Explore lightweight mocks for git and deployment data so integration tests can assert dashboard presentation without shelling out to real services.
-- Assess lightweight exporters so observability snapshots can be pushed to operator-controlled sinks or logs for remote dashboards.
+- Evaluate lightweight CLI tooling that can authenticate and subscribe to the SSE observability feed without manual cookie handling.
+- Assess whether webhook batching metrics should surface in the observability API so operators can confirm downstream delivery health.
 
 ## Session Update Template
 Use the template below when adding the next session entry:
